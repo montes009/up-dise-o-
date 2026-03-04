@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UP Equipment — Plataformas Elevadoras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #E3000F;
+    --red-dark: #b50009;
+    --black: #0a0a0a;
+    --dark: #111111;
+    --dark2: #1a1a1a;
+    --gray: #2a2a2a;
+    --gray2: #3d3d3d;
+    --light: #f0f0f0;
+    --white: #ffffff;
+    --font-head: 'Barlow Condensed', sans-serif;
+    --font-body: 'Barlow', sans-serif;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--black); }
+  ::-webkit-scrollbar-thumb { background: var(--red); }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 60px;
+    background: rgba(10,10,10,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(227,0,15,0.15);
+    transition: padding 0.3s;
+  }
+  nav.scrolled { padding: 12px 60px; }
+  .nav-logo img { height: 38px; filter: brightness(0) invert(none); }
+  .nav-links { display: flex; gap: 36px; list-style: none; }
+  .nav-links a {
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    font-family: var(--font-head);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    transition: color 0.2s;
+    position: relative;
+  }
+  .nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -4px; left: 0;
+    width: 0; height: 2px;
+    background: var(--red);
+    transition: width 0.25s;
+  }
+  .nav-links a:hover { color: var(--white); }
+  .nav-links a:hover::after { width: 100%; }
+  .nav-cta {
+    background: var(--red);
+    color: var(--white) !important;
+    padding: 10px 24px !important;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+    transition: background 0.2s !important;
+  }
+  .nav-cta:hover { background: var(--red-dark) !important; }
+  .nav-cta::after { display: none !important; }
+
+  /* ─── HERO ─── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    padding: 160px 60px 80px;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,0,0,0.97) 0%, rgba(10,10,10,0.85) 50%, rgba(20,0,0,0.9) 100%);
+    z-index: 1;
+  }
+  .hero-img {
+    position: absolute;
+    inset: 0;
+    background-image: url('imagenes/portada.jpg');
+    background-size: cover;
+    background-position: center right;
+    z-index: 0;
+  }
+  /* Triangle decorations */
+  .tri-deco {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .tri-1 {
+    top: -60px; right: -60px;
+    width: 0; height: 0;
+    border-left: 320px solid transparent;
+    border-top: 320px solid rgba(227,0,15,0.12);
+  }
+  .tri-2 {
+    bottom: 0; right: 160px;
+    width: 0; height: 0;
+    border-left: 180px solid transparent;
+    border-bottom: 180px solid rgba(227,0,15,0.08);
+  }
+  .tri-3 {
+    top: 40%; right: 8%;
+    width: 0; height: 0;
+    border-right: 60px solid transparent;
+    border-top: 60px solid var(--red);
+    opacity: 0.9;
+  }
+  .hero-content {
+    position: relative;
+    z-index: 3;
+    max-width: 760px;
+  }
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 28px;
+  }
+  .hero-eyebrow::before {
+    content: '';
+    display: block;
+    width: 32px; height: 2px;
+    background: var(--red);
+  }
+  .hero h1 {
+    font-family: var(--font-head);
+    font-size: clamp(56px, 8vw, 110px);
+    font-weight: 900;
+    line-height: 0.9;
+    text-transform: uppercase;
+    letter-spacing: -1px;
+    margin-bottom: 32px;
+  }
+  .hero h1 span { color: var(--red); }
+  .hero-desc {
+    font-size: 17px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.7;
+    max-width: 520px;
+    margin-bottom: 48px;
+  }
+  .hero-btns { display: flex; gap: 20px; flex-wrap: wrap; }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--red);
+    color: var(--white);
+    text-decoration: none;
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 16px 36px;
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    transition: background 0.2s, transform 0.2s;
+  }
+  .btn-primary:hover { background: var(--red-dark); transform: translateY(-2px); }
+  .btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--white);
+    text-decoration: none;
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 14px 36px;
+    border: 2px solid rgba(255,255,255,0.3);
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .btn-outline:hover { border-color: var(--white); transform: translateY(-2px); }
+  .hero-stats {
+    position: absolute;
+    bottom: 60px; right: 60px;
+    z-index: 3;
+    display: flex;
+    gap: 48px;
+  }
+  .stat-item { text-align: right; }
+  .stat-num {
+    font-family: var(--font-head);
+    font-size: 52px;
+    font-weight: 900;
+    color: var(--white);
+    line-height: 1;
+  }
+  .stat-num span { color: var(--red); }
+  .stat-label {
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    font-weight: 500;
+  }
+
+  /* ─── SECTION BASE ─── */
+  section { padding: 100px 60px; }
+  .section-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-head);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 20px;
+  }
+  .section-tag::before {
+    content: '';
+    display: block;
+    width: 0; height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 10px solid var(--red);
+  }
+  .section-title {
+    font-family: var(--font-head);
+    font-size: clamp(38px, 5vw, 64px);
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 0.95;
+    letter-spacing: -0.5px;
+  }
+  .section-title span { color: var(--red); }
+
+  /* ─── EQUIPOS ─── */
+  .equipos-section { background: var(--dark); position: relative; overflow: hidden; }
+  .equipos-bg-tri {
+    position: absolute;
+    top: -100px; right: -100px;
+    width: 500px; height: 500px;
+    background: var(--red);
+    clip-path: polygon(100% 0%, 0% 0%, 100% 100%);
+    opacity: 0.04;
+    pointer-events: none;
+  }
+  .equipos-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 64px;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .equipos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+  .equipo-card {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 4/3;
+    cursor: pointer;
+  }
+  .equipo-card img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+    filter: saturate(0.7) brightness(0.75);
+  }
+  .equipo-card:hover img { transform: scale(1.07); filter: saturate(0.9) brightness(0.6); }
+  .equipo-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 32px;
+    transition: background 0.3s;
+  }
+  .equipo-card:hover .equipo-overlay {
+    background: linear-gradient(to top, rgba(227,0,15,0.85) 0%, transparent 70%);
+  }
+  .equipo-num {
+    font-family: var(--font-head);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--red);
+    margin-bottom: 8px;
+    transition: color 0.3s;
+  }
+  .equipo-card:hover .equipo-num { color: rgba(255,255,255,0.7); }
+  .equipo-name {
+    font-family: var(--font-head);
+    font-size: 28px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--white);
+    line-height: 1;
+  }
+  .equipo-tri {
+    position: absolute;
+    top: 0; right: 0;
+    width: 0; height: 0;
+    border-top: 48px solid var(--red);
+    border-left: 48px solid transparent;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .equipo-card:hover .equipo-tri { opacity: 1; }
+
+  /* ─── SERVICIOS ─── */
+  .servicios-section { background: var(--black); }
+  .servicios-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 3px;
+    margin-top: 64px;
+  }
+  .servicio-card {
+    background: var(--dark2);
+    padding: 56px 48px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+    cursor: pointer;
+  }
+  .servicio-card::before {
+    content: '';
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 0; height: 0;
+    border-bottom: 80px solid var(--red);
+    border-left: 80px solid transparent;
+    opacity: 0.15;
+    transition: opacity 0.3s, transform 0.3s;
+    transform-origin: bottom right;
+  }
+  .servicio-card:hover::before { opacity: 0.25; transform: scale(1.5); }
+  .servicio-card:hover { background: #1f1f1f; }
+  .servicio-icon {
+    width: 56px; height: 56px;
+    margin-bottom: 28px;
+    color: var(--red);
+  }
+  .servicio-icon svg { width: 100%; height: 100%; }
+  .servicio-num {
+    position: absolute;
+    top: 32px; right: 40px;
+    font-family: var(--font-head);
+    font-size: 80px;
+    font-weight: 900;
+    color: rgba(255,255,255,0.04);
+    line-height: 1;
+    user-select: none;
+  }
+  .servicio-tag {
+    font-family: var(--font-head);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 14px;
+  }
+  .servicio-title {
+    font-family: var(--font-head);
+    font-size: 36px;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    line-height: 1;
+  }
+  .servicio-desc {
+    font-size: 15px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.55);
+    font-weight: 300;
+    max-width: 400px;
+  }
+  .servicio-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 28px;
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--red);
+    text-decoration: none;
+    transition: gap 0.2s;
+  }
+  .servicio-link:hover { gap: 14px; }
+  .servicio-link::after { content: '→'; font-size: 16px; }
+
+  /* ─── MARCAS ─── */
+  .marcas-section {
+    background: var(--red);
+    padding: 60px;
+    display: flex;
+    align-items: center;
+    gap: 80px;
+    overflow: hidden;
+    position: relative;
+  }
+  .marcas-section::before {
+    content: '';
+    position: absolute;
+    right: -80px; top: -80px;
+    width: 300px; height: 300px;
+    background: rgba(0,0,0,0.15);
+    clip-path: polygon(0% 0%, 100% 0%, 100% 100%);
+    pointer-events: none;
+  }
+  .marcas-label {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.8);
+    white-space: nowrap;
+  }
+  .marcas-divider { width: 2px; height: 40px; background: rgba(255,255,255,0.3); flex-shrink: 0; }
+  .marcas-list {
+    display: flex;
+    gap: 60px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .marca-name {
+    font-family: var(--font-head);
+    font-size: 26px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.9);
+    transition: color 0.2s;
+    cursor: default;
+  }
+  .marca-name:hover { color: var(--white); }
+
+  /* ─── NOSOTROS ─── */
+  .nosotros-section { background: var(--dark); }
+  .nosotros-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 100px;
+    align-items: center;
+  }
+  .nosotros-img-wrap {
+    position: relative;
+  }
+  .nosotros-img {
+    width: 100%;
+    aspect-ratio: 4/5;
+    object-fit: cover;
+    filter: saturate(0.6) brightness(0.8);
+    clip-path: polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%);
+  }
+  .nosotros-img-accent {
+    position: absolute;
+    bottom: -20px; right: -20px;
+    width: 50%;
+    height: 50%;
+    border: 3px solid var(--red);
+    clip-path: polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%);
+    pointer-events: none;
+  }
+  .nosotros-tri {
+    position: absolute;
+    top: -30px; left: -30px;
+    width: 0; height: 0;
+    border-left: 100px solid transparent;
+    border-right: 100px solid transparent;
+    border-top: 80px solid var(--red);
+    opacity: 0.6;
+  }
+  .nosotros-content {}
+  .nosotros-points {
+    margin-top: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .nosotros-point {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .point-icon {
+    flex-shrink: 0;
+    width: 0; height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-top: 20px solid var(--red);
+    margin-top: 4px;
+  }
+  .point-text h4 {
+    font-family: var(--font-head);
+    font-size: 18px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  .point-text p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.65;
+    font-weight: 300;
+  }
+
+  /* ─── IPAF ─── */
+  .ipaf-section {
+    padding: 100px 60px;
+    background: var(--black);
+    position: relative;
+    overflow: hidden;
+  }
+  .ipaf-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 60px;
+    flex-wrap: wrap;
+  }
+  .ipaf-content {}
+  .ipaf-badge {
+    display: inline-block;
+    background: var(--red);
+    color: var(--white);
+    font-family: var(--font-head);
+    font-size: 56px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    padding: 16px 32px;
+    clip-path: polygon(16px 0%, 100% 0%, calc(100% - 16px) 100%, 0% 100%);
+    margin-bottom: 28px;
+  }
+  .ipaf-title {
+    font-family: var(--font-head);
+    font-size: 44px;
+    font-weight: 800;
+    text-transform: uppercase;
+    line-height: 0.95;
+    margin-bottom: 20px;
+  }
+  .ipaf-desc {
+    font-size: 15px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.7;
+    max-width: 460px;
+    font-weight: 300;
+  }
+  .ipaf-norms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 28px;
+  }
+  .norm-tag {
+    font-family: var(--font-head);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    padding: 6px 14px;
+    border: 1px solid rgba(227,0,15,0.5);
+    color: rgba(227,0,15,0.9);
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+  .ipaf-image {
+    flex: 0 0 460px;
+    max-width: 460px;
+    position: relative;
+  }
+  .ipaf-image img {
+    width: 100%;
+    object-fit: cover;
+    filter: saturate(0.5) brightness(0.8);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  }
+
+  /* ─── SEDES ─── */
+  .sedes-section { background: var(--dark); }
+  .sedes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+    margin-top: 64px;
+  }
+  .sede-card {
+    background: var(--dark2);
+    padding: 48px 40px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+  .sede-card:hover { background: var(--gray); }
+  .sede-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 0; height: 3px;
+    background: var(--red);
+    transition: width 0.4s ease;
+  }
+  .sede-card:hover::after { width: 100%; }
+  .sede-city {
+    font-family: var(--font-head);
+    font-size: 44px;
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-bottom: 24px;
+  }
+  .sede-city span { color: var(--red); }
+  .sede-info { display: flex; flex-direction: column; gap: 14px; }
+  .sede-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .sede-icon { color: var(--red); flex-shrink: 0; margin-top: 2px; }
+  .sede-text {
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+    font-weight: 300;
+    line-height: 1.5;
+  }
+  .sede-text strong { color: var(--white); font-weight: 500; }
+
+  /* ─── CTA ─── */
+  .cta-section {
+    background: var(--red);
+    padding: 100px 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 40px;
+    position: relative;
+    overflow: hidden;
+    flex-wrap: wrap;
+  }
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    right: -100px; bottom: -100px;
+    width: 500px; height: 500px;
+    background: rgba(0,0,0,0.1);
+    clip-path: polygon(100% 0%, 0% 100%, 100% 100%);
+    pointer-events: none;
+  }
+  .cta-section::after {
+    content: '';
+    position: absolute;
+    left: -50px; top: -50px;
+    width: 250px; height: 250px;
+    background: rgba(255,255,255,0.05);
+    clip-path: polygon(0% 0%, 100% 0%, 0% 100%);
+    pointer-events: none;
+  }
+  .cta-text {
+    position: relative;
+    z-index: 1;
+  }
+  .cta-text h2 {
+    font-family: var(--font-head);
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 0.95;
+    margin-bottom: 16px;
+  }
+  .cta-text p {
+    font-size: 16px;
+    color: rgba(255,255,255,0.8);
+    font-weight: 300;
+    max-width: 500px;
+  }
+  .cta-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .btn-dark {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--black);
+    color: var(--white);
+    text-decoration: none;
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 16px 36px;
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    transition: background 0.2s, transform 0.2s;
+  }
+  .btn-dark:hover { background: #1a1a1a; transform: translateY(-2px); }
+  .btn-white {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    color: var(--white);
+    text-decoration: none;
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 14px 36px;
+    border: 2px solid rgba(255,255,255,0.6);
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .btn-white:hover { border-color: var(--white); transform: translateY(-2px); }
+
+  /* ─── FOOTER ─── */
+  footer {
+    background: var(--black);
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding: 80px 60px 40px;
+  }
+  .footer-top {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 60px;
+    margin-bottom: 60px;
+  }
+  .footer-brand img { height: 44px; filter: brightness(0) invert(1); margin-bottom: 24px; }
+  .footer-brand p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.7;
+    font-weight: 300;
+    max-width: 300px;
+  }
+  .footer-col h4 {
+    font-family: var(--font-head);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 20px;
+  }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .footer-col ul a {
+    color: rgba(255,255,255,0.5);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 300;
+    transition: color 0.2s;
+  }
+  .footer-col ul a:hover { color: var(--white); }
+  .footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 32px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .footer-copy {
+    font-size: 13px;
+    color: rgba(255,255,255,0.3);
+    font-weight: 300;
+  }
+  .footer-social { display: flex; gap: 16px; }
+  .social-btn {
+    width: 36px; height: 36px;
+    background: var(--dark2);
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.5);
+    text-decoration: none;
+    font-size: 14px;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+  .social-btn:hover { background: var(--red); color: var(--white); border-color: var(--red); }
+
+  /* ─── WHATSAPP ─── */
+  .wa-btn {
+    position: fixed;
+    bottom: 32px; right: 32px;
+    z-index: 200;
+    width: 56px; height: 56px;
+    background: #25D366;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    box-shadow: 0 4px 24px rgba(37,211,102,0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .wa-btn:hover { transform: scale(1.1); box-shadow: 0 6px 30px rgba(37,211,102,0.5); }
+  .wa-btn svg { width: 28px; height: 28px; fill: white; }
+
+  /* ─── ANIMATIONS ─── */
+  /* fade-up: empieza visible siempre, la animación es un bonus si el JS corre */
+  .fade-up {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  /* Cuando el JS SÍ corre bien, agrega esta clase al inicio para animar */
+  .fade-up.will-animate {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  .fade-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @keyframes float-tri {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-12px); }
+  }
+  .tri-3 { animation: float-tri 4s ease-in-out infinite; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 1024px) {
+    nav { padding: 16px 32px; }
+    .nav-links { display: none; }
+    section { padding: 80px 32px; }
+    .hero { padding: 120px 32px 80px; }
+    .hero-stats { right: 32px; gap: 32px; }
+    .equipos-grid { grid-template-columns: repeat(2, 1fr); }
+    .servicios-grid { grid-template-columns: 1fr; }
+    .nosotros-grid { grid-template-columns: 1fr; }
+    .sedes-grid { grid-template-columns: 1fr; }
+    .footer-top { grid-template-columns: 1fr 1fr; }
+    .cta-section { padding: 80px 32px; }
+    .marcas-section { padding: 40px 32px; }
+    .ipaf-inner { flex-direction: column; }
+    .ipaf-image { max-width: 100%; flex: unset; }
+  }
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 52px; }
+    .equipos-grid { grid-template-columns: 1fr; }
+    .hero-stats { position: static; margin-top: 60px; justify-content: flex-start; }
+    .footer-top { grid-template-columns: 1fr; }
+  }
+
+  /* Hamburger mobile */
+  .nav-burger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .nav-burger span { display: block; width: 24px; height: 2px; background: var(--white); transition: 0.3s; }
+  @media (max-width: 1024px) { .nav-burger { display: flex; } }
+</style>
+</head>
+<body>
+
+<!-- =====================================================
+     INTRO / SPLASH SCREEN
+     Aparece al cargar/actualizar la página.
+     No toca nada del código existente.
+     ===================================================== -->
+<div id="splash">
+  <div id="splash-inner">
+    <img id="splash-logo" src="imagenes/nav-logo img.png" alt="UP Equipment">
+    <div id="splash-line"></div>
+    <p id="splash-tagline">DONDE LA ALTURA SE CONVIERTE EN PRODUCTIVIDAD</p>
+    <div id="splash-loader">
+      <div id="splash-loader-bar"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* ── Fondo del splash ── */
+  #splash {
+    position: fixed;
+    inset: 0;
+    background: #0a0a0a;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+  }
+  #splash.hide {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* ── Contenedor centrado ── */
+  #splash-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    animation: splashFadeIn 0.5s ease forwards;
+  }
+  @keyframes splashFadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Logo ── */
+  #splash-logo {
+    width: clamp(200px, 35vw, 380px);
+    animation: splashLogo 0.7s ease 0.2s both;
+  }
+  @keyframes splashLogo {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  /* ── Línea roja divisora ── */
+  #splash-line {
+    width: 0;
+    height: 2px;
+    background: #E3000F;
+    animation: splashLine 0.6s ease 0.7s forwards;
+  }
+  @keyframes splashLine {
+    to { width: clamp(200px, 35vw, 380px); }
+  }
+
+  /* ── Tagline ── */
+  #splash-tagline {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(12px, 1.8vw, 17px);
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    text-align: center;
+    opacity: 0;
+    animation: splashText 0.6s ease 1s forwards;
+  }
+  @keyframes splashText {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Barra de carga ── */
+  #splash-loader {
+    width: clamp(200px, 35vw, 380px);
+    height: 2px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+    opacity: 0;
+    animation: splashFadeIn 0.3s ease 1.2s forwards;
+  }
+  #splash-loader-bar {
+    height: 100%;
+    width: 0%;
+    background: #E3000F;
+    animation: splashBar 1.4s ease 1.3s forwards;
+  }
+  @keyframes splashBar {
+    0%   { width: 0%; }
+    60%  { width: 75%; }
+    100% { width: 100%; }
+  }
+
+  /* triángulo decorativo igual al logo */
+  #splash-inner::before {
+    content: '';
+    position: absolute;
+    width: 0; height: 0;
+    border-left: 60px solid transparent;
+    border-right: 60px solid transparent;
+    border-top: 50px solid rgba(227,0,15,0.12);
+    top: 15%;
+    pointer-events: none;
+    animation: splashFadeIn 1s ease 0.5s both;
+  }
+</style>
+
+<script>
+  // Oculta el splash cuando termina la barra (2.8s total)
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      document.getElementById('splash').classList.add('hide');
+      // Lo elimina del DOM después de la transición
+      setTimeout(function() {
+        var s = document.getElementById('splash');
+        if (s) s.remove();
+      }, 700);
+    }, 2800);
+  });
+</script>
+<!-- =====================================================
+     FIN INTRO / SPLASH SCREEN
+     ===================================================== -->
+
+<!-- NAV -->
+<nav id="mainNav">
+  <div class="nav-logo">
+    <img src="imagenes/nav-logo img.png" alt="UP Equipment">
+  </div>
+  <ul class="nav-links">
+    <li><a href="#equipos">Equipos</a></li>
+    <li><a href="#servicios">Servicios</a></li>
+    <li><a href="#ipaf">IPAF</a></li>
+    <li><a href="#nosotros">Nosotros</a></li>
+    <li><a href="#sedes">Sedes</a></li>
+    <li><a href="#contacto" class="nav-cta">Cotizar</a></li>
+  </ul>
+  <div class="nav-burger" onclick="this.classList.toggle('active')">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" style="padding-top:50px;">
+  <div class="hero-img"></div>
+  <div class="hero-bg"></div>
+  <div class="tri-deco tri-1"></div>
+  <div class="tri-deco tri-2"></div>
+  <div class="tri-deco tri-3"></div>
+
+  <div class="hero-content fade-up">
+    <div class="hero-eyebrow">Distribuidor autorizado GENIE</div>
+    <h1>Trabajo<br>en <span>Altura</span><br>Seguro</h1>
+    <p class="hero-desc">
+      Alquiler y venta de plataformas elevadoras tipo manlift en Colombia. Respaldados por las mejores marcas americanas para cada trabajo en altura.
+    </p>
+    <div class="hero-btns">
+      <a href="#equipos" class="btn-primary">Ver Equipos</a>
+      <a href="#contacto" class="btn-outline">Cotizar Ahora</a>
+    </div>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat-item">
+      <div class="stat-num">3<span>+</span></div>
+      <div class="stat-label">Ciudades</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">6<span>+</span></div>
+      <div class="stat-label">Tipos de Equipo</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">100<span>%</span></div>
+      <div class="stat-label">Certificados IPAF</div>
+    </div>
+  </div>
+</section>
+
+<!-- MARCAS STRIP -->
+<div class="marcas-section">
+  <div class="marcas-label">Marcas autorizadas</div>
+  <div class="marcas-divider"></div>
+  <div class="marcas-list">
+    <span class="marca-name">GENIE</span>
+    <span class="marca-name">IPAF</span>
+  </div>
+</div>
+
+<!-- EQUIPOS -->
+<section class="equipos-section" id="equipos">
+  <div class="equipos-bg-tri"></div>
+  <div class="equipos-header">
+    <div>
+      <div class="section-tag">Catálogo</div>
+      <h2 class="section-title">Nuestros<br><span>Equipos</span></h2>
+    </div>
+    <a href="#contacto" class="btn-primary">Ver catálogo completo</a>
+  </div>
+
+  <div class="equipos-grid fade-up">
+
+    <div class="equipo-card">
+      <img src="imagenes/tijera 1.jpg" alt="Tijeras Eléctricas">
+      <div class="equipo-overlay">
+        <div class="equipo-num">01 / TIJERAS</div>
+        <div class="equipo-name">Tijeras Eléctricas</div>
+      </div>
+      <div class="equipo-tri"></div>
+    </div>
+
+    <div class="equipo-card">
+      <img src="imagenes/brazo articulado 1.jpg" alt="Brazo Articulado">
+      <div class="equipo-overlay">
+        <div class="equipo-num">02 / BRAZO</div>
+        <div class="equipo-name">Brazo Articulado</div>
+      </div>
+      <div class="equipo-tri"></div>
+    </div>
+
+    <div class="equipo-card">
+      <img src="imagenes/telescopico 1.png" alt="Telescópico">
+      <div class="equipo-overlay">
+        <div class="equipo-num">03 / TELESCÓPICO</div>
+        <div class="equipo-name">Telescópico</div>
+      </div>
+      <div class="equipo-tri"></div>
+    </div>
+
+    <div class="equipo-card">
+      <img src="imagenes/telehandre 1.jpg" alt="Telehandler">
+      <div class="equipo-overlay">
+        <div class="equipo-num">04 / TELEHANDLER</div>
+        <div class="equipo-name">Telehandler</div>
+      </div>
+      <div class="equipo-tri"></div>
+    </div>
+
+    <div class="equipo-card">
+      <img src="imagenes/brazo tipo trailer 1.jpg" alt="Trailer">
+      <div class="equipo-overlay">
+        <div class="equipo-num">05 / TRAILER</div>
+        <div class="equipo-name">Brazo Tipo Trailer</div>
+      </div>
+      <div class="equipo-tri"></div>
+    </div>
+
+    <div class="equipo-card">
+      <img src="imagenes/unipersonal.png" alt="Unipersonal">
+      <div class="equipo-overlay">
+        <div class="equipo-num">06 / UNIPERSONAL</div>
+        <div class="equipo-name">Plataforma Unipersonal</div>
+      </div>
+      <div class="equipo-tri"></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- SERVICIOS -->
+<section class="servicios-section" id="servicios">
+  <div class="section-tag">Lo que hacemos</div>
+  <h2 class="section-title">Nuestros<br><span>Servicios</span></h2>
+
+  <div class="servicios-grid fade-up">
+
+    <div class="servicio-card">
+      <div class="servicio-num">01</div>
+      <div class="servicio-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div class="servicio-tag">Alquiler</div>
+      <h3 class="servicio-title">Alquiler<br>de Manlift</h3>
+      <p class="servicio-desc">Amplia variedad de equipos GENIE con diferentes modelos, configuraciones y alturas para adaptarse a tus necesidades específicas.</p>
+      <a href="#contacto" class="servicio-link">Cotizar alquiler</a>
+    </div>
+
+    <div class="servicio-card">
+      <div class="servicio-num">02</div>
+      <div class="servicio-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+      </div>
+      <div class="servicio-tag">Venta</div>
+      <h3 class="servicio-title">Venta de<br>Equipos</h3>
+      <p class="servicio-desc">Distribuidores autorizados de GENIE. Equipos de elevación nuevos y usados certificados, con taller de reparaciones propio.</p>
+      <a href="#contacto" class="servicio-link">Ver equipos en venta</a>
+    </div>
+
+    <div class="servicio-card">
+      <div class="servicio-num">03</div>
+      <div class="servicio-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
+        </svg>
+      </div>
+      <div class="servicio-tag">Mantenimiento</div>
+      <h3 class="servicio-title">Partes &<br>Servicios</h3>
+      <p class="servicio-desc">Amplio portafolio de repuestos originales GENIE y servicio técnico especializado. Garantía de continuidad operativa.</p>
+      <a href="#contacto" class="servicio-link">Solicitar servicio</a>
+    </div>
+
+    <div class="servicio-card">
+      <div class="servicio-num">04</div>
+      <div class="servicio-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 14l9-5-9-5-9 5 9 5z"/>
+          <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+        </svg>
+      </div>
+      <div class="servicio-tag">Capacitación</div>
+      <h3 class="servicio-title">Cursos &<br>Formación</h3>
+      <p class="servicio-desc">Certificación IPAF, train-the-trainers con GENIE LIFT. Formadores bajo norma ISO 18878, ANSI 92.1, 92.2 y 92.3.</p>
+      <a href="#ipaf" class="servicio-link">Ver formación IPAF</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- IPAF -->
+<section class="ipaf-section" id="ipaf">
+  <div class="ipaf-inner fade-up">
+    <div class="ipaf-content">
+      <div class="ipaf-badge">IPAF</div>
+      <h2 class="ipaf-title">Certificación<br>Internacional<br>Garantizada</h2>
+      <p class="ipaf-desc">
+        Somos formadores y certificadores IPAF garantizados por estándares internacionales. Capacitamos a tu equipo para trabajos en altura seguros y eficientes.
+      </p>
+      <div class="ipaf-norms">
+        <span class="norm-tag">ISO 18878</span>
+        <span class="norm-tag">ANSI 92.1</span>
+        <span class="norm-tag">ANSI 92.2</span>
+        <span class="norm-tag">ANSI 92.3</span>
+      </div>
+      <a href="#contacto" class="btn-primary" style="margin-top: 36px;">Inscribirse a Curso</a>
+    </div>
+    <div class="ipaf-image">
+      <img src="imagenes/ipaf 1.png" alt="Formación IPAF">
+    </div>
+  </div>
+</section>
+
+<!-- NOSOTROS -->
+<section class="nosotros-section" id="nosotros">
+  <div class="nosotros-grid">
+    <div class="nosotros-img-wrap fade-up">
+      <div class="nosotros-tri"></div>
+      <img class="nosotros-img" src="https://images.unsplash.com/photo-1581094271901-8022df4466f9?w=800&q=80&fit=crop&crop=center" alt="Equipos UP">
+      <div class="nosotros-img-accent"></div>
+    </div>
+    <div class="nosotros-content fade-up">
+      <div class="section-tag">Quiénes somos</div>
+      <h2 class="section-title">Experiencia<br>a tu <span>Servicio</span></h2>
+      <div class="nosotros-points">
+        <div class="nosotros-point">
+          <div class="point-icon"></div>
+          <div class="point-text">
+            <h4>Acompañamiento Completo</h4>
+            <p>Asesoría previa al trabajo y acompañamiento durante toda la operación. Garantizamos que cada trabajo en altura se ejecute con máxima seguridad.</p>
+          </div>
+        </div>
+        <div class="nosotros-point">
+          <div class="point-icon"></div>
+          <div class="point-text">
+            <h4>Distribuidor Autorizado GENIE</h4>
+            <p>Respaldo directo de la marca americana líder en elevación. Repuestos originales y técnicos certificados de fábrica.</p>
+          </div>
+        </div>
+        <div class="nosotros-point">
+          <div class="point-icon"></div>
+          <div class="point-text">
+            <h4>Cobertura Nacional</h4>
+            <p>Presencia en Medellín, Bogotá y Barranquilla. Atendemos proyectos en todo el territorio colombiano.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SEDES -->
+<section class="sedes-section" id="sedes">
+  <div class="section-tag">Dónde estamos</div>
+  <h2 class="section-title">Nuestras <span>Sedes</span></h2>
+  <div class="sedes-grid fade-up">
+
+    <div class="sede-card">
+      <div class="sede-city">Medel<span>lín</span></div>
+      <div class="sede-info">
+        <div class="sede-row">
+          <span class="sede-icon">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </span>
+          <span class="sede-text">Calle 30a # 65b – 59</span>
+        </div>
+        <div class="sede-row">
+          <span class="sede-icon">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          </span>
+          <span class="sede-text"><strong>604 4447178</strong> — 311 713 5363</span>
+        </div>
+        <div class="sede-row">
+          <span class="sede-icon">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          </span>
+          <span class="sede-text"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bfdecfd0c6d0dcd0d2dacddcd6ded3d2dadbffdacecad6cfd0cccacf91dcd0d2">[email&#160;protected]</a></span>
+        </div>
+        <div class="sede-row">
+          <span class="sede-icon">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </span>
+          <span class="sede-text">Lun–Vie 7:30am–5:30pm / Sáb 7:30–11:00am</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sede-card">
+      <div class="sede-city">Bogo<span>tá</span></div>
+      <div class="sede-info">
+        <div class="sede-row">
+          <span class="sede-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg></span>
+          <span class="sede-text">Calle 14a #123 – 53</span>
+        </div>
+        <div class="sede-row">
+          <span class="sede-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></span>
+          <span class="sede-text"><strong>318 809 7240</strong></span>
+        </div>
+        <div class="sede-row">
+          <span class="sede-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></span>
+          <span class="sede-text"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4533202b31243627223177052034302c352a3630356b262a28">[email&#160;protected]</a></span>
+        </div>
+        <div class="sede-row">
+          <span class="sede-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
+          <span class="sede-text">Lun–Vie 7:30am–5:30pm / Sáb 7:30–11:00am</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sede-card">
+      <div class="sede-city">Bqlla<span>.</span></div>
+      <div class="sede-info">
+        <div class="sede-row">
+          <span class="sede-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg></span>
+          <span class="sede-text">Parque Industrial Stock Caribe vía Cordialidad – Galapa km 1 bod. 14E</span>
+        </div>
+        <div class="sede-row">
+          <span class="sede-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></span>
+          <span class="sede-text"><strong>317 636 2401</strong></span>
+        </div>
+        <div class="sede-row">
+          <span class="sede-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></span>
+          <span class="sede-text"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="dbadbeb5afbaa8b9aa9bbeaaaeb2abb4a8aeabf5b8b4b6">[email&#160;protected]</a></span>
+        </div>
+        <div class="sede-row">
+          <span class="sede-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
+          <span class="sede-text">Lun–Vie 7:30am–5:30pm / Sáb 7:30–11:00am</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="contacto">
+  <div class="cta-text">
+    <h2>¿Listo para<br>Trabajar<br>en Altura?</h2>
+    <p>Cuéntanos tu proyecto y te asesoramos con el equipo ideal. Cobertura en toda Colombia con respaldo de fábrica.</p>
+  </div>
+  <div class="cta-actions">
+    <a href="https://equiposup.com/cotizacion/" class="btn-dark">Solicitar Cotización</a>
+    <a href="https://wa.me/573117135363" class="btn-white">WhatsApp Directo</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <img src="https://equiposup.com/wp-content/uploads/2024/05/Logo-web-Equipos-UP.png" alt="UP Equipment">
+      <p>Líderes en alquiler y venta de plataformas elevadoras tipo manlift en Colombia. Distribuidores autorizados GENIE.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Servicios</h4>
+      <ul>
+        <li><a href="#">Alquiler Manlift</a></li>
+        <li><a href="#">Venta de Equipos</a></li>
+        <li><a href="#">Partes & Servicio</a></li>
+        <li><a href="#">Cursos IPAF</a></li>
+        <li><a href="#">Equipos Usados</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Equipos</h4>
+      <ul>
+        <li><a href="#">Tijeras Eléctricas</a></li>
+        <li><a href="#">Brazo Articulado</a></li>
+        <li><a href="#">Telescópico</a></li>
+        <li><a href="#">Telehandler</a></li>
+        <li><a href="#">Unipersonal</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Compañía</h4>
+      <ul>
+        <li><a href="#">Nosotros</a></li>
+        <li><a href="#">Blog</a></li>
+        <li><a href="#">IPAF</a></li>
+        <li><a href="#">Cotizar</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span class="footer-copy">© 2025 UP Equipment. Todos los derechos reservados.</span>
+    <div class="footer-social">
+      <a href="#" class="social-btn" title="Instagram">IG</a>
+      <a href="#" class="social-btn" title="LinkedIn">IN</a>
+      <a href="#" class="social-btn" title="Facebook">FB</a>
+    </div>
+  </div>
+</footer>
+
+<!-- WhatsApp -->
+<a href="https://wa.me/573117135363" class="wa-btn" target="_blank" title="WhatsApp">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+</a>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  // ── Nav: efecto al hacer scroll ──
+  const nav = document.getElementById('mainNav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 80);
+  });
+
+  // ── Animación fade-up: solo si el navegador la soporta ──
+  // Primero marcamos todos los elementos para animar
+  document.querySelectorAll('.fade-up').forEach(el => {
+    el.classList.add('will-animate');
+  });
+
+  // Luego el observer los hace visibles al entrar en pantalla
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.classList.remove('will-animate');
+            entry.target.classList.add('visible');
+          }, i * 100);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelect
