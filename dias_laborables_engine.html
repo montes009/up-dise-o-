@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red:    #e5000f;
+    --black:  #0a0a0a;
+    --bg:     #111114;
+    --bg2:    #18181c;
+    --bg3:    #222228;
+    --bg4:    #2a2a32;
+    --border: rgba(255,255,255,.08);
+    --txt:    #f0f0f0;
+    --txt2:   #aaa;
+    --txt3:   #666;
+    --green:  #22c55e;
+    --yellow: #f59e0b;
+    --blue:   #3b82f6;
+    --purple: #a855f7;
+    --mono:   'JetBrains Mono', monospace;
+    --cond:   'Barlow Condensed', sans-serif;
+    --body:   'Barlow', sans-serif;
+  }
+
+  body {
+    font-family: var(--body);
+    background: var(--bg);
+    color: var(--txt);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 28px;
+    padding-bottom: 18px;
+    border-bottom: 2px solid var(--red);
+  }
+  .header-badge {
+    background: var(--red);
+    color: #fff;
+    font-family: var(--cond);
+    font-size: 10px; font-weight: 800;
+    letter-spacing: 2px; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 4px;
+  }
+  .header h1 {
+    font-family: var(--cond);
+    font-size: 22px; font-weight: 800;
+    letter-spacing: 1px; color: var(--txt);
+  }
+  .header .sub {
+    font-size: 11px; color: var(--txt3);
+    font-family: var(--mono);
+    margin-top: 2px; letter-spacing: .5px;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    margin-left: auto; flex-shrink: 0;
+  }
+
+  /* ── GRID ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .card-head {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .card-head .title {
+    font-family: var(--cond);
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--txt2);
+  }
+  .card-body { padding: 18px; }
+
+  /* ── FORM ── */
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  label {
+    display: block;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--txt3); margin-bottom: 6px;
+  }
+  input[type=date], input[type=number], select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--txt);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color .15s;
+    appearance: none;
+  }
+  input:focus, select:focus { border-color: var(--red); }
+
+  /* ── TOGGLE GROUP ── */
+  .toggle-group {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .toggle-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--txt2);
+    font-family: var(--cond);
+    font-size: 12px; font-weight: 700;
+    padding: 6px 12px; border-radius: 6px;
+    cursor: pointer; transition: all .15s;
+  }
+  .toggle-btn.active {
+    background: rgba(229,0,15,.15);
+    border-color: var(--red);
+    color: var(--red);
+  }
+  .toggle-btn:hover:not(.active) { border-color: rgba(255,255,255,.2); color: var(--txt); }
+
+  /* ── BUTTON ── */
+  .btn-calc {
+    width: 100%;
+    background: var(--red);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-family: var(--cond);
+    font-size: 15px; font-weight: 800;
+    letter-spacing: 1px;
+    padding: 12px;
+    cursor: pointer;
+    margin-top: 18px;
+    transition: opacity .15s;
+  }
+  .btn-calc:hover { opacity: .85; }
+  .btn-sm {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--txt2);
+    font-family: var(--cond);
+    font-size: 11px; font-weight: 700;
+    padding: 5px 10px; cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-sm:hover { border-color: rgba(255,255,255,.2); color: var(--txt); }
+  .btn-sm.danger:hover { border-color: var(--red); color: var(--red); }
+
+  /* ── RESULT PANEL ── */
+  .result-empty {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 220px;
+    color: var(--txt3);
+    font-family: var(--mono); font-size: 12px;
+    gap: 8px;
+  }
+  .result-empty .icon { font-size: 32px; opacity: .3; }
+
+  .kpi-row {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 10px; margin-bottom: 16px;
+  }
+  .kpi {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .kpi .kpi-val {
+    font-family: var(--cond);
+    font-size: 28px; font-weight: 900;
+    line-height: 1;
+  }
+  .kpi .kpi-lbl {
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--txt3); margin-top: 4px;
+  }
+  .kpi.green .kpi-val { color: var(--green); }
+  .kpi.red   .kpi-val { color: var(--red); }
+  .kpi.yellow .kpi-val { color: var(--yellow); }
+
+  /* ── TIMELINE ── */
+  .timeline-wrap {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+    overflow-x: auto;
+  }
+  .timeline-label {
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--txt3); margin-bottom: 10px;
+  }
+  .timeline-grid {
+    display: flex; gap: 3px; flex-wrap: wrap;
+  }
+  .day-cell {
+    width: 26px; height: 26px;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 9px; font-weight: 700;
+    cursor: default;
+    position: relative;
+  }
+  .day-cell.worked   { background: rgba(34,197,94,.2);  color: var(--green); border: 1px solid rgba(34,197,94,.3); }
+  .day-cell.weekend  { background: rgba(255,255,255,.04); color: var(--txt3);  border: 1px solid rgba(255,255,255,.06); }
+  .day-cell.holiday  { background: rgba(245,158,11,.15); color: var(--yellow); border: 1px solid rgba(245,158,11,.25); }
+  .day-cell.start    { ring: 2px solid var(--red); outline: 2px solid var(--red); }
+  .day-cell.end      { outline: 2px solid var(--green); }
+  .day-cell[title]:hover::after {
+    content: attr(title);
+    position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
+    background: #000; color: #fff;
+    font-size: 9px; padding: 3px 6px; border-radius: 4px;
+    white-space: nowrap; z-index: 10; pointer-events: none;
+  }
+
+  /* ── EXCLUDED LIST ── */
+  .excl-list {
+    display: grid; gap: 4px;
+    max-height: 180px; overflow-y: auto;
+  }
+  .excl-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 10px;
+    font-family: var(--mono); font-size: 11px;
+  }
+  .excl-item .excl-date { color: var(--txt2); flex: 1; }
+  .excl-item .excl-type {
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 1px; padding: 2px 6px; border-radius: 4px;
+  }
+  .excl-type.weekend  { background: rgba(255,255,255,.06); color: var(--txt3); }
+  .excl-type.holiday  { background: rgba(245,158,11,.12); color: var(--yellow); }
+
+  /* ── CODE OUTPUT ── */
+  .code-box {
+    background: var(--black);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #7dd3fc;
+    white-space: pre;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+  .code-box .k { color: #c084fc; }
+  .code-box .s { color: #86efac; }
+  .code-box .n { color: #fbbf24; }
+
+  /* ── FESTIVOS MANAGER ── */
+  .festivo-row {
+    display: flex; gap: 6px; align-items: center;
+    margin-bottom: 6px;
+  }
+  .festivo-row input {
+    flex: 1;
+  }
+  .festivos-list { display: grid; gap: 4px; margin-top: 8px; }
+  .festivo-tag {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(245,158,11,.08);
+    border: 1px solid rgba(245,158,11,.2);
+    border-radius: 6px; padding: 5px 10px;
+    font-family: var(--mono); font-size: 11px; color: var(--yellow);
+  }
+  .festivo-tag .f-name { flex: 1; color: var(--txt2); font-size: 11px; }
+  .festivo-tag .f-rm {
+    background: none; border: none;
+    color: var(--txt3); cursor: pointer; font-size: 13px; line-height: 1;
+    padding: 0 2px;
+  }
+  .festivo-tag .f-rm:hover { color: var(--red); }
+
+  /* ── SECTION DIVIDER ── */
+  .sec-label {
+    font-family: var(--cond);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--txt3); margin-bottom: 10px;
+    margin-top: 18px;
+  }
+  .sec-label:first-child { margin-top: 0; }
+
+  /* ── ALERT ── */
+  .alert {
+    border-radius: 8px; padding: 10px 14px;
+    font-size: 12px; margin-bottom: 12px;
+  }
+  .alert.info { background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.2); color: #93c5fd; }
+  .alert.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.2); color: var(--yellow); }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .tab {
+    font-family: var(--cond); font-size: 12px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    padding: 10px 16px; cursor: pointer;
+    color: var(--txt3); border-bottom: 2px solid transparent;
+    transition: all .15s; margin-bottom: -1px;
+    background: none; border-left: none; border-right: none; border-top: none;
+  }
+  .tab.active { color: var(--red); border-bottom-color: var(--red); }
+  .tab:hover:not(.active) { color: var(--txt2); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .sep { height: 1px; background: var(--border); margin: 14px 0; }
+
+  /* ── API PREVIEW ── */
+  .api-preview {
+    background: var(--black);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .api-head {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    font-family: var(--mono); font-size: 10px;
+    color: var(--txt3); letter-spacing: .5px;
+  }
+  .api-body {
+    padding: 14px;
+    font-family: var(--mono); font-size: 11px;
+    line-height: 1.8; overflow-x: auto;
+  }
+  .c-key   { color: #c084fc; }
+  .c-str   { color: #86efac; }
+  .c-num   { color: #fbbf24; }
+  .c-bool  { color: #f97316; }
+  .c-gray  { color: #6b7280; }
+  .c-func  { color: #38bdf8; }
+  .c-kw    { color: #e879f9; }
+  .c-comm  { color: #4b5563; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <span class="header-badge">MÓDULO AISLADO</span>
+      <span class="header-badge" style="background:var(--bg3);color:var(--txt3);border:1px solid var(--border)">v1.0</span>
+    </div>
+    <h1>WorkingDays Engine</h1>
+    <div class="sub">// dias_laborables.js — helper independiente · no conectado a alquileres</div>
+  </div>
+  <div class="status-dot" title="Módulo listo"></div>
+</div>
+
+<div class="grid">
+
+  <!-- ── LEFT: INPUTS ── -->
+  <div>
+    <div class="card">
+      <div class="card-head">
+        <span style="font-size:16px">⚙️</span>
+        <span class="title">Parámetros de cálculo</span>
+      </div>
+      <div class="card-body">
+
+        <div class="field">
+          <label>📅 Fecha de inicio</label>
+          <input type="date" id="inp_inicio"/>
+        </div>
+
+        <div class="field">
+          <label>🔢 Días trabajados (objetivo)</label>
+          <input type="number" id="inp_dias" value="10" min="1" max="365"/>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="field">
+          <label>Excluir del conteo</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active" id="tog_sab" onclick="toggleOpt('sab')">Sábados</button>
+            <button class="toggle-btn active" id="tog_dom" onclick="toggleOpt('dom')">Domingos</button>
+            <button class="toggle-btn active" id="tog_fest" onclick="toggleOpt('fest')">Festivos 🇨🇴</button>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="sec-label">📌 Festivos colombianos activos</div>
+        <div class="alert info" style="font-size:11px;margin-bottom:10px">
+          Los festivos están desacoplados del motor. Puedes editarlos, importarlos o conectar una fuente externa.
+        </div>
+
+        <div class="festivo-row">
+          <input type="date" id="inp_festDate" placeholder="yyyy-mm-dd" style="flex:1"/>
+          <input type="text" id="inp_festName" placeholder="Nombre (opcional)" style="flex:1.5"/>
+          <button class="btn-sm" onclick="agregarFestivo()">+ Añadir</button>
+        </div>
+
+        <div class="festivos-list" id="festivosList"></div>
+
+        <button class="btn-calc" onclick="calcular()">▶ CALCULAR DÍAS LABORABLES</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: OUTPUT ── -->
+  <div style="display:grid;gap:14px">
+
+    <div class="card">
+      <div class="card-head">
+        <span style="font-size:16px">📊</span>
+        <span class="title">Resultado</span>
+        <span id="result-status" style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--txt3)">— esperando cálculo</span>
+      </div>
+      <div class="card-body" id="result-area">
+        <div class="result-empty">
+          <div class="icon">🗓️</div>
+          <div>Configura los parámetros y presiona Calcular</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span style="font-size:16px">🔌</span>
+        <span class="title">API del módulo</span>
+      </div>
+      <div class="card-body">
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('uso')">Uso</button>
+          <button class="tab" onclick="switchTab('firma')">Firma</button>
+          <button class="tab" onclick="switchTab('retorno')">Retorno</button>
+          <button class="tab" onclick="switchTab('integration')">Integración</button>
+        </div>
+        <div class="tab-panel active" id="tab-uso">
+          <div class="api-preview">
+            <div class="api-head">// Ejemplo de uso directo</div>
+            <div class="api-body" id="api-uso-code"></div>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab-firma">
+          <div class="api-preview">
+            <div class="api-head">// Firma completa de la función</div>
+            <div class="api-body"><span class="c-comm">/**
+ * Calcula días laborables a partir de una fecha de inicio.
+ *
+ * @param {string|Date} fechaInicio  - Fecha de inicio del conteo
+ * @param {number}      diasObj      - Días laborables a contar
+ * @param {Object}      [config]     - Configuración opcional
+ * @param {boolean}     [config.excluirSabados=true]
+ * @param {boolean}     [config.excluirDomingos=true]
+ * @param {string[]}    [config.festivos=[]]   - Array de 'YYYY-MM-DD'
+ *
+ * @returns {WorkingDaysResult}
+ */</span>
+<span class="c-kw">function</span> <span class="c-func">calcularDiasLaborables</span>(
+  fechaInicio,
+  diasObj,
+  config = {}
+) { ... }
+
+<span class="c-comm">// Tipo de retorno</span>
+<span class="c-kw">typedef</span> WorkingDaysResult = {
+  <span class="c-key">fechaInicio</span>:     <span class="c-str">string</span>,   <span class="c-comm">// 'YYYY-MM-DD'</span>
+  <span class="c-key">fechaFin</span>:        <span class="c-str">string</span>,   <span class="c-comm">// 'YYYY-MM-DD'</span>
+  <span class="c-key">diasLaborables</span>:  <span class="c-num">number</span>,
+  <span class="c-key">diasCalendario</span>:  <span class="c-num">number</span>,
+  <span class="c-key">diasExcluidos</span>:   <span class="c-num">number</span>,
+  <span class="c-key">detalle</span>:         <span class="c-str">ExcluidoItem[]</span>,
+  <span class="c-key">configUsada</span>:     <span class="c-str">Object</span>
+}</div>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab-retorno">
+          <div class="api-preview">
+            <div class="api-head">// Objeto de retorno (ejemplo real)</div>
+            <div class="api-body" id="api-retorno-code"><span class="c-gray">// Ejecuta un cálculo para ver el resultado aquí</span></div>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab-integration">
+          <div class="api-preview">
+            <div class="api-head">// Cómo conectar al módulo de alquileres (cuando esté listo)</div>
+            <div class="api-body"><span class="c-comm">// 1. Importar (si se modulariza)</span>
+<span class="c-kw">import</span> { calcularDiasLaborables, FESTIVOS_CO } <span class="c-kw">from</span> <span class="c-str">'./dias_laborables.js'</span>;
+
+<span class="c-comm">// 2. Uso en saveAlquiler() — sin tocar la lógica actual:</span>
+<span class="c-kw">const</span> resultado = calcularDiasLaborables(
+  alq.fecha_inicio,
+  alq.dias,
+  { festivos: FESTIVOS_CO[anio] }
+);
+
+<span class="c-comm">// 3. Guardar en el registro de alquiler:</span>
+alq.fecha_fin_calculada = resultado.fechaFin;
+alq.dias_calendario     = resultado.diasCalendario;
+alq.dias_excluidos      = resultado.diasExcluidos;
+
+<span class="c-comm">// 4. El helper NO modifica alq — solo devuelve datos.
+// 5. Los festivos vienen de config, no del helper.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// dias_laborables.js  —  WorkingDays Engine
+// Módulo independiente · no acoplado a alquileres_ops
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Config por defecto ──────────────────────────────────────────────
+const DEFAULT_CONFIG = {
+  excluirSabados:  true,
+  excluirDomingos: true,
+  festivos: []          // Array de 'YYYY-MM-DD' — viene de afuera
+};
+
+// ── Festivos Colombia 2025-2026 (fuente desacoplada) ─────────────────
+const FESTIVOS_CO = {
+  2025: [
+    '2025-01-01','2025-01-06','2025-03-24','2025-04-17','2025-04-18',
+    '2025-05-01','2025-06-02','2025-06-23','2025-06-30','2025-07-20',
+    '2025-08-07','2025-08-18','2025-10-13','2025-11-03','2025-11-17',
+    '2025-12-08','2025-12-25'
+  ],
+  2026: [
+    '2026-01-01','2026-01-12','2026-03-23','2026-04-02','2026-04-03',
+    '2026-05-01','2026-05-18','2026-06-08','2026-06-29','2026-07-20',
+    '2026-08-07','2026-08-17','2026-10-12','2026-11-02','2026-11-16',
+    '2026-12-08','2026-12-25'
+  ]
+};
+
+// Nombres para los festivos (opcional, para UI)
+const FESTIVOS_NOMBRES = {
+  '2025-01-01':'Año Nuevo','2025-01-06':'Reyes Magos',
+  '2025-03-24':'San José','2025-04-17':'Jueves Santo',
+  '2025-04-18':'Viernes Santo','2025-05-01':'Día del Trabajo',
+  '2025-06-02':'Ascensión del Señor','2025-06-23':'Corpus Christi',
+  '2025-06-30':'Sagrado Corazón','2025-07-20':'Independencia Colombia',
+  '2025-08-07':'Batalla de Boyacá','2025-08-18':'Asunción de la Virgen',
+  '2025-10-13':'Día de la Raza','2025-11-03':'Todos los Santos',
+  '2025-11-17':'Independencia de Cartagena','2025-12-08':'Inmaculada Concepción',
+  '2025-12-25':'Navidad',
+  '2026-01-01':'Año Nuevo','2026-01-12':'Reyes Magos',
+  '2026-03-23':'San José','2026-04-02':'Jueves Santo',
+  '2026-04-03':'Viernes Santo','2026-05-01':'Día del Trabajo',
+  '2026-05-18':'Ascensión del Señor','2026-06-08':'Corpus Christi',
+  '2026-06-29':'Sagrado Corazón','2026-07-20':'Independencia Colombia',
+  '2026-08-07':'Batalla de Boyacá','2026-08-17':'Asunción de la Virgen',
+  '2026-10-12':'Día de la Raza','2026-11-02':'Todos los Santos',
+  '2026-11-16':'Independencia de Cartagena','2026-12-08':'Inmaculada Concepción',
+  '2026-12-25':'Navidad'
+};
+
+// ── MOTOR PRINCIPAL ─────────────────────────────────────────────────
+function calcularDiasLaborables(fechaInicio, diasObj, config = {}) {
+  const cfg = { ...DEFAULT_CONFIG, ...config };
+  const festivosSet = new Set(cfg.festivos.map(f => toISO(f)));
+
+  const inicio = toDate(fechaInicio);
+  if (!inicio || isNaN(inicio)) throw new Error('Fecha de inicio inválida');
+  if (!Number.isInteger(diasObj) || diasObj < 1) throw new Error('Días objetivo debe ser entero positivo');
+
+  let cursor       = new Date(inicio);
+  let trabajados   = 0;
+  const excluidos  = [];
+  const dias_iter  = [];
+
+  while (trabajados < diasObj) {
+    const iso  = toISO(cursor);
+    const dow  = cursor.getDay(); // 0=dom, 6=sab
+    const esSab  = dow === 6;
+    const esDom  = dow === 0;
+    const esFest = festivosSet.has(iso);
+
+    let excluido = false;
+    let razon    = null;
+
+    if (cfg.excluirSabados && esSab)  { excluido = true; razon = 'weekend'; }
+    if (cfg.excluirDomingos && esDom) { excluido = true; razon = 'weekend'; }
+    if (esFest)                        { excluido = true; razon = 'holiday'; }
+
+    if (excluido) {
+      excluidos.push({ fecha: iso, tipo: razon,
+        nombre: razon === 'holiday' ? (FESTIVOS_NOMBRES[iso] || 'Festivo') : (esSab ? 'Sábado' : 'Domingo') });
+      dias_iter.push({ fecha: iso, tipo: razon });
+    } else {
+      trabajados++;
+      dias_iter.push({ fecha: iso, tipo: 'worked' });
+    }
+
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  // La fecha fin es el último día trabajado (cursor está un día adelante)
+  cursor.setDate(cursor.getDate() - 1);
+  const fechaFin = toISO(cursor);
+
+  return {
+    fechaInicio:    toISO(inicio),
+    fechaFin,
+    diasLaborables:  trabajados,
+    diasCalendario:  dias_iter.length,
+    diasExcluidos:   excluidos.length,
+    detalle:         excluidos,
+    timeline:        dias_iter,
+    configUsada:     { ...cfg, festivos: cfg.festivos.length + ' festivos' }
+  };
+}
+
+// ── Helpers de fecha ────────────────────────────────────────────────
+function toDate(d) {
+  if (d instanceof Date) return new Date(d);
+  if (typeof d === 'string') {
+    const [y,m,dd] = d.split('-').map(Number);
+    return new Date(y, m-1, dd);
+  }
+  return null;
+}
+function toISO(d) {
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+  const dt = d instanceof Date ? d : toDate(d);
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth()+1).padStart(2,'0');
+  const dd = String(dt.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+function fmtCO(iso) {
+  if (!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+const DIAS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+// ═══════════════════════════════════════════════════════════════════
+// UI STATE
+// ═══════════════════════════════════════════════════════════════════
+const opts = { sab: true, dom: true, fest: true };
+let festivosCustom = [];        // [{date:'YYYY-MM-DD', name:'...'}]
+let lastResult = null;
+
+// ── Init ────────────────────────────────────────────────────────────
+(function init() {
+  const hoy = new Date();
+  document.getElementById('inp_inicio').value = toISO(hoy);
+  renderFestivos();
+  updateApiUso();
+})();
+
+function toggleOpt(key) {
+  opts[key] = !opts[key];
+  document.getElementById('tog_'+key).classList.toggle('active', opts[key]);
+}
+
+// ── Festivos manager ─────────────────────────────────────────────────
+function getFestivosActivos() {
+  const todos = [];
+  const anioInicio = parseInt((document.getElementById('inp_inicio').value||'').slice(0,4)) || new Date().getFullYear();
+  const anios = [anioInicio, anioInicio+1];
+  if (opts.fest) {
+    anios.forEach(a => { if (FESTIVOS_CO[a]) todos.push(...FESTIVOS_CO[a]); });
+  }
+  festivosCustom.forEach(f => { if (!todos.includes(f.date)) todos.push(f.date); });
+  return todos;
+}
+
+function agregarFestivo() {
+  const d = document.getElementById('inp_festDate').value;
+  const n = document.getElementById('inp_festName').value.trim() || 'Festivo personalizado';
+  if (!d) return;
+  if (festivosCustom.some(f => f.date === d)) return;
+  festivosCustom.push({ date: d, name: n });
+  document.getElementById('inp_festDate').value = '';
+  document.getElementById('inp_festName').value = '';
+  renderFestivos();
+}
+
+function quitarFestivo(date) {
+  festivosCustom = festivosCustom.filter(f => f.date !== date);
+  renderFestivos();
+}
+
+function renderFestivos() {
+  const list = document.getElementById('festivosList');
+  const activos = getFestivosActivos();
+  if (!activos.length && !festivosCustom.length) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--txt3);font-family:var(--mono)">// Sin festivos configurados</div>';
+    return;
+  }
+  // Show only custom + a count for built-in
+  let html = '';
+  const anioInicio = parseInt((document.getElementById('inp_inicio').value||'').slice(0,4)) || new Date().getFullYear();
+  const builtIn = FESTIVOS_CO[anioInicio] ? FESTIVOS_CO[anioInicio].length : 0;
+  if (opts.fest && builtIn > 0) {
+    html += `<div class="festivo-tag" style="opacity:.6"><span>🇨🇴</span><span class="f-name" style="color:var(--txt3)">Festivos CO ${anioInicio} (${builtIn} días precargados)</span></div>`;
+  }
+  festivosCustom.forEach(f => {
+    html += `<div class="festivo-tag"><span>📌</span><span class="f-name">${fmtCO(f.date)}</span><span style="color:var(--txt3);font-size:10px">${f.name}</span><button class="f-rm" onclick="quitarFestivo('${f.date}')">✕</button></div>`;
+  });
+  list.innerHTML = html;
+}
+
+// ── CALCULAR ────────────────────────────────────────────────────────
+function calcular() {
+  const inicio = document.getElementById('inp_inicio').value;
+  const dias   = parseInt(document.getElementById('inp_dias').value);
+
+  if (!inicio) { alert('Selecciona fecha de inicio'); return; }
+  if (!dias || dias < 1) { alert('Días debe ser mayor a 0'); return; }
+
+  const festivos = getFestivosActivos();
+
+  try {
+    const r = calcularDiasLaborables(inicio, dias, {
+      excluirSabados:  opts.sab,
+      excluirDomingos: opts.dom,
+      festivos
+    });
+    lastResult = r;
+    renderResult(r);
+    renderApiRetorno(r);
+    updateApiUso(r);
+    document.getElementById('result-status').textContent = `✓ calculado · ${r.diasCalendario} días calendario`;
+  } catch(e) {
+    document.getElementById('result-area').innerHTML = `<div class="alert warn">⚠️ ${e.message}</div>`;
+  }
+}
+
+// ── RENDER RESULT ────────────────────────────────────────────────────
+function renderResult(r) {
+  const area = document.getElementById('result-area');
+
+  // KPIs
+  let html = `<div class="kpi-row">
+    <div class="kpi green">
+      <div class="kpi-val">${r.diasLaborables}</div>
+      <div class="kpi-lbl">Días trabajados</div>
+    </div>
+    <div class="kpi yellow">
+      <div class="kpi-val">${r.diasExcluidos}</div>
+      <div class="kpi-lbl">Días excluidos</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val" style="color:var(--blue)">${r.diasCalendario}</div>
+      <div class="kpi-lbl">Días calendario</div>
+    </div>
+  </div>`;
+
+  // Fechas
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+    <div class="kpi" style="text-align:left;padding:12px">
+      <div style="font-size:9px;color:var(--txt3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">📅 Fecha inicio</div>
+      <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--txt)">${fmtCO(r.fechaInicio)}</div>
+      <div style="font-size:10px;color:var(--txt3)">${DIAS_ES[toDate(r.fechaInicio).getDay()]}</div>
+    </div>
+    <div class="kpi" style="text-align:left;padding:12px;border-color:rgba(34,197,94,.25)">
+      <div style="font-size:9px;color:var(--txt3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">🏁 Fecha fin</div>
+      <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--green)">${fmtCO(r.fechaFin)}</div>
+      <div style="font-size:10px;color:var(--txt3)">${DIAS_ES[toDate(r.fechaFin).getDay()]}</div>
+    </div>
+  </div>`;
+
+  // Timeline
+  html += `<div class="timeline-wrap">
+    <div class="timeline-label">📆 Mapa de días (${r.timeline.length} días calendario)</div>
+    <div class="timeline-grid">`;
+  r.timeline.forEach((d, i) => {
+    const dt = toDate(d.fecha);
+    const label = dt.getDate();
+    const dow = DIAS_ES[dt.getDay()];
+    const isStart = i === 0;
+    const isEnd   = d.tipo === 'worked' && !r.timeline.slice(i+1).some(x => x.tipo === 'worked');
+    const name = d.tipo === 'holiday' ? (FESTIVOS_NOMBRES[d.fecha] || 'Festivo') : dow;
+    let extra = isStart ? ' start' : '';
+    if (isEnd) extra += ' end';
+    html += `<div class="day-cell ${d.tipo}${extra}" title="${fmtCO(d.fecha)} ${dow}${d.tipo==='holiday'?' — '+name:''}">${label}</div>`;
+  });
+  html += `</div>
+    <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap">
+      <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--green)"><span style="width:10px;height:10px;border-radius:3px;background:rgba(34,197,94,.2);border:1px solid rgba(34,197,94,.3);display:inline-block"></span>Laborable</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--txt3)"><span style="width:10px;height:10px;border-radius:3px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);display:inline-block"></span>Fin de semana</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--yellow)"><span style="width:10px;height:10px;border-radius:3px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.25);display:inline-block"></span>Festivo</span>
+    </div>
+  </div>`;
+
+  // Excluidos
+  if (r.detalle.length) {
+    html += `<div class="sec-label">Días excluidos (${r.detalle.length})</div>
+    <div class="excl-list">`;
+    r.detalle.forEach(d => {
+      const dt = toDate(d.fecha);
+      const dow = DIAS_ES[dt.getDay()];
+      html += `<div class="excl-item">
+        <span class="excl-date">${fmtCO(d.fecha)} ${dow}</span>
+        <span class="excl-type ${d.tipo}">${d.tipo === 'holiday' ? '🟡 FESTIVO' : '⚫ FDS'}</span>
+        <span style="font-size:10px;color:var(--txt3)">${d.nombre}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  area.innerHTML = html;
+}
+
+// ── API DOCS dynamic ─────────────────────────────────────────────────
+function updateApiUso(r) {
+  const inicio = document.getElementById('inp_inicio').value || 'YYYY-MM-DD';
+  const dias   = document.getElementById('inp_dias').value   || 10;
+  const festivos = getFestivosActivos();
+  const code = document.getElementById('api-uso-code');
+  code.innerHTML =
+    `<span class="c-kw">import</span> { calcularDiasLaborables } <span class="c-kw">from</span> <span class="c-str">'./dias_laborables.js'</span>;
+
+<span class="c-kw">const</span> resultado = <span class="c-func">calcularDiasLaborables</span>(
+  <span class="c-str">'${inicio}'</span>,         <span class="c-comm">// fecha inicio</span>
+  <span class="c-num">${dias}</span>,                    <span class="c-comm">// días laborables objetivo</span>
+  {
+    <span class="c-key">excluirSabados</span>:  <span class="c-bool">${opts.sab}</span>,
+    <span class="c-key">excluirDomingos</span>: <span class="c-bool">${opts.dom}</span>,
+    <span class="c-key">festivos</span>: FESTIVOS_CO[<span class="c-num">${inicio.slice(0,4)||'YYYY'}</span>]
+    <span class="c-comm">// festivos: []  ← sin festivos</span>
+  }
+);
+
+<span class="c-comm">// → fechaFin, diasCalendario, diasExcluidos, detalle[]</span>
+${r ? `<span class="c-comm">// Último resultado: fechaFin = '${r.fechaFin}' (${r.diasCalendario} días calendario)</span>` : ''}`;
+}
+
+function renderApiRetorno(r) {
+  const el = document.getElementById('api-retorno-code');
+  el.innerHTML =
+    `<span class="c-gray">{</span>
+  <span class="c-key">fechaInicio</span>:    <span class="c-str">'${r.fechaInicio}'</span>,
+  <span class="c-key">fechaFin</span>:        <span class="c-str">'${r.fechaFin}'</span>,
+  <span class="c-key">diasLaborables</span>:  <span class="c-num">${r.diasLaborables}</span>,
+  <span class="c-key">diasCalendario</span>:  <span class="c-num">${r.diasCalendario}</span>,
+  <span class="c-key">diasExcluidos</span>:   <span class="c-num">${r.diasExcluidos}</span>,
+  <span class="c-key">detalle</span>: [        <span class="c-comm">// ${r.detalle.length} días excluidos</span>
+${r.detalle.slice(0,3).map(d=>`    { <span class="c-key">fecha</span>: <span class="c-str">'${d.fecha}'</span>, <span class="c-key">tipo</span>: <span class="c-str">'${d.tipo}'</span>, <span class="c-key">nombre</span>: <span class="c-str">'${d.nombre}'</span> }`).join(',\n')}${r.detalle.length>3?`,\n    <span class="c-gray">... ${r.detalle.length-3} más</span>`:''}
+  ],
+  <span class="c-key">configUsada</span>: {
+    <span class="c-key">excluirSabados</span>:  <span class="c-bool">${opts.sab}</span>,
+    <span class="c-key">excluirDomingos</span>: <span class="c-bool">${opts.dom}</span>,
+    <span class="c-key">festivos</span>: <span class="c-str">'${r.configUsada.festivos}'</span>
+  }
+<span class="c-gray">}</span>`;
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name === 'retorno' && lastResult) renderApiRetorno(lastResult);
+  if (name === 'uso') updateApiUso(lastResult);
+}
+</script>
+</body>
+</html>
