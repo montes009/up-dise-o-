@@ -2,892 +2,3119 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GRUAS & EQUIPOS — Sistema de Nómina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+/* ═══════════════════════════════════════════════
+   TOKENS & RESET
+═══════════════════════════════════════════════ */
+:root {
+  --rojo:        #C8102E;
+  --rojo-hover:  #a00d24;
+  --rojo-dim:    rgba(200,16,46,0.15);
+  --negro:       #0a0a0a;
+  --gris-900:    #111111;
+  --gris-800:    #1a1a1a;
+  --gris-700:    #252525;
+  --gris-600:    #333333;
+  --gris-500:    #555555;
+  --gris-400:    #888888;
+  --gris-200:    #cccccc;
+  --blanco:      #f5f5f0;
+  --amarillo:    #f5c518;
+  --verde:       #22c55e;
+  --azul:        #3b82f6;
+  --naranja:     #f97316;
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-body:    'Barlow', sans-serif;
+  --radius:       4px;
+  --radius-lg:    8px;
+  --shadow:       0 4px 24px rgba(0,0,0,0.6);
+  --transition:   0.18s ease;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body {
+  background: var(--negro);
+  color: var(--blanco);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+input, select, textarea, button {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+}
+button { cursor: pointer; border: none; outline: none; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--gris-800); }
+::-webkit-scrollbar-thumb { background: var(--gris-600); border-radius: 3px; }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ═══════════════════════════════════════════════
+   UTILIDADES
+═══════════════════════════════════════════════ */
+.hidden   { display: none !important; }
+.flex     { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center  { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-1 { gap: 0.5rem; }
+.gap-2 { gap: 1rem; }
+.gap-3 { gap: 1.5rem; }
+.w-full { width: 100%; }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.font-bold { font-weight: 700; }
+.text-sm { font-size: 0.8rem; }
+.text-xs { font-size: 0.72rem; }
+.text-rojo { color: var(--rojo); }
+.text-verde { color: var(--verde); }
+.text-amarillo { color: var(--amarillo); }
+.text-naranja { color: var(--naranja); }
+.text-muted { color: var(--gris-400); }
+.uppercase { text-transform: uppercase; letter-spacing: 0.08em; }
+.mono { font-family: 'Courier New', monospace; }
 
-  :root {
-    --red:    #e5000f;
-    --black:  #0a0a0a;
-    --bg:     #111114;
-    --bg2:    #18181c;
-    --bg3:    #222228;
-    --bg4:    #2a2a32;
-    --border: rgba(255,255,255,.08);
-    --txt:    #f0f0f0;
-    --txt2:   #aaa;
-    --txt3:   #666;
-    --green:  #22c55e;
-    --yellow: #f59e0b;
-    --blue:   #3b82f6;
-    --purple: #a855f7;
-    --mono:   'JetBrains Mono', monospace;
-    --cond:   'Barlow Condensed', sans-serif;
-    --body:   'Barlow', sans-serif;
-  }
+/* ═══════════════════════════════════════════════
+   BOTONES
+═══════════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 18px; border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-weight: 600; font-size: 0.9rem;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  transition: var(--transition); cursor: pointer;
+}
+.btn-primary {
+  background: var(--rojo); color: #fff;
+  border: 1px solid var(--rojo);
+}
+.btn-primary:hover { background: var(--rojo-hover); }
+.btn-outline {
+  background: transparent; color: var(--blanco);
+  border: 1px solid var(--gris-600);
+}
+.btn-outline:hover { border-color: var(--rojo); color: var(--rojo); }
+.btn-ghost {
+  background: transparent; color: var(--gris-400);
+  border: none; padding: 6px 12px;
+}
+.btn-ghost:hover { color: var(--blanco); }
+.btn-danger {
+  background: transparent; color: var(--rojo);
+  border: 1px solid var(--rojo);
+}
+.btn-danger:hover { background: var(--rojo); color: #fff; }
+.btn-sm { padding: 5px 12px; font-size: 0.78rem; }
+.btn-icon {
+  background: var(--gris-700); color: var(--gris-200);
+  border: 1px solid var(--gris-600); border-radius: var(--radius);
+  width: 32px; height: 32px; display: inline-flex;
+  align-items: center; justify-content: center;
+  font-size: 1rem; transition: var(--transition);
+}
+.btn-icon:hover { background: var(--rojo); color: #fff; border-color: var(--rojo); }
 
-  body {
-    font-family: var(--body);
-    background: var(--bg);
-    color: var(--txt);
-    min-height: 100vh;
-    padding: 24px;
-  }
+/* ═══════════════════════════════════════════════
+   FORMULARIOS
+═══════════════════════════════════════════════ */
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label {
+  font-family: var(--font-display);
+  font-size: 0.75rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--gris-400);
+}
+.form-control {
+  background: var(--gris-800);
+  border: 1px solid var(--gris-600);
+  color: var(--blanco);
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  transition: border-color var(--transition);
+  width: 100%;
+}
+.form-control:focus {
+  outline: none;
+  border-color: var(--rojo);
+  box-shadow: 0 0 0 2px var(--rojo-dim);
+}
+.form-control::placeholder { color: var(--gris-500); }
+select.form-control option { background: var(--gris-800); }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+.col-span-2 { grid-column: span 2; }
+.col-span-3 { grid-column: span 3; }
 
-  /* ── HEADER ── */
-  .header {
-    display: flex; align-items: center; gap: 14px;
-    margin-bottom: 28px;
-    padding-bottom: 18px;
-    border-bottom: 2px solid var(--red);
-  }
-  .header-badge {
-    background: var(--red);
-    color: #fff;
-    font-family: var(--cond);
-    font-size: 10px; font-weight: 800;
-    letter-spacing: 2px; text-transform: uppercase;
-    padding: 4px 10px; border-radius: 4px;
-  }
-  .header h1 {
-    font-family: var(--cond);
-    font-size: 22px; font-weight: 800;
-    letter-spacing: 1px; color: var(--txt);
-  }
-  .header .sub {
-    font-size: 11px; color: var(--txt3);
-    font-family: var(--mono);
-    margin-top: 2px; letter-spacing: .5px;
-  }
-  .status-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--green);
-    box-shadow: 0 0 8px var(--green);
-    margin-left: auto; flex-shrink: 0;
-  }
+/* ═══════════════════════════════════════════════
+   TARJETAS
+═══════════════════════════════════════════════ */
+.card {
+  background: var(--gris-800);
+  border: 1px solid var(--gris-700);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem; padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--gris-700);
+}
+.card-title {
+  font-family: var(--font-display);
+  font-size: 1rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--blanco);
+}
 
-  /* ── GRID ── */
-  .grid {
-    display: grid;
-    grid-template-columns: 380px 1fr;
-    gap: 18px;
-    align-items: start;
-  }
-  @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+/* Stat cards */
+.stat-card {
+  background: var(--gris-800);
+  border: 1px solid var(--gris-700);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--accent, var(--rojo));
+}
+.stat-label {
+  font-family: var(--font-display);
+  font-size: 0.7rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--gris-400); margin-bottom: 6px;
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 2rem; font-weight: 800;
+  color: var(--blanco); line-height: 1;
+}
+.stat-sub { font-size: 0.75rem; color: var(--gris-500); margin-top: 4px; }
 
-  /* ── CARDS ── */
-  .card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  .card-head {
-    padding: 12px 18px;
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 10px;
-  }
-  .card-head .title {
-    font-family: var(--cond);
-    font-size: 13px; font-weight: 700;
-    letter-spacing: 1px; text-transform: uppercase;
-    color: var(--txt2);
-  }
-  .card-body { padding: 18px; }
+/* ═══════════════════════════════════════════════
+   TABLA
+═══════════════════════════════════════════════ */
+.table-wrap { overflow-x: auto; border-radius: var(--radius-lg); }
+table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+thead tr {
+  background: var(--gris-700);
+  border-bottom: 2px solid var(--rojo);
+}
+thead th {
+  padding: 10px 14px; text-align: left;
+  font-family: var(--font-display);
+  font-size: 0.7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.09em;
+  color: var(--gris-400); white-space: nowrap;
+}
+tbody tr {
+  border-bottom: 1px solid var(--gris-700);
+  transition: background var(--transition);
+}
+tbody tr:hover { background: rgba(255,255,255,0.03); }
+tbody td { padding: 10px 14px; vertical-align: middle; }
+tbody tr:last-child { border-bottom: none; }
 
-  /* ── FORM ── */
-  .field { margin-bottom: 14px; }
-  .field:last-child { margin-bottom: 0; }
-  label {
-    display: block;
-    font-size: 10px; font-weight: 700;
-    letter-spacing: 1.2px; text-transform: uppercase;
-    color: var(--txt3); margin-bottom: 6px;
-  }
-  input[type=date], input[type=number], select {
-    width: 100%;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--txt);
-    font-family: var(--mono);
-    font-size: 13px;
-    padding: 9px 12px;
-    outline: none;
-    transition: border-color .15s;
-    appearance: none;
-  }
-  input:focus, select:focus { border-color: var(--red); }
+/* ═══════════════════════════════════════════════
+   BADGES
+═══════════════════════════════════════════════ */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 9px; border-radius: 20px;
+  font-family: var(--font-display);
+  font-size: 0.68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.badge-verde   { background: rgba(34,197,94,0.15);  color: var(--verde); }
+.badge-rojo    { background: rgba(200,16,46,0.15);   color: var(--rojo); }
+.badge-amarillo{ background: rgba(245,197,24,0.15);  color: var(--amarillo); }
+.badge-azul    { background: rgba(59,130,246,0.15);  color: var(--azul); }
+.badge-naranja { background: rgba(249,115,22,0.15);  color: var(--naranja); }
+.badge-gris    { background: rgba(136,136,136,0.15); color: var(--gris-400); }
 
-  /* ── TOGGLE GROUP ── */
-  .toggle-group {
-    display: flex; gap: 6px; flex-wrap: wrap;
-  }
-  .toggle-btn {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--txt2);
-    font-family: var(--cond);
-    font-size: 12px; font-weight: 700;
-    padding: 6px 12px; border-radius: 6px;
-    cursor: pointer; transition: all .15s;
-  }
-  .toggle-btn.active {
-    background: rgba(229,0,15,.15);
-    border-color: var(--red);
-    color: var(--red);
-  }
-  .toggle-btn:hover:not(.active) { border-color: rgba(255,255,255,.2); color: var(--txt); }
+/* ═══════════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════════ */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 900;
+  background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.15s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  background: var(--gris-800);
+  border: 1px solid var(--gris-600);
+  border-radius: var(--radius-lg);
+  width: 100%; max-width: 640px;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: var(--shadow);
+  animation: slideUp 0.2s ease;
+}
+.modal-lg { max-width: 860px; }
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--gris-700);
+  position: sticky; top: 0; background: var(--gris-800); z-index: 1;
+}
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+.modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--gris-700);
+  display: flex; justify-content: flex-end; gap: 0.75rem;
+  background: var(--gris-800);
+  position: sticky; bottom: 0;
+}
+.btn-close {
+  background: none; border: none; color: var(--gris-400);
+  font-size: 1.4rem; line-height: 1; cursor: pointer; padding: 2px;
+}
+.btn-close:hover { color: var(--blanco); }
 
-  /* ── BUTTON ── */
-  .btn-calc {
-    width: 100%;
-    background: var(--red);
-    border: none;
-    border-radius: 8px;
-    color: #fff;
-    font-family: var(--cond);
-    font-size: 15px; font-weight: 800;
-    letter-spacing: 1px;
-    padding: 12px;
-    cursor: pointer;
-    margin-top: 18px;
-    transition: opacity .15s;
-  }
-  .btn-calc:hover { opacity: .85; }
-  .btn-sm {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--txt2);
-    font-family: var(--cond);
-    font-size: 11px; font-weight: 700;
-    padding: 5px 10px; cursor: pointer;
-    transition: all .15s;
-  }
-  .btn-sm:hover { border-color: rgba(255,255,255,.2); color: var(--txt); }
-  .btn-sm.danger:hover { border-color: var(--red); color: var(--red); }
+/* ═══════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════ */
+#toast-container {
+  position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;
+  display: flex; flex-direction: column; gap: 0.5rem;
+}
+.toast {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 18px; border-radius: var(--radius);
+  background: var(--gris-700); border: 1px solid var(--gris-600);
+  box-shadow: var(--shadow); font-size: 0.875rem;
+  animation: toastIn 0.25s ease;
+  min-width: 280px; max-width: 400px;
+}
+@keyframes toastIn { from { transform: translateX(100px); opacity: 0; } }
+.toast.ok    { border-left: 3px solid var(--verde); }
+.toast.error { border-left: 3px solid var(--rojo); }
+.toast.warn  { border-left: 3px solid var(--amarillo); }
 
-  /* ── RESULT PANEL ── */
-  .result-empty {
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    min-height: 220px;
-    color: var(--txt3);
-    font-family: var(--mono); font-size: 12px;
-    gap: 8px;
-  }
-  .result-empty .icon { font-size: 32px; opacity: .3; }
+/* ═══════════════════════════════════════════════
+   PANTALLA LOGIN
+═══════════════════════════════════════════════ */
+#login-screen {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 100%, rgba(200,16,46,0.12) 0%, transparent 70%),
+    var(--negro);
+  padding: 2rem;
+}
+.login-box {
+  width: 100%; max-width: 400px;
+}
+.login-logo {
+  text-align: center; margin-bottom: 2.5rem;
+}
+.login-logo-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px; background: var(--rojo);
+  border-radius: 12px; margin-bottom: 1rem;
+  font-family: var(--font-display);
+  font-size: 2rem; font-weight: 800; color: #fff;
+}
+.login-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--blanco);
+}
+.login-sub {
+  font-size: 0.8rem; color: var(--gris-400);
+  margin-top: 4px; letter-spacing: 0.05em;
+}
+.login-card {
+  background: var(--gris-800);
+  border: 1px solid var(--gris-700);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  display: flex; flex-direction: column; gap: 1.25rem;
+}
+.login-btn {
+  width: 100%; padding: 12px;
+  background: var(--rojo); color: #fff;
+  border: none; border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: 1rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  cursor: pointer; transition: background var(--transition);
+}
+.login-btn:hover:not(:disabled) { background: var(--rojo-hover); }
+.login-btn:disabled { opacity: 0.5; cursor: default; }
+.login-error {
+  background: rgba(200,16,46,0.12);
+  border: 1px solid rgba(200,16,46,0.3);
+  border-radius: var(--radius);
+  padding: 10px 14px; font-size: 0.83rem; color: #ff6b6b;
+}
 
-  .kpi-row {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 10px; margin-bottom: 16px;
-  }
-  .kpi {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
-    text-align: center;
-  }
-  .kpi .kpi-val {
-    font-family: var(--cond);
-    font-size: 28px; font-weight: 900;
-    line-height: 1;
-  }
-  .kpi .kpi-lbl {
-    font-size: 9px; font-weight: 700;
-    letter-spacing: 1px; text-transform: uppercase;
-    color: var(--txt3); margin-top: 4px;
-  }
-  .kpi.green .kpi-val { color: var(--green); }
-  .kpi.red   .kpi-val { color: var(--red); }
-  .kpi.yellow .kpi-val { color: var(--yellow); }
+/* ═══════════════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════════════ */
+#app-shell { display: none; min-height: 100vh; }
 
-  /* ── TIMELINE ── */
-  .timeline-wrap {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px;
-    margin-bottom: 14px;
-    overflow-x: auto;
-  }
-  .timeline-label {
-    font-size: 9px; font-weight: 700;
-    letter-spacing: 1px; text-transform: uppercase;
-    color: var(--txt3); margin-bottom: 10px;
-  }
-  .timeline-grid {
-    display: flex; gap: 3px; flex-wrap: wrap;
-  }
-  .day-cell {
-    width: 26px; height: 26px;
-    border-radius: 5px;
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--mono); font-size: 9px; font-weight: 700;
-    cursor: default;
-    position: relative;
-  }
-  .day-cell.worked   { background: rgba(34,197,94,.2);  color: var(--green); border: 1px solid rgba(34,197,94,.3); }
-  .day-cell.weekend  { background: rgba(255,255,255,.04); color: var(--txt3);  border: 1px solid rgba(255,255,255,.06); }
-  .day-cell.holiday  { background: rgba(245,158,11,.15); color: var(--yellow); border: 1px solid rgba(245,158,11,.25); }
-  .day-cell.start    { ring: 2px solid var(--red); outline: 2px solid var(--red); }
-  .day-cell.end      { outline: 2px solid var(--green); }
-  .day-cell[title]:hover::after {
-    content: attr(title);
-    position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
-    background: #000; color: #fff;
-    font-size: 9px; padding: 3px 6px; border-radius: 4px;
-    white-space: nowrap; z-index: 10; pointer-events: none;
-  }
+/* TOPBAR */
+.topbar {
+  height: 56px;
+  background: var(--gris-900);
+  border-bottom: 1px solid var(--gris-700);
+  display: flex; align-items: center;
+  padding: 0 1.5rem; gap: 1rem;
+  position: sticky; top: 0; z-index: 100;
+}
+.topbar-brand {
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+}
+.topbar-mark {
+  width: 32px; height: 32px; background: var(--rojo);
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 800; font-size: 1.1rem; color: #fff;
+}
+.topbar-name {
+  font-family: var(--font-display);
+  font-size: 1rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  display: none;
+}
+@media(min-width:640px) { .topbar-name { display: block; } }
 
-  /* ── EXCLUDED LIST ── */
-  .excl-list {
-    display: grid; gap: 4px;
-    max-height: 180px; overflow-y: auto;
-  }
-  .excl-item {
-    display: flex; align-items: center; gap: 10px;
-    background: var(--bg3); border: 1px solid var(--border);
-    border-radius: 6px; padding: 6px 10px;
-    font-family: var(--mono); font-size: 11px;
-  }
-  .excl-item .excl-date { color: var(--txt2); flex: 1; }
-  .excl-item .excl-type {
-    font-size: 9px; font-weight: 700;
-    letter-spacing: 1px; padding: 2px 6px; border-radius: 4px;
-  }
-  .excl-type.weekend  { background: rgba(255,255,255,.06); color: var(--txt3); }
-  .excl-type.holiday  { background: rgba(245,158,11,.12); color: var(--yellow); }
+/* TABS NAV */
+.tabs-nav {
+  display: flex; align-items: center; gap: 2px;
+  flex: 1; overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs-nav::-webkit-scrollbar { display: none; }
+.tab-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: 0.8rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--gris-400); white-space: nowrap;
+  background: none; border: none; cursor: pointer;
+  transition: var(--transition);
+}
+.tab-btn:hover { color: var(--blanco); background: var(--gris-700); }
+.tab-btn.active {
+  color: var(--blanco);
+  background: var(--gris-700);
+  border-bottom: 2px solid var(--rojo);
+}
+.tab-icon { font-size: 1rem; }
 
-  /* ── CODE OUTPUT ── */
-  .code-box {
-    background: var(--black);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: #7dd3fc;
-    white-space: pre;
-    overflow-x: auto;
-    line-height: 1.7;
-  }
-  .code-box .k { color: #c084fc; }
-  .code-box .s { color: #86efac; }
-  .code-box .n { color: #fbbf24; }
+/* User info */
+.topbar-user {
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0; cursor: pointer;
+  position: relative;
+}
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--gris-600);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 700; font-size: 0.85rem;
+}
+.user-role-badge {
+  font-size: 0.65rem; font-family: var(--font-display);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--gris-400);
+}
+.user-dropdown {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  background: var(--gris-800); border: 1px solid var(--gris-600);
+  border-radius: var(--radius-lg); min-width: 180px;
+  box-shadow: var(--shadow); z-index: 200;
+  overflow: hidden;
+}
+.user-dropdown a {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px; font-size: 0.875rem; color: var(--gris-200);
+  transition: var(--transition);
+}
+.user-dropdown a:hover { background: var(--gris-700); color: var(--blanco); }
 
-  /* ── FESTIVOS MANAGER ── */
-  .festivo-row {
-    display: flex; gap: 6px; align-items: center;
-    margin-bottom: 6px;
-  }
-  .festivo-row input {
-    flex: 1;
-  }
-  .festivos-list { display: grid; gap: 4px; margin-top: 8px; }
-  .festivo-tag {
-    display: flex; align-items: center; gap: 8px;
-    background: rgba(245,158,11,.08);
-    border: 1px solid rgba(245,158,11,.2);
-    border-radius: 6px; padding: 5px 10px;
-    font-family: var(--mono); font-size: 11px; color: var(--yellow);
-  }
-  .festivo-tag .f-name { flex: 1; color: var(--txt2); font-size: 11px; }
-  .festivo-tag .f-rm {
-    background: none; border: none;
-    color: var(--txt3); cursor: pointer; font-size: 13px; line-height: 1;
-    padding: 0 2px;
-  }
-  .festivo-tag .f-rm:hover { color: var(--red); }
+/* MAIN CONTENT */
+.main-content { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
 
-  /* ── SECTION DIVIDER ── */
-  .sec-label {
-    font-family: var(--cond);
-    font-size: 10px; font-weight: 700;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    color: var(--txt3); margin-bottom: 10px;
-    margin-top: 18px;
-  }
-  .sec-label:first-child { margin-top: 0; }
+/* SECTION HEADER */
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.section-sub { font-size: 0.8rem; color: var(--gris-400); margin-top: 2px; }
 
-  /* ── ALERT ── */
-  .alert {
-    border-radius: 8px; padding: 10px 14px;
-    font-size: 12px; margin-bottom: 12px;
-  }
-  .alert.info { background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.2); color: #93c5fd; }
-  .alert.warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.2); color: var(--yellow); }
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem; margin-bottom: 1.5rem;
+}
 
-  /* ── TABS ── */
-  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
-  .tab {
-    font-family: var(--cond); font-size: 12px; font-weight: 700;
-    letter-spacing: 1px; text-transform: uppercase;
-    padding: 10px 16px; cursor: pointer;
-    color: var(--txt3); border-bottom: 2px solid transparent;
-    transition: all .15s; margin-bottom: -1px;
-    background: none; border-left: none; border-right: none; border-top: none;
-  }
-  .tab.active { color: var(--red); border-bottom-color: var(--red); }
-  .tab:hover:not(.active) { color: var(--txt2); }
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
+/* ═══════════════════════════════════════════════
+   ASISTENCIA — CLOCK
+═══════════════════════════════════════════════ */
+.clock-card {
+  background: linear-gradient(135deg, var(--gris-800) 0%, var(--gris-700) 100%);
+  border: 1px solid var(--gris-600);
+  border-radius: var(--radius-lg);
+  padding: 2rem; text-align: center;
+  margin-bottom: 1.5rem;
+}
+.clock-time {
+  font-family: var(--font-display);
+  font-size: 3.5rem; font-weight: 800;
+  color: var(--blanco); letter-spacing: 0.05em;
+  line-height: 1;
+}
+.clock-date {
+  font-size: 0.85rem; color: var(--gris-400); margin-top: 6px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.clock-actions {
+  display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;
+}
+.clock-btn {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; padding: 1rem 2rem;
+  border-radius: var(--radius-lg);
+  font-family: var(--font-display);
+  font-size: 0.85rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  cursor: pointer; border: 2px solid transparent;
+  transition: var(--transition);
+}
+.clock-btn-in {
+  background: rgba(34,197,94,0.15);
+  border-color: var(--verde); color: var(--verde);
+}
+.clock-btn-in:hover:not(:disabled) {
+  background: var(--verde); color: var(--negro);
+}
+.clock-btn-out {
+  background: rgba(200,16,46,0.15);
+  border-color: var(--rojo); color: var(--rojo);
+}
+.clock-btn-out:hover:not(:disabled) {
+  background: var(--rojo); color: #fff;
+}
+.clock-btn:disabled { opacity: 0.35; cursor: default; }
+.clock-btn-icon { font-size: 2rem; }
 
-  .sep { height: 1px; background: var(--border); margin: 14px 0; }
+/* ═══════════════════════════════════════════════
+   CALENDARIO ASISTENCIA
+═══════════════════════════════════════════════ */
+.calendar-wrap { }
+.cal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.cal-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem; font-weight: 700;
+  text-transform: uppercase;
+}
+.cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.cal-day-label {
+  padding: 6px; text-align: center;
+  font-family: var(--font-display);
+  font-size: 0.65rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--gris-500);
+}
+.cal-day {
+  padding: 8px 4px; min-height: 52px;
+  background: var(--gris-800); border-radius: var(--radius);
+  border: 1px solid var(--gris-700);
+  display: flex; flex-direction: column; align-items: center;
+  font-size: 0.8rem; cursor: default;
+}
+.cal-day.empty { background: transparent; border-color: transparent; }
+.cal-day.hoy { border-color: var(--rojo); }
+.cal-day .day-num {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 0.85rem; color: var(--gris-200);
+}
+.cal-day .day-dot {
+  width: 7px; height: 7px; border-radius: 50%; margin-top: 4px;
+}
+.cal-day.completo { background: rgba(34,197,94,0.08); }
+.cal-day.completo .day-dot { background: var(--verde); }
+.cal-day.novedad { background: rgba(249,115,22,0.08); }
+.cal-day.novedad .day-dot { background: var(--naranja); }
+.cal-day.ausente { background: rgba(200,16,46,0.08); }
+.cal-day.ausente .day-dot { background: var(--rojo); }
 
-  /* ── API PREVIEW ── */
-  .api-preview {
-    background: var(--black);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  .api-head {
-    background: var(--bg3);
-    border-bottom: 1px solid var(--border);
-    padding: 10px 14px;
-    font-family: var(--mono); font-size: 10px;
-    color: var(--txt3); letter-spacing: .5px;
-  }
-  .api-body {
-    padding: 14px;
-    font-family: var(--mono); font-size: 11px;
-    line-height: 1.8; overflow-x: auto;
-  }
-  .c-key   { color: #c084fc; }
-  .c-str   { color: #86efac; }
-  .c-num   { color: #fbbf24; }
-  .c-bool  { color: #f97316; }
-  .c-gray  { color: #6b7280; }
-  .c-func  { color: #38bdf8; }
-  .c-kw    { color: #e879f9; }
-  .c-comm  { color: #4b5563; font-style: italic; }
+/* ═══════════════════════════════════════════════
+   LOADING
+═══════════════════════════════════════════════ */
+.spinner {
+  display: inline-block; width: 18px; height: 18px;
+  border: 2px solid var(--gris-600);
+  border-top-color: var(--rojo);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-center {
+  display: flex; justify-content: center; padding: 3rem;
+}
+
+/* EMPTY STATE */
+.empty-state {
+  text-align: center; padding: 3rem 1rem; color: var(--gris-500);
+}
+.empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.empty-text {
+  font-family: var(--font-display);
+  font-size: 1rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+
+/* DIVIDER */
+.divider {
+  border: none; border-top: 1px solid var(--gris-700);
+  margin: 1.25rem 0;
+}
+
+/* Search bar */
+.search-bar {
+  position: relative;
+  max-width: 320px;
+}
+.search-bar input {
+  padding-left: 36px;
+}
+.search-icon {
+  position: absolute; left: 10px; top: 50%;
+  transform: translateY(-50%); color: var(--gris-500);
+  pointer-events: none;
+}
+
+/* Progress bar docs */
+.doc-progress {
+  height: 4px; background: var(--gris-700);
+  border-radius: 2px; overflow: hidden; margin-top: 6px;
+}
+.doc-progress-bar {
+  height: 100%; border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════
+   OPERACIONES — ESTILOS
+═══════════════════════════════════════════════ */
+.op-active-card {
+  background: linear-gradient(135deg, rgba(200,16,46,0.1) 0%, rgba(10,10,10,0) 70%), var(--gris-800);
+  border: 1px solid rgba(200,16,46,0.45);
+  border-radius: var(--radius-lg);
+  padding: 2rem; margin-bottom: 1.5rem;
+  position: relative; overflow: hidden;
+}
+.op-active-card::before {
+  content: ''; position: absolute; top: 0; left: 0;
+  width: 4px; height: 100%; background: var(--rojo);
+}
+.op-active-pulse {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-display); font-size: 0.72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--rojo); margin-bottom: 0.75rem;
+}
+.op-active-pulse::before {
+  content: ''; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--rojo); animation: pulse-dot 1.4s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+.op-active-title {
+  font-family: var(--font-display); font-size: 1.6rem; font-weight: 800;
+  color: var(--blanco); margin-bottom: 4px;
+}
+.op-active-sub { font-size: 0.85rem; color: var(--gris-400); margin-bottom: 1.25rem; }
+.op-active-meta {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr));
+  gap: 0.75rem; margin-bottom: 1rem;
+}
+.op-meta-item { background: rgba(255,255,255,0.05); border-radius: var(--radius); padding: 10px 14px; }
+.op-meta-label {
+  font-family: var(--font-display); font-size: 0.65rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.09em; color: var(--gris-500); margin-bottom: 3px;
+}
+.op-meta-value { font-size: 0.9rem; font-weight: 600; color: var(--blanco); }
+.op-timer {
+  font-family: var(--font-display); font-size: 2.6rem; font-weight: 800;
+  color: var(--amarillo); letter-spacing: 0.05em; margin: 0.5rem 0;
+}
+.op-card {
+  background: var(--gris-800); border: 1px solid var(--gris-700);
+  border-radius: var(--radius-lg); padding: 1.25rem;
+  transition: border-color var(--transition); margin-bottom: 0.75rem;
+}
+.op-card:hover { border-color: var(--gris-500); }
+.op-card.en-curso   { border-left: 3px solid var(--rojo); }
+.op-card.finalizada { border-left: 3px solid var(--verde); }
+.op-card.cancelada  { border-left: 3px solid var(--gris-600); }
+.op-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.op-filter-btn {
+  padding: 6px 14px; border-radius: 20px; border: 1px solid var(--gris-600);
+  background: transparent; color: var(--gris-400);
+  font-family: var(--font-display); font-size: 0.75rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  cursor: pointer; transition: var(--transition);
+}
+.op-filter-btn:hover, .op-filter-btn.active {
+  border-color: var(--rojo); color: var(--rojo); background: rgba(200,16,46,0.12);
+}
+.bono-badge {
+  background: rgba(245,197,24,0.15); border: 1px solid rgba(245,197,24,0.3);
+  color: var(--amarillo); padding: 3px 10px; border-radius: 20px;
+  font-family: var(--font-display); font-size: 0.75rem; font-weight: 700;
+}
+@media(max-width:640px) {
+  .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
+  .col-span-2, .col-span-3 { grid-column: span 1; }
+  .clock-time { font-size: 2.5rem; }
+  .clock-actions { flex-direction: column; align-items: center; }
+  .modal { max-width: 100%; margin: 0; }
+}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-      <span class="header-badge">MÓDULO AISLADO</span>
-      <span class="header-badge" style="background:var(--bg3);color:var(--txt3);border:1px solid var(--border)">v1.0</span>
+<!-- ═══════════════ TOAST ═══════════════ -->
+<div id="toast-container"></div>
+
+<!-- ═══════════════ LOGIN ═══════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-mark">GE</div>
+      <div class="login-title">Grúas & Equipos</div>
+      <div class="login-sub">Sistema de Nómina y Gestión Humana</div>
     </div>
-    <h1>WorkingDays Engine</h1>
-    <div class="sub">// dias_laborables.js — helper independiente · no conectado a alquileres</div>
+    <div class="login-card">
+      <div class="form-group">
+        <label class="form-label">Correo electrónico</label>
+        <input id="login-email" type="email" class="form-control" placeholder="usuario@empresa.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input id="login-pass" type="password" class="form-control" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <div id="login-error" class="login-error hidden"></div>
+      <button id="login-btn" class="login-btn">Ingresar</button>
+    </div>
   </div>
-  <div class="status-dot" title="Módulo listo"></div>
 </div>
 
-<div class="grid">
+<!-- ═══════════════ APP SHELL ═══════════════ -->
+<div id="app-shell">
 
-  <!-- ── LEFT: INPUTS ── -->
-  <div>
-    <div class="card">
-      <div class="card-head">
-        <span style="font-size:16px">⚙️</span>
-        <span class="title">Parámetros de cálculo</span>
+  <!-- TOPBAR -->
+  <nav class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-mark">GE</div>
+      <span class="topbar-name">Grúas & Equipos</span>
+    </div>
+    <div class="tabs-nav" id="tabs-nav">
+      <!-- generado por JS según rol -->
+    </div>
+    <div class="topbar-user" id="user-menu-trigger">
+      <div class="user-avatar" id="user-initials">?</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end">
+        <span style="font-size:0.8rem;font-weight:600" id="user-name-top">—</span>
+        <span class="user-role-badge" id="user-role-top">—</span>
       </div>
-      <div class="card-body">
+      <span style="color:var(--gris-500);font-size:0.75rem">▾</span>
+      <div class="user-dropdown hidden" id="user-dropdown">
+        <a href="#" id="logout-btn">🚪 Cerrar sesión</a>
+      </div>
+    </div>
+  </nav>
 
-        <div class="field">
-          <label>📅 Fecha de inicio</label>
-          <input type="date" id="inp_inicio"/>
+  <!-- CONTENT -->
+  <div class="main-content">
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <div id="tab-dashboard" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Dashboard</div>
+          <div class="section-sub" id="dash-greeting">Bienvenido</div>
         </div>
+        <div style="color:var(--gris-400);font-size:0.8rem" id="dash-fecha"></div>
+      </div>
 
-        <div class="field">
-          <label>🔢 Días trabajados (objetivo)</label>
-          <input type="number" id="inp_dias" value="10" min="1" max="365"/>
+      <div class="stats-grid" id="dash-stats">
+        <div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem" id="dash-panels">
+        <!-- Documentos próximos a vencer -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">⚠️ Documentos por vencer</span>
+            <button class="btn btn-ghost btn-sm" onclick="switchTab('documentos')">Ver todos</button>
+          </div>
+          <div id="dash-docs-alert"><div class="loading-center"><div class="spinner"></div></div></div>
         </div>
+        <!-- Novedades recientes -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📋 Novedades recientes</span>
+            <button class="btn btn-ghost btn-sm" onclick="switchTab('asistencia')">Ver todas</button>
+          </div>
+          <div id="dash-novedades"><div class="loading-center"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+    </div>
 
-        <div class="sep"></div>
+    <!-- ═══ EMPLEADOS ═══ -->
+    <div id="tab-empleados" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <div class="section-title">👷 Empleados</div>
+          <div class="section-sub">Gestión del personal activo</div>
+        </div>
+        <div class="flex gap-1">
+          <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input id="emp-search" type="text" class="form-control" placeholder="Buscar empleado…"/>
+          </div>
+          <button class="btn btn-primary" id="btn-nuevo-empleado">+ Nuevo</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th><th>Nombre</th><th>Cédula</th>
+                <th>Cargo</th><th>Equipo</th><th>Salario Base</th>
+                <th>Estado</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="emp-tbody">
+              <tr><td colspan="8"><div class="loading-center"><div class="spinner"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
-        <div class="field">
-          <label>Excluir del conteo</label>
-          <div class="toggle-group">
-            <button class="toggle-btn active" id="tog_sab" onclick="toggleOpt('sab')">Sábados</button>
-            <button class="toggle-btn active" id="tog_dom" onclick="toggleOpt('dom')">Domingos</button>
-            <button class="toggle-btn active" id="tog_fest" onclick="toggleOpt('fest')">Festivos 🇨🇴</button>
+    <!-- ═══ ASISTENCIA ═══ -->
+    <div id="tab-asistencia" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <div class="section-title">⏱ Asistencia</div>
+          <div class="section-sub">Control de entrada y salida</div>
+        </div>
+        <div class="flex gap-1" id="asis-admin-controls">
+          <select id="asis-emp-filter" class="form-control" style="max-width:220px">
+            <option value="">— Todos los empleados —</option>
+          </select>
+          <input id="asis-mes-filter" type="month" class="form-control" style="max-width:160px"/>
+        </div>
+      </div>
+
+      <!-- Reloj solo para empleados -->
+      <div id="asis-clock-section" class="hidden">
+        <div class="clock-card">
+          <div class="clock-time" id="clock-display">00:00:00</div>
+          <div class="clock-date" id="clock-date-display"></div>
+          <div class="clock-actions">
+            <button class="clock-btn clock-btn-in" id="btn-entrada" disabled>
+              <span class="clock-btn-icon">▶</span>Iniciar labor
+            </button>
+            <button class="clock-btn clock-btn-out" id="btn-salida" disabled>
+              <span class="clock-btn-icon">⏹</span>Finalizar labor
+            </button>
+          </div>
+          <div style="margin-top:1rem;font-size:0.8rem;color:var(--gris-400)" id="asis-status-hoy"></div>
+        </div>
+      </div>
+
+      <!-- Vista calendario -->
+      <div class="card" id="asis-calendar-section">
+        <div class="cal-header">
+          <button class="btn-icon" id="cal-prev">◀</button>
+          <span class="cal-title" id="cal-month-label"></span>
+          <button class="btn-icon" id="cal-next">▶</button>
+        </div>
+        <div class="cal-grid" id="asis-calendar"></div>
+      </div>
+
+      <!-- Tabla registros -->
+      <div class="card" style="margin-top:1rem">
+        <div class="card-header">
+          <span class="card-title">Registros del mes</span>
+          <button class="btn btn-outline btn-sm hidden" id="btn-nueva-novedad">+ Novedad</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th><th>Empleado</th><th>Entrada</th>
+                <th>Salida</th><th>Horas</th><th>Estado</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="asis-tbody">
+              <tr><td colspan="7"><div class="loading-center"><div class="spinner"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ HORAS EXTRA ═══ -->
+    <div id="tab-horas-extra" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <div class="section-title">⚡ Horas Extra</div>
+          <div class="section-sub">Registro y control de recargos</div>
+        </div>
+        <div class="flex gap-1">
+          <select id="hex-emp-filter" class="form-control" style="max-width:200px">
+            <option value="">— Todos —</option>
+          </select>
+          <input id="hex-mes-filter" type="month" class="form-control" style="max-width:160px"/>
+          <button class="btn btn-primary" id="btn-nueva-hex">+ Registrar</button>
+        </div>
+      </div>
+
+      <!-- Resumen por tipo -->
+      <div class="stats-grid" id="hex-stats">
+        <div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th><th>Empleado</th><th>Tipo</th>
+                <th>Inicio</th><th>Fin</th><th>Horas</th>
+                <th>Valor</th><th>Estado</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="hex-tbody">
+              <tr><td colspan="9"><div class="loading-center"><div class="spinner"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DOCUMENTOS ═══ -->
+    <div id="tab-documentos" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <div class="section-title">📄 Documentos</div>
+          <div class="section-sub">ARL · Salud · Curso Alturas · Otros</div>
+        </div>
+        <div class="flex gap-1">
+          <select id="doc-tipo-filter" class="form-control" style="max-width:180px">
+            <option value="">— Todos los tipos —</option>
+            <option value="ARL">ARL</option>
+            <option value="SALUD">Salud</option>
+            <option value="CURSO_ALTURAS">Curso Alturas</option>
+            <option value="PENSION">Pensión</option>
+            <option value="CEDULA">Cédula</option>
+            <option value="CONTRATO">Contrato</option>
+            <option value="OTRO">Otro</option>
+          </select>
+          <select id="doc-alerta-filter" class="form-control" style="max-width:160px">
+            <option value="">— Todos —</option>
+            <option value="vencido">Vencidos</option>
+            <option value="critico">Críticos (30d)</option>
+            <option value="proximo">Próximos (60d)</option>
+          </select>
+          <button class="btn btn-primary" id="btn-nuevo-doc">+ Cargar</button>
+        </div>
+      </div>
+
+      <div class="stats-grid" id="doc-stats">
+        <div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Empleado</th><th>Tipo</th><th>Descripción</th>
+                <th>Vigencia desde</th><th>Vence</th>
+                <th>Días</th><th>Estado</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="doc-tbody">
+              <tr><td colspan="8"><div class="loading-center"><div class="spinner"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ OBSERVACIONES ═══ -->
+    <div id="tab-observaciones" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <div class="section-title">💬 Observaciones</div>
+          <div class="section-sub">Historial de anotaciones por empleado</div>
+        </div>
+        <div class="flex gap-1">
+          <select id="obs-emp-filter" class="form-control" style="max-width:220px">
+            <option value="">— Todos los empleados —</option>
+          </select>
+          <button class="btn btn-primary" id="btn-nueva-obs">+ Registrar</button>
+        </div>
+      </div>
+      <div id="obs-list">
+        <div class="loading-center"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+
+    <!-- ═══ OPERACIONES ═══ -->
+    <div id="tab-operaciones" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🏗 Operaciones</div>
+          <div class="section-sub">Control de trabajo en campo</div>
+        </div>
+        <div class="flex gap-1" style="flex-wrap:wrap">
+          <select id="op-operador-filter" class="form-control" style="max-width:220px">
+            <option value="">— Todos los operadores —</option>
+          </select>
+          <input id="op-fecha-filter" type="date" class="form-control" style="max-width:160px"/>
+          <button class="btn btn-primary" id="btn-nueva-op">▶ Iniciar Operación</button>
+        </div>
+      </div>
+
+      <!-- Hero: operación activa -->
+      <div id="op-activa-section" class="hidden">
+        <div class="op-active-card">
+          <div class="op-active-pulse">Operación en curso</div>
+          <div class="op-active-title" id="op-activa-obra">—</div>
+          <div class="op-active-sub"  id="op-activa-cliente">—</div>
+          <div class="op-active-meta" id="op-activa-meta"></div>
+          <div class="op-timer" id="op-timer-display">00:00:00</div>
+          <div class="flex gap-1" style="margin-top:1rem;flex-wrap:wrap">
+            <button class="btn btn-danger"  id="btn-finalizar-op">⏹ Finalizar Operación</button>
+            <button class="btn btn-outline btn-sm" id="btn-obs-op-activa">💬 Observación</button>
           </div>
         </div>
-
-        <div class="sep"></div>
-
-        <div class="sec-label">📌 Festivos colombianos activos</div>
-        <div class="alert info" style="font-size:11px;margin-bottom:10px">
-          Los festivos están desacoplados del motor. Puedes editarlos, importarlos o conectar una fuente externa.
-        </div>
-
-        <div class="festivo-row">
-          <input type="date" id="inp_festDate" placeholder="yyyy-mm-dd" style="flex:1"/>
-          <input type="text" id="inp_festName" placeholder="Nombre (opcional)" style="flex:1.5"/>
-          <button class="btn-sm" onclick="agregarFestivo()">+ Añadir</button>
-        </div>
-
-        <div class="festivos-list" id="festivosList"></div>
-
-        <button class="btn-calc" onclick="calcular()">▶ CALCULAR DÍAS LABORABLES</button>
       </div>
+
+      <!-- Stats -->
+      <div class="stats-grid" id="op-stats">
+        <div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="op-filters">
+        <button class="op-filter-btn active" data-estado="">Todas</button>
+        <button class="op-filter-btn" data-estado="en_curso">🔴 En Curso</button>
+        <button class="op-filter-btn" data-estado="finalizada">✅ Finalizadas</button>
+        <button class="op-filter-btn" data-estado="cancelada">⛔ Canceladas</button>
+      </div>
+
+      <!-- Cards -->
+      <div id="op-list">
+        <div class="loading-center"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /app-shell -->
+
+<!-- ═══════════════ MODALES ═══════════════ -->
+
+<!-- Modal: Empleado -->
+<div class="modal-backdrop hidden" id="modal-empleado">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-emp-title">Nuevo Empleado</span>
+      <button class="btn-close" onclick="closeModal('modal-empleado')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="emp-id"/>
+      <div style="font-family:var(--font-display);font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gris-500);margin-bottom:0.25rem">Información Personal</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Cédula *</label>
+          <input id="emp-cedula" type="text" class="form-control" placeholder="1234567890"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre completo *</label>
+          <input id="emp-nombre" type="text" class="form-control" placeholder="APELLIDO NOMBRE"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Código</label>
+          <input id="emp-codigo" type="text" class="form-control" placeholder="Código interno"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cargo</label>
+          <input id="emp-cargo" type="text" class="form-control" placeholder="Operador, Técnico…"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Celular</label>
+          <input id="emp-celular" type="tel" class="form-control"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ciudad</label>
+          <input id="emp-ciudad" type="text" class="form-control"/>
+        </div>
+      </div>
+      <hr class="divider"/>
+      <div style="font-family:var(--font-display);font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gris-500);margin-bottom:0.25rem">Contrato y Nómina</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Salario base *</label>
+          <input id="emp-salario" type="number" class="form-control" placeholder="1423500"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo contrato</label>
+          <select id="emp-contrato" class="form-control">
+            <option value="indefinido">Indefinido</option>
+            <option value="fijo">Término fijo</option>
+            <option value="obra_labor">Obra o labor</option>
+            <option value="aprendizaje">Aprendizaje</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fecha ingreso *</label>
+          <input id="emp-ingreso" type="date" class="form-control"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Equipo asignado</label>
+          <select id="emp-equipo" class="form-control">
+            <option value="">— Sin asignar —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select id="emp-estado" class="form-control">
+            <option value="activo">Activo</option>
+            <option value="vacaciones">Vacaciones</option>
+            <option value="incapacidad">Incapacidad</option>
+            <option value="retirado">Retirado</option>
+          </select>
+        </div>
+      </div>
+      <hr class="divider"/>
+      <div style="font-family:var(--font-display);font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gris-500);margin-bottom:0.25rem">Datos Bancarios</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Banco</label>
+          <select id="emp-banco" class="form-control">
+            <option value="">— Seleccionar —</option>
+            <option>Scotiabank</option><option>Bancolombia</option>
+            <option>Davivienda</option><option>Banco de Bogotá</option>
+            <option>Nequi</option><option>Daviplata</option>
+            <option>Banco Popular</option><option>BBVA</option>
+            <option>Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Número de cuenta</label>
+          <input id="emp-cuenta" type="text" class="form-control"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo cuenta</label>
+          <select id="emp-tipo-cuenta" class="form-control">
+            <option value="Ahorro">Ahorro</option>
+            <option value="Corriente">Corriente</option>
+          </select>
+        </div>
+      </div>
+      <hr class="divider"/>
+      <div style="font-family:var(--font-display);font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gris-500);margin-bottom:0.25rem">Seguridad Social</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">EPS</label>
+          <input id="emp-eps" type="text" class="form-control"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fondo pensión</label>
+          <input id="emp-pension-fondo" type="text" class="form-control"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ARL</label>
+          <input id="emp-arl" type="text" class="form-control"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Caja compensación</label>
+          <input id="emp-caja" type="text" class="form-control"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-empleado')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar-empleado">Guardar</button>
     </div>
   </div>
+</div>
 
-  <!-- ── RIGHT: OUTPUT ── -->
-  <div style="display:grid;gap:14px">
-
-    <div class="card">
-      <div class="card-head">
-        <span style="font-size:16px">📊</span>
-        <span class="title">Resultado</span>
-        <span id="result-status" style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--txt3)">— esperando cálculo</span>
+<!-- Modal: Horas Extra -->
+<div class="modal-backdrop hidden" id="modal-hex">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-hex-title">Registrar Horas Extra</span>
+      <button class="btn-close" onclick="closeModal('modal-hex')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="hex-id"/>
+      <div class="form-group">
+        <label class="form-label">Empleado *</label>
+        <select id="hex-empleado" class="form-control"></select>
       </div>
-      <div class="card-body" id="result-area">
-        <div class="result-empty">
-          <div class="icon">🗓️</div>
-          <div>Configura los parámetros y presiona Calcular</div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Fecha *</label>
+          <input id="hex-fecha" type="date" class="form-control"/>
         </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de hora *</label>
+          <select id="hex-tipo" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hora inicio</label>
+          <input id="hex-inicio" type="time" class="form-control"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hora fin</label>
+          <input id="hex-fin" type="time" class="form-control"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cantidad horas *</label>
+        <input id="hex-horas" type="number" step="0.5" min="0.5" class="form-control" placeholder="2.5"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observación</label>
+        <textarea id="hex-obs" class="form-control" rows="2"></textarea>
+      </div>
+      <div style="background:var(--gris-700);border-radius:var(--radius);padding:1rem;font-size:0.8rem;color:var(--gris-400)">
+        ⚙️ El valor se calcula automáticamente: <strong>(salario / 240) × factor del tipo</strong>
       </div>
     </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-hex')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar-hex">Guardar</button>
+    </div>
+  </div>
+</div>
 
-    <div class="card">
-      <div class="card-head">
-        <span style="font-size:16px">🔌</span>
-        <span class="title">API del módulo</span>
+<!-- Modal: Documento -->
+<div class="modal-backdrop hidden" id="modal-doc">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-doc-title">Cargar Documento</span>
+      <button class="btn-close" onclick="closeModal('modal-doc')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="doc-id"/>
+      <div class="form-group">
+        <label class="form-label">Empleado *</label>
+        <select id="doc-empleado" class="form-control"></select>
       </div>
-      <div class="card-body">
-        <div class="tabs">
-          <button class="tab active" onclick="switchTab('uso')">Uso</button>
-          <button class="tab" onclick="switchTab('firma')">Firma</button>
-          <button class="tab" onclick="switchTab('retorno')">Retorno</button>
-          <button class="tab" onclick="switchTab('integration')">Integración</button>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Tipo de documento *</label>
+          <select id="doc-tipo" class="form-control">
+            <option value="ARL">ARL</option>
+            <option value="SALUD">Salud</option>
+            <option value="CURSO_ALTURAS">Curso Alturas</option>
+            <option value="PENSION">Pensión</option>
+            <option value="CEDULA">Cédula</option>
+            <option value="CONTRATO">Contrato</option>
+            <option value="OTRO">Otro</option>
+          </select>
         </div>
-        <div class="tab-panel active" id="tab-uso">
-          <div class="api-preview">
-            <div class="api-head">// Ejemplo de uso directo</div>
-            <div class="api-body" id="api-uso-code"></div>
-          </div>
+        <div class="form-group">
+          <label class="form-label">Entidad emisora</label>
+          <input id="doc-entidad" type="text" class="form-control" placeholder="AXA Colpatria, Sura…"/>
         </div>
-        <div class="tab-panel" id="tab-firma">
-          <div class="api-preview">
-            <div class="api-head">// Firma completa de la función</div>
-            <div class="api-body"><span class="c-comm">/**
- * Calcula días laborables a partir de una fecha de inicio.
- *
- * @param {string|Date} fechaInicio  - Fecha de inicio del conteo
- * @param {number}      diasObj      - Días laborables a contar
- * @param {Object}      [config]     - Configuración opcional
- * @param {boolean}     [config.excluirSabados=true]
- * @param {boolean}     [config.excluirDomingos=true]
- * @param {string[]}    [config.festivos=[]]   - Array de 'YYYY-MM-DD'
- *
- * @returns {WorkingDaysResult}
- */</span>
-<span class="c-kw">function</span> <span class="c-func">calcularDiasLaborables</span>(
-  fechaInicio,
-  diasObj,
-  config = {}
-) { ... }
-
-<span class="c-comm">// Tipo de retorno</span>
-<span class="c-kw">typedef</span> WorkingDaysResult = {
-  <span class="c-key">fechaInicio</span>:     <span class="c-str">string</span>,   <span class="c-comm">// 'YYYY-MM-DD'</span>
-  <span class="c-key">fechaFin</span>:        <span class="c-str">string</span>,   <span class="c-comm">// 'YYYY-MM-DD'</span>
-  <span class="c-key">diasLaborables</span>:  <span class="c-num">number</span>,
-  <span class="c-key">diasCalendario</span>:  <span class="c-num">number</span>,
-  <span class="c-key">diasExcluidos</span>:   <span class="c-num">number</span>,
-  <span class="c-key">detalle</span>:         <span class="c-str">ExcluidoItem[]</span>,
-  <span class="c-key">configUsada</span>:     <span class="c-str">Object</span>
-}</div>
-          </div>
+        <div class="form-group">
+          <label class="form-label">No. documento</label>
+          <input id="doc-numero" type="text" class="form-control"/>
         </div>
-        <div class="tab-panel" id="tab-retorno">
-          <div class="api-preview">
-            <div class="api-head">// Objeto de retorno (ejemplo real)</div>
-            <div class="api-body" id="api-retorno-code"><span class="c-gray">// Ejecuta un cálculo para ver el resultado aquí</span></div>
-          </div>
+        <div class="form-group">
+          <label class="form-label">Fecha inicio</label>
+          <input id="doc-inicio" type="date" class="form-control"/>
         </div>
-        <div class="tab-panel" id="tab-integration">
-          <div class="api-preview">
-            <div class="api-head">// Cómo conectar al módulo de alquileres (cuando esté listo)</div>
-            <div class="api-body"><span class="c-comm">// 1. Importar (si se modulariza)</span>
-<span class="c-kw">import</span> { calcularDiasLaborables, FESTIVOS_CO } <span class="c-kw">from</span> <span class="c-str">'./dias_laborables.js'</span>;
-
-<span class="c-comm">// 2. Uso en saveAlquiler() — sin tocar la lógica actual:</span>
-<span class="c-kw">const</span> resultado = calcularDiasLaborables(
-  alq.fecha_inicio,
-  alq.dias,
-  { festivos: FESTIVOS_CO[anio] }
-);
-
-<span class="c-comm">// 3. Guardar en el registro de alquiler:</span>
-alq.fecha_fin_calculada = resultado.fechaFin;
-alq.dias_calendario     = resultado.diasCalendario;
-alq.dias_excluidos      = resultado.diasExcluidos;
-
-<span class="c-comm">// 4. El helper NO modifica alq — solo devuelve datos.
-// 5. Los festivos vienen de config, no del helper.</span></div>
-          </div>
+        <div class="form-group col-span-2">
+          <label class="form-label">Fecha vencimiento</label>
+          <input id="doc-vence" type="date" class="form-control"/>
         </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción</label>
+        <input id="doc-desc" type="text" class="form-control" placeholder="Descripción del documento"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">URL del archivo (Google Drive, Drive, etc.)</label>
+        <input id="doc-url" type="url" class="form-control" placeholder="https://drive.google.com/…"/>
       </div>
     </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-doc')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar-doc">Guardar</button>
+    </div>
+  </div>
+</div>
 
+<!-- Modal: Observación -->
+<div class="modal-backdrop hidden" id="modal-obs">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Registrar Observación</span>
+      <button class="btn-close" onclick="closeModal('modal-obs')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Empleado *</label>
+        <select id="obs-empleado" class="form-control"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select id="obs-tipo" class="form-control">
+          <option value="general">General</option>
+          <option value="disciplinaria">Disciplinaria</option>
+          <option value="felicitacion">Felicitación</option>
+          <option value="capacitacion">Capacitación</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción *</label>
+        <textarea id="obs-desc" class="form-control" rows="4" placeholder="Detalle de la observación…"></textarea>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="obs-privada"/>
+          <span class="form-label" style="margin:0">Observación privada (solo Gestión Humana)</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-obs')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar-obs">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Novedad asistencia -->
+<div class="modal-backdrop hidden" id="modal-novedad">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Registrar Novedad</span>
+      <button class="btn-close" onclick="closeModal('modal-novedad')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="nov-asis-id"/>
+      <div class="form-group">
+        <label class="form-label">Empleado *</label>
+        <select id="nov-empleado" class="form-control"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha *</label>
+        <input id="nov-fecha" type="date" class="form-control"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo de novedad</label>
+        <select id="nov-tipo" class="form-control">
+          <option value="ausencia_justificada">Ausencia justificada</option>
+          <option value="ausencia_injustificada">Ausencia injustificada</option>
+          <option value="incapacidad">Incapacidad</option>
+          <option value="permiso">Permiso</option>
+          <option value="vacaciones">Vacaciones</option>
+          <option value="calamidad">Calamidad doméstica</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observación</label>
+        <textarea id="nov-obs" class="form-control" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-novedad')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar-novedad">Guardar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal: Iniciar / Editar Operación -->
+<div class="modal-backdrop hidden" id="modal-op-iniciar">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-op-title">▶ Iniciar Operación</span>
+      <button class="btn-close" onclick="closeModal('modal-op-iniciar')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="op-id"/>
+      <div style="font-family:var(--font-display);font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gris-500);margin-bottom:0.5rem">Datos de la Operación</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Operador *</label>
+          <select id="op-operador" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Equipo asignado</label>
+          <select id="op-equipo" class="form-control"><option value="">— Sin equipo —</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cliente *</label>
+          <input id="op-cliente" type="text" class="form-control" placeholder="Nombre del cliente" list="op-clientes-list"/>
+          <datalist id="op-clientes-list"></datalist>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Obra / Proyecto *</label>
+          <input id="op-obra" type="text" class="form-control" placeholder="Nombre de la obra"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ciudad</label>
+          <input id="op-ciudad" type="text" class="form-control" placeholder="Barranquilla"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bono por operación (COP)</label>
+          <input id="op-bono" type="number" min="0" step="1000" class="form-control" placeholder="0"/>
+        </div>
+      </div>
+      <hr class="divider"/>
+      <div style="font-family:var(--font-display);font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gris-500);margin-bottom:0.5rem">Tiempo</div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Hora inicio *</label>
+          <input id="op-hora-inicio" type="datetime-local" class="form-control"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hora fin <span style="color:var(--gris-500);font-weight:400;text-transform:none">(vacío = en curso)</span></label>
+          <input id="op-hora-fin" type="datetime-local" class="form-control"/>
+        </div>
+      </div>
+      <hr class="divider"/>
+      <div class="form-group">
+        <label class="form-label">Observaciones</label>
+        <textarea id="op-obs" class="form-control" rows="3" placeholder="Condiciones, novedades, equipamiento adicional…"></textarea>
+      </div>
+      <div style="background:var(--gris-700);border-radius:var(--radius);padding:0.75rem 1rem;font-size:0.8rem;color:var(--gris-400)">
+        💡 El bono se suma al total a pagar del operador en la liquidación del período.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-op-iniciar')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar-op">▶ Iniciar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Finalizar Operación -->
+<div class="modal-backdrop hidden" id="modal-op-finalizar">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">⏹ Finalizar Operación</span>
+      <button class="btn-close" onclick="closeModal('modal-op-finalizar')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="op-fin-id"/>
+      <div class="card" style="background:var(--gris-700);margin-bottom:0.75rem">
+        <div style="font-weight:700;margin-bottom:4px" id="op-fin-nombre">—</div>
+        <div class="text-sm text-muted" id="op-fin-sub">—</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Hora de finalización *</label>
+        <input id="op-fin-hora" type="datetime-local" class="form-control"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bono por esta operación (COP)</label>
+        <input id="op-fin-bono" type="number" min="0" step="1000" class="form-control"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observaciones de cierre</label>
+        <textarea id="op-fin-obs" class="form-control" rows="3" placeholder="Resumen del trabajo, incidencias, materiales…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" style="margin-right:auto" onclick="cancelarOp()">⛔ Cancelar op.</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-op-finalizar')">Volver</button>
+      <button class="btn btn-primary" id="btn-confirmar-fin">✅ Confirmar cierre</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Observación rápida -->
+<div class="modal-backdrop hidden" id="modal-op-obs">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">💬 Observación de operación</span>
+      <button class="btn-close" onclick="closeModal('modal-op-obs')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="op-obs-id"/>
+      <div class="form-group">
+        <label class="form-label">Observación *</label>
+        <textarea id="op-obs-texto" class="form-control" rows="4" placeholder="Novedad, incidencia, cambio en la operación…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-op-obs')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar-op-obs">Guardar</button>
+    </div>
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════
-// dias_laborables.js  —  WorkingDays Engine
-// Módulo independiente · no acoplado a alquileres_ops
-// ═══════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════
+   CONFIGURACIÓN — REEMPLAZA CON TUS CREDENCIALES
+═══════════════════════════════════════════════ */
+const SUPABASE_URL  = 'https://TU_PROYECTO.supabase.co';
+const SUPABASE_KEY  = 'TU_ANON_KEY';
+const EMPRESA_ID    = '00000000-0000-0000-0000-000000000001';
 
-// ── Config por defecto ──────────────────────────────────────────────
-const DEFAULT_CONFIG = {
-  excluirSabados:  true,
-  excluirDomingos: true,
-  festivos: []          // Array de 'YYYY-MM-DD' — viene de afuera
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ═══════════════════════════════════════════════
+   ESTADO GLOBAL
+═══════════════════════════════════════════════ */
+const STATE = {
+  user:        null,
+  usuario:     null,  // row from public.usuarios
+  empleado:    null,  // row from public.empleados (si rol=empleado)
+  rol:         null,
+  empresa_id:  EMPRESA_ID,
+  activeTab:   'dashboard',
+  empleados:   [],
+  tiposHex:    [],
+  calYear:     new Date().getFullYear(),
+  calMonth:    new Date().getMonth(),
+  // rendered tabs
+  _rendered:   new Set(),
+  _dirty:      new Set(['dashboard','empleados','asistencia','horas-extra','documentos','observaciones','operaciones']),
 };
 
-// ── Festivos Colombia 2025-2026 (fuente desacoplada) ─────────────────
-const FESTIVOS_CO = {
-  2025: [
-    '2025-01-01','2025-01-06','2025-03-24','2025-04-17','2025-04-18',
-    '2025-05-01','2025-06-02','2025-06-23','2025-06-30','2025-07-20',
-    '2025-08-07','2025-08-18','2025-10-13','2025-11-03','2025-11-17',
-    '2025-12-08','2025-12-25'
-  ],
-  2026: [
-    '2026-01-01','2026-01-12','2026-03-23','2026-04-02','2026-04-03',
-    '2026-05-01','2026-05-18','2026-06-08','2026-06-29','2026-07-20',
-    '2026-08-07','2026-08-17','2026-10-12','2026-11-02','2026-11-16',
-    '2026-12-08','2026-12-25'
-  ]
+/* ═══════════════════════════════════════════════
+   ROLES Y TABS
+═══════════════════════════════════════════════ */
+const ROL_LABELS = {
+  superadmin:     'Super Admin',
+  admin_empresa:  'Admin',
+  gestion_humana: 'Gestión Humana',
+  operador:       'Operador',
+  empleado:       'Empleado',
 };
 
-// Nombres para los festivos (opcional, para UI)
-const FESTIVOS_NOMBRES = {
-  '2025-01-01':'Año Nuevo','2025-01-06':'Reyes Magos',
-  '2025-03-24':'San José','2025-04-17':'Jueves Santo',
-  '2025-04-18':'Viernes Santo','2025-05-01':'Día del Trabajo',
-  '2025-06-02':'Ascensión del Señor','2025-06-23':'Corpus Christi',
-  '2025-06-30':'Sagrado Corazón','2025-07-20':'Independencia Colombia',
-  '2025-08-07':'Batalla de Boyacá','2025-08-18':'Asunción de la Virgen',
-  '2025-10-13':'Día de la Raza','2025-11-03':'Todos los Santos',
-  '2025-11-17':'Independencia de Cartagena','2025-12-08':'Inmaculada Concepción',
-  '2025-12-25':'Navidad',
-  '2026-01-01':'Año Nuevo','2026-01-12':'Reyes Magos',
-  '2026-03-23':'San José','2026-04-02':'Jueves Santo',
-  '2026-04-03':'Viernes Santo','2026-05-01':'Día del Trabajo',
-  '2026-05-18':'Ascensión del Señor','2026-06-08':'Corpus Christi',
-  '2026-06-29':'Sagrado Corazón','2026-07-20':'Independencia Colombia',
-  '2026-08-07':'Batalla de Boyacá','2026-08-17':'Asunción de la Virgen',
-  '2026-10-12':'Día de la Raza','2026-11-02':'Todos los Santos',
-  '2026-11-16':'Independencia de Cartagena','2026-12-08':'Inmaculada Concepción',
-  '2026-12-25':'Navidad'
+const ROL_TABS = {
+  superadmin:     ['dashboard','empleados','asistencia','horas-extra','documentos','observaciones','operaciones'],
+  admin_empresa:  ['dashboard','empleados','asistencia','horas-extra','documentos','observaciones','operaciones'],
+  gestion_humana: ['dashboard','empleados','asistencia','horas-extra','documentos','observaciones','operaciones'],
+  operador:       ['dashboard','asistencia','documentos','operaciones'],
+  empleado:       ['dashboard','asistencia','horas-extra','documentos'],
 };
 
-// ── MOTOR PRINCIPAL ─────────────────────────────────────────────────
-function calcularDiasLaborables(fechaInicio, diasObj, config = {}) {
-  const cfg = { ...DEFAULT_CONFIG, ...config };
-  const festivosSet = new Set(cfg.festivos.map(f => toISO(f)));
+const TAB_META = {
+  dashboard:      { label: 'Dashboard',     icon: '📊' },
+  empleados:      { label: 'Empleados',     icon: '👷' },
+  asistencia:     { label: 'Asistencia',    icon: '⏱' },
+  'horas-extra':  { label: 'Horas Extra',   icon: '⚡' },
+  documentos:     { label: 'Documentos',    icon: '📄' },
+  observaciones:  { label: 'Observaciones', icon: '💬' },
+  operaciones:    { label: 'Operaciones',   icon: '🏗' },
+};
 
-  const inicio = toDate(fechaInicio);
-  if (!inicio || isNaN(inicio)) throw new Error('Fecha de inicio inválida');
-  if (!Number.isInteger(diasObj) || diasObj < 1) throw new Error('Días objetivo debe ser entero positivo');
+/* ═══════════════════════════════════════════════
+   UTILIDADES
+═══════════════════════════════════════════════ */
+const fmt = {
+  currency: v => new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', maximumFractionDigits:0 }).format(v||0),
+  date: v => v ? new Date(v+'T12:00:00').toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' }) : '—',
+  time: v => v ? v.slice(0,5) : '—',
+  datetime: v => v ? new Date(v).toLocaleString('es-CO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—',
+  hours: (entry, exit) => {
+    if (!entry || !exit) return '—';
+    const diff = (new Date(exit) - new Date(entry)) / 3600000;
+    return diff.toFixed(1) + 'h';
+  },
+  initials: name => name ? name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() : '?',
+};
 
-  let cursor       = new Date(inicio);
-  let trabajados   = 0;
-  const excluidos  = [];
-  const dias_iter  = [];
+function toast(msg, type='ok') {
+  const icons = { ok:'✅', error:'❌', warn:'⚠️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
 
-  while (trabajados < diasObj) {
-    const iso  = toISO(cursor);
-    const dow  = cursor.getDay(); // 0=dom, 6=sab
-    const esSab  = dow === 6;
-    const esDom  = dow === 0;
-    const esFest = festivosSet.has(iso);
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-    let excluido = false;
-    let razon    = null;
+function badgeEstado(estado) {
+  const map = {
+    activo:'badge-verde', vacaciones:'badge-azul',
+    incapacidad:'badge-amarillo', retirado:'badge-gris', inactivo:'badge-gris',
+    completo:'badge-verde', sin_salida:'badge-amarillo', sin_entrada:'badge-naranja',
+    novedad:'badge-naranja', ausente:'badge-rojo', pendiente:'badge-gris',
+    vigente:'badge-verde', vencido:'badge-rojo', proximo_vencer:'badge-amarillo',
+    critico:'badge-naranja',
+  };
+  return `<span class="badge ${map[estado]||'badge-gris'}">${estado.replace(/_/g,' ')}</span>`;
+}
 
-    if (cfg.excluirSabados && esSab)  { excluido = true; razon = 'weekend'; }
-    if (cfg.excluirDomingos && esDom) { excluido = true; razon = 'weekend'; }
-    if (esFest)                        { excluido = true; razon = 'holiday'; }
+function diasParaVencer(fecha) {
+  if (!fecha) return null;
+  return Math.floor((new Date(fecha+'T12:00:00') - new Date()) / 86400000);
+}
 
-    if (excluido) {
-      excluidos.push({ fecha: iso, tipo: razon,
-        nombre: razon === 'holiday' ? (FESTIVOS_NOMBRES[iso] || 'Festivo') : (esSab ? 'Sábado' : 'Domingo') });
-      dias_iter.push({ fecha: iso, tipo: razon });
-    } else {
-      trabajados++;
-      dias_iter.push({ fecha: iso, tipo: 'worked' });
+/* ═══════════════════════════════════════════════
+   AUTH
+═══════════════════════════════════════════════ */
+async function initAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) await loadUserProfile(session.user);
+  else showLogin();
+
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN')  await loadUserProfile(session.user);
+    if (event === 'SIGNED_OUT') showLogin();
+  });
+}
+
+async function loadUserProfile(authUser) {
+  STATE.user = authUser;
+  try {
+    const { data, error } = await sb
+      .from('usuarios')
+      .select('*, roles_sistema(codigo, nombre)')
+      .eq('id', authUser.id)
+      .single();
+
+    if (error) throw error;
+    STATE.usuario  = data;
+    STATE.rol      = data.roles_sistema.codigo;
+
+    if (data.empleado_id) {
+      const { data: emp } = await sb.from('empleados').select('*').eq('id', data.empleado_id).single();
+      STATE.empleado = emp;
     }
 
-    cursor.setDate(cursor.getDate() + 1);
+    showApp();
+  } catch(e) {
+    // Si no tiene perfil aún, crea uno básico
+    console.error('Perfil no encontrado:', e.message);
+    toast('Perfil de usuario no configurado. Contacta al administrador.', 'warn');
+    STATE.rol = 'admin_empresa'; // fallback para demo
+    showApp();
   }
+}
 
-  // La fecha fin es el último día trabajado (cursor está un día adelante)
-  cursor.setDate(cursor.getDate() - 1);
-  const fechaFin = toISO(cursor);
+document.getElementById('login-btn').onclick = async () => {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const btn   = document.getElementById('login-btn');
+  const err   = document.getElementById('login-error');
 
-  return {
-    fechaInicio:    toISO(inicio),
-    fechaFin,
-    diasLaborables:  trabajados,
-    diasCalendario:  dias_iter.length,
-    diasExcluidos:   excluidos.length,
-    detalle:         excluidos,
-    timeline:        dias_iter,
-    configUsada:     { ...cfg, festivos: cfg.festivos.length + ' festivos' }
+  if (!email || !pass) { err.textContent = 'Ingresa correo y contraseña.'; err.classList.remove('hidden'); return; }
+  err.classList.add('hidden');
+  btn.disabled = true; btn.textContent = 'Ingresando…';
+
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    err.textContent = 'Credenciales incorrectas. Verifica e intenta de nuevo.';
+    err.classList.remove('hidden');
+  }
+  btn.disabled = false; btn.textContent = 'Ingresar';
+};
+
+document.getElementById('login-email').onkeydown =
+document.getElementById('login-pass').onkeydown = (e) => {
+  if (e.key === 'Enter') document.getElementById('login-btn').click();
+};
+
+document.getElementById('logout-btn').onclick = async (e) => {
+  e.preventDefault();
+  await sb.auth.signOut();
+};
+
+// User dropdown toggle
+document.getElementById('user-menu-trigger').onclick = (e) => {
+  e.stopPropagation();
+  document.getElementById('user-dropdown').classList.toggle('hidden');
+};
+document.addEventListener('click', () => {
+  document.getElementById('user-dropdown').classList.add('hidden');
+});
+
+/* ═══════════════════════════════════════════════
+   SHOW / HIDE SCREENS
+═══════════════════════════════════════════════ */
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-shell').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-shell').style.display = 'block';
+  setupNav();
+  switchTab('dashboard');
+  startClock();
+}
+
+function setupNav() {
+  const nav  = document.getElementById('tabs-nav');
+  const tabs = ROL_TABS[STATE.rol] || ROL_TABS.empleado;
+  nav.innerHTML = tabs.map(t => `
+    <button class="tab-btn" data-tab="${t}" onclick="switchTab('${t}')">
+      <span class="tab-icon">${TAB_META[t].icon}</span>
+      <span>${TAB_META[t].label}</span>
+    </button>`).join('');
+
+  // User info
+  const nombre = STATE.usuario?.nombre || STATE.user?.email || 'Usuario';
+  document.getElementById('user-name-top').textContent = nombre.split(' ')[0];
+  document.getElementById('user-role-top').textContent = ROL_LABELS[STATE.rol] || STATE.rol;
+  document.getElementById('user-initials').textContent = fmt.initials(nombre);
+}
+
+function switchTab(tabId) {
+  STATE.activeTab = tabId;
+  // Highlight tab button
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+  // Show panel
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${tabId}`));
+
+  if (STATE._dirty.has(tabId)) {
+    STATE._dirty.delete(tabId);
+    STATE._rendered.add(tabId);
+    renderTab(tabId);
+  }
+}
+
+function markDirty(...tabs) { tabs.forEach(t => STATE._dirty.add(t)); }
+
+async function renderTab(tab) {
+  switch(tab) {
+    case 'dashboard':    await renderDashboard();   break;
+    case 'empleados':    await renderEmpleados();   break;
+    case 'asistencia':   await renderAsistencia();  break;
+    case 'horas-extra':  await renderHorasExtra();  break;
+    case 'documentos':   await renderDocumentos();  break;
+    case 'observaciones':await renderObservaciones();break;
+    case 'operaciones':  await renderOperaciones();  break;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   RELOJ
+═══════════════════════════════════════════════ */
+function startClock() {
+  function tick() {
+    const now = new Date();
+    const el = document.getElementById('clock-display');
+    const dd = document.getElementById('clock-date-display');
+    if (el) el.textContent = now.toLocaleTimeString('es-CO');
+    if (dd) dd.textContent = now.toLocaleDateString('es-CO', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+/* ═══════════════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════════════ */
+async function renderDashboard() {
+  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
+  const now = new Date();
+
+  document.getElementById('dash-greeting').textContent =
+    `Bienvenido, ${STATE.usuario?.nombre?.split(' ')[0] || 'usuario'} · ${ROL_LABELS[STATE.rol]}`;
+  document.getElementById('dash-fecha').textContent =
+    now.toLocaleDateString('es-CO', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  // Stats cards
+  let statsHTML = '';
+  if (canManage) {
+    const [{ count: totalEmp }, { count: totalDocs }, novedades] = await Promise.all([
+      sb.from('empleados').select('*', { count:'exact', head:true }).eq('empresa_id', EMPRESA_ID).eq('estado','activo'),
+      sb.from('documentos_empleado').select('*', { count:'exact', head:true }).eq('empresa_id', EMPRESA_ID).eq('estado','vencido'),
+      sb.from('novedades_calendario').select('*', { count:'exact', head:true }).eq('empresa_id', EMPRESA_ID).eq('resuelto', false),
+    ]);
+    statsHTML = `
+      <div class="stat-card" style="--accent:var(--verde)">
+        <div class="stat-label">Empleados Activos</div>
+        <div class="stat-value">${totalEmp||0}</div>
+        <div class="stat-sub">en nómina</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--rojo)">
+        <div class="stat-label">Docs Vencidos</div>
+        <div class="stat-value">${totalDocs||0}</div>
+        <div class="stat-sub">requieren atención</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--naranja)">
+        <div class="stat-label">Novedades Abiertas</div>
+        <div class="stat-value">${novedades.count||0}</div>
+        <div class="stat-sub">sin resolver</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--azul)">
+        <div class="stat-label">Mes actual</div>
+        <div class="stat-value">${now.toLocaleDateString('es-CO',{month:'short'}).toUpperCase()}</div>
+        <div class="stat-sub">${now.getFullYear()}</div>
+      </div>`;
+  } else {
+    // Para empleado: su estado hoy
+    statsHTML = `
+      <div class="stat-card" style="--accent:var(--azul)">
+        <div class="stat-label">Hoy</div>
+        <div class="stat-value">${now.getDate()}</div>
+        <div class="stat-sub">${now.toLocaleDateString('es-CO',{month:'long'})}</div>
+      </div>`;
+  }
+  document.getElementById('dash-stats').innerHTML = statsHTML;
+
+  // Documentos por vencer
+  const { data: docsAlert } = await sb
+    .from('v_documentos_alertas')
+    .select('*')
+    .eq('empresa_id', canManage ? EMPRESA_ID : EMPRESA_ID)
+    .in('alerta', ['vencido','critico'])
+    .order('dias_para_vencer')
+    .limit(5);
+
+  document.getElementById('dash-docs-alert').innerHTML = docsAlert?.length
+    ? docsAlert.map(d => `
+      <div style="padding:8px 0;border-bottom:1px solid var(--gris-700);display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:0.85rem;font-weight:600">${d.nombre_completo}</div>
+          <div class="text-xs text-muted">${d.tipo} · ${d.descripcion||''}</div>
+        </div>
+        <div style="text-align:right">
+          ${badgeEstado(d.alerta)}
+          <div class="text-xs text-muted">${d.dias_para_vencer < 0 ? Math.abs(d.dias_para_vencer)+'d vencido' : d.dias_para_vencer+'d'}</div>
+        </div>
+      </div>`).join('')
+    : '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Todo al día</div></div>';
+
+  // Novedades recientes
+  const { data: novs } = await sb
+    .from('novedades_calendario')
+    .select('*, empleados(nombre_completo)')
+    .eq('empresa_id', EMPRESA_ID)
+    .eq('resuelto', false)
+    .order('fecha', { ascending: false })
+    .limit(5);
+
+  document.getElementById('dash-novedades').innerHTML = novs?.length
+    ? novs.map(n => `
+      <div style="padding:8px 0;border-bottom:1px solid var(--gris-700)">
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-size:0.85rem;font-weight:600">${n.empleados?.nombre_completo||'—'}</span>
+          <span class="text-xs text-muted">${fmt.date(n.fecha)}</span>
+        </div>
+        <div class="text-xs" style="color:var(--naranja);margin-top:2px">${n.tipo_novedad.replace(/_/g,' ')}</div>
+      </div>`).join('')
+    : '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Sin novedades</div></div>';
+}
+
+/* ═══════════════════════════════════════════════
+   EMPLEADOS
+═══════════════════════════════════════════════ */
+async function loadEmpleados() {
+  const { data } = await sb
+    .from('empleados')
+    .select('*, equipos(codigo,descripcion)')
+    .eq('empresa_id', EMPRESA_ID)
+    .order('nombre_completo');
+  STATE.empleados = data || [];
+  return STATE.empleados;
+}
+
+async function renderEmpleados() {
+  const emps = await loadEmpleados();
+  renderEmpTable(emps);
+  await loadEquiposIntoSelects();
+
+  document.getElementById('emp-search').oninput = e => {
+    const q = e.target.value.toLowerCase();
+    renderEmpTable(STATE.empleados.filter(em =>
+      em.nombre_completo.toLowerCase().includes(q) ||
+      em.cedula.includes(q) ||
+      (em.cargo||'').toLowerCase().includes(q)
+    ));
   };
+
+  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
+  document.getElementById('btn-nuevo-empleado').classList.toggle('hidden', !canManage);
 }
 
-// ── Helpers de fecha ────────────────────────────────────────────────
-function toDate(d) {
-  if (d instanceof Date) return new Date(d);
-  if (typeof d === 'string') {
-    const [y,m,dd] = d.split('-').map(Number);
-    return new Date(y, m-1, dd);
-  }
-  return null;
-}
-function toISO(d) {
-  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-  const dt = d instanceof Date ? d : toDate(d);
-  const y = dt.getFullYear();
-  const m = String(dt.getMonth()+1).padStart(2,'0');
-  const dd = String(dt.getDate()).padStart(2,'0');
-  return `${y}-${m}-${dd}`;
-}
-function fmtCO(iso) {
-  if (!iso) return '—';
-  const [y,m,d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
-const DIAS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-
-// ═══════════════════════════════════════════════════════════════════
-// UI STATE
-// ═══════════════════════════════════════════════════════════════════
-const opts = { sab: true, dom: true, fest: true };
-let festivosCustom = [];        // [{date:'YYYY-MM-DD', name:'...'}]
-let lastResult = null;
-
-// ── Init ────────────────────────────────────────────────────────────
-(function init() {
-  const hoy = new Date();
-  document.getElementById('inp_inicio').value = toISO(hoy);
-  renderFestivos();
-  updateApiUso();
-})();
-
-function toggleOpt(key) {
-  opts[key] = !opts[key];
-  document.getElementById('tog_'+key).classList.toggle('active', opts[key]);
-}
-
-// ── Festivos manager ─────────────────────────────────────────────────
-function getFestivosActivos() {
-  const todos = [];
-  const anioInicio = parseInt((document.getElementById('inp_inicio').value||'').slice(0,4)) || new Date().getFullYear();
-  const anios = [anioInicio, anioInicio+1];
-  if (opts.fest) {
-    anios.forEach(a => { if (FESTIVOS_CO[a]) todos.push(...FESTIVOS_CO[a]); });
-  }
-  festivosCustom.forEach(f => { if (!todos.includes(f.date)) todos.push(f.date); });
-  return todos;
-}
-
-function agregarFestivo() {
-  const d = document.getElementById('inp_festDate').value;
-  const n = document.getElementById('inp_festName').value.trim() || 'Festivo personalizado';
-  if (!d) return;
-  if (festivosCustom.some(f => f.date === d)) return;
-  festivosCustom.push({ date: d, name: n });
-  document.getElementById('inp_festDate').value = '';
-  document.getElementById('inp_festName').value = '';
-  renderFestivos();
-}
-
-function quitarFestivo(date) {
-  festivosCustom = festivosCustom.filter(f => f.date !== date);
-  renderFestivos();
-}
-
-function renderFestivos() {
-  const list = document.getElementById('festivosList');
-  const activos = getFestivosActivos();
-  if (!activos.length && !festivosCustom.length) {
-    list.innerHTML = '<div style="font-size:11px;color:var(--txt3);font-family:var(--mono)">// Sin festivos configurados</div>';
+function renderEmpTable(emps) {
+  const tbody = document.getElementById('emp-tbody');
+  if (!emps.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">👷</div><div class="empty-text">Sin empleados</div></div></td></tr>`;
     return;
   }
-  // Show only custom + a count for built-in
-  let html = '';
-  const anioInicio = parseInt((document.getElementById('inp_inicio').value||'').slice(0,4)) || new Date().getFullYear();
-  const builtIn = FESTIVOS_CO[anioInicio] ? FESTIVOS_CO[anioInicio].length : 0;
-  if (opts.fest && builtIn > 0) {
-    html += `<div class="festivo-tag" style="opacity:.6"><span>🇨🇴</span><span class="f-name" style="color:var(--txt3)">Festivos CO ${anioInicio} (${builtIn} días precargados)</span></div>`;
-  }
-  festivosCustom.forEach(f => {
-    html += `<div class="festivo-tag"><span>📌</span><span class="f-name">${fmtCO(f.date)}</span><span style="color:var(--txt3);font-size:10px">${f.name}</span><button class="f-rm" onclick="quitarFestivo('${f.date}')">✕</button></div>`;
-  });
-  list.innerHTML = html;
+  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
+  tbody.innerHTML = emps.map(e => `
+    <tr>
+      <td><span class="mono text-sm">${e.codigo||'—'}</span></td>
+      <td>
+        <div style="font-weight:600">${e.nombre_completo}</div>
+        <div class="text-xs text-muted">${e.cargo||'Sin cargo'}</div>
+      </td>
+      <td class="mono">${e.cedula}</td>
+      <td>${e.cargo||'—'}</td>
+      <td>${e.equipos?.codigo||'—'}</td>
+      <td class="mono">${fmt.currency(e.salario_base)}</td>
+      <td>${badgeEstado(e.estado)}</td>
+      <td>
+        <div class="flex gap-1">
+          ${canManage ? `<button class="btn-icon" title="Editar" onclick="editEmpleado('${e.id}')">✏️</button>` : ''}
+          <button class="btn-icon" title="Documentos" onclick="switchTab('documentos')">📄</button>
+        </div>
+      </td>
+    </tr>`).join('');
 }
 
-// ── CALCULAR ────────────────────────────────────────────────────────
-function calcular() {
-  const inicio = document.getElementById('inp_inicio').value;
-  const dias   = parseInt(document.getElementById('inp_dias').value);
-
-  if (!inicio) { alert('Selecciona fecha de inicio'); return; }
-  if (!dias || dias < 1) { alert('Días debe ser mayor a 0'); return; }
-
-  const festivos = getFestivosActivos();
-
-  try {
-    const r = calcularDiasLaborables(inicio, dias, {
-      excluirSabados:  opts.sab,
-      excluirDomingos: opts.dom,
-      festivos
-    });
-    lastResult = r;
-    renderResult(r);
-    renderApiRetorno(r);
-    updateApiUso(r);
-    document.getElementById('result-status').textContent = `✓ calculado · ${r.diasCalendario} días calendario`;
-  } catch(e) {
-    document.getElementById('result-area').innerHTML = `<div class="alert warn">⚠️ ${e.message}</div>`;
-  }
+async function loadEquiposIntoSelects() {
+  const { data: equipos } = await sb.from('equipos').select('*').eq('empresa_id', EMPRESA_ID).order('codigo');
+  const opts = equipos?.map(eq => `<option value="${eq.id}">${eq.codigo} — ${eq.descripcion||''}</option>`).join('') || '';
+  document.getElementById('emp-equipo').innerHTML = `<option value="">— Sin asignar —</option>${opts}`;
 }
 
-// ── RENDER RESULT ────────────────────────────────────────────────────
-function renderResult(r) {
-  const area = document.getElementById('result-area');
+document.getElementById('btn-nuevo-empleado').onclick = () => {
+  document.getElementById('emp-id').value = '';
+  document.getElementById('modal-emp-title').textContent = 'Nuevo Empleado';
+  ['emp-cedula','emp-nombre','emp-codigo','emp-cargo','emp-celular','emp-ciudad',
+   'emp-salario','emp-ingreso','emp-banco','emp-cuenta','emp-eps','emp-pension-fondo',
+   'emp-arl','emp-caja'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('emp-contrato').value = 'indefinido';
+  document.getElementById('emp-estado').value = 'activo';
+  document.getElementById('emp-tipo-cuenta').value = 'Ahorro';
+  openModal('modal-empleado');
+};
 
-  // KPIs
-  let html = `<div class="kpi-row">
-    <div class="kpi green">
-      <div class="kpi-val">${r.diasLaborables}</div>
-      <div class="kpi-lbl">Días trabajados</div>
-    </div>
-    <div class="kpi yellow">
-      <div class="kpi-val">${r.diasExcluidos}</div>
-      <div class="kpi-lbl">Días excluidos</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-val" style="color:var(--blue)">${r.diasCalendario}</div>
-      <div class="kpi-lbl">Días calendario</div>
-    </div>
-  </div>`;
+async function editEmpleado(id) {
+  const e = STATE.empleados.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('emp-id').value = e.id;
+  document.getElementById('modal-emp-title').textContent = 'Editar Empleado';
+  document.getElementById('emp-cedula').value = e.cedula||'';
+  document.getElementById('emp-nombre').value = e.nombre_completo||'';
+  document.getElementById('emp-codigo').value = e.codigo||'';
+  document.getElementById('emp-cargo').value = e.cargo||'';
+  document.getElementById('emp-celular').value = e.celular||'';
+  document.getElementById('emp-ciudad').value = e.ciudad||'';
+  document.getElementById('emp-salario').value = e.salario_base||'';
+  document.getElementById('emp-contrato').value = e.tipo_contrato||'indefinido';
+  document.getElementById('emp-ingreso').value = e.fecha_ingreso||'';
+  document.getElementById('emp-estado').value = e.estado||'activo';
+  document.getElementById('emp-equipo').value = e.equipo_id||'';
+  document.getElementById('emp-banco').value = e.banco||'';
+  document.getElementById('emp-cuenta').value = e.cuenta_banco||'';
+  document.getElementById('emp-tipo-cuenta').value = e.tipo_cuenta||'Ahorro';
+  document.getElementById('emp-eps').value = e.eps||'';
+  document.getElementById('emp-pension-fondo').value = e.fondo_pension||'';
+  document.getElementById('emp-arl').value = e.arl||'';
+  document.getElementById('emp-caja').value = e.caja_compensacion||'';
+  openModal('modal-empleado');
+}
 
-  // Fechas
-  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-    <div class="kpi" style="text-align:left;padding:12px">
-      <div style="font-size:9px;color:var(--txt3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">📅 Fecha inicio</div>
-      <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--txt)">${fmtCO(r.fechaInicio)}</div>
-      <div style="font-size:10px;color:var(--txt3)">${DIAS_ES[toDate(r.fechaInicio).getDay()]}</div>
-    </div>
-    <div class="kpi" style="text-align:left;padding:12px;border-color:rgba(34,197,94,.25)">
-      <div style="font-size:9px;color:var(--txt3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">🏁 Fecha fin</div>
-      <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--green)">${fmtCO(r.fechaFin)}</div>
-      <div style="font-size:10px;color:var(--txt3)">${DIAS_ES[toDate(r.fechaFin).getDay()]}</div>
-    </div>
-  </div>`;
+document.getElementById('btn-guardar-empleado').onclick = async () => {
+  const id = document.getElementById('emp-id').value;
+  const payload = {
+    empresa_id:        EMPRESA_ID,
+    cedula:            document.getElementById('emp-cedula').value.trim(),
+    nombre_completo:   document.getElementById('emp-nombre').value.trim().toUpperCase(),
+    codigo:            document.getElementById('emp-codigo').value.trim(),
+    cargo:             document.getElementById('emp-cargo').value.trim(),
+    celular:           document.getElementById('emp-celular').value.trim(),
+    ciudad:            document.getElementById('emp-ciudad').value.trim(),
+    salario_base:      parseFloat(document.getElementById('emp-salario').value)||0,
+    tipo_contrato:     document.getElementById('emp-contrato').value,
+    fecha_ingreso:     document.getElementById('emp-ingreso').value,
+    estado:            document.getElementById('emp-estado').value,
+    equipo_id:         document.getElementById('emp-equipo').value || null,
+    banco:             document.getElementById('emp-banco').value,
+    cuenta_banco:      document.getElementById('emp-cuenta').value.trim(),
+    tipo_cuenta:       document.getElementById('emp-tipo-cuenta').value,
+    eps:               document.getElementById('emp-eps').value.trim(),
+    fondo_pension:     document.getElementById('emp-pension-fondo').value.trim(),
+    arl:               document.getElementById('emp-arl').value.trim(),
+    caja_compensacion: document.getElementById('emp-caja').value.trim(),
+  };
+  if (!payload.cedula || !payload.nombre_completo || !payload.fecha_ingreso) {
+    toast('Cédula, nombre y fecha de ingreso son obligatorios.', 'warn'); return;
+  }
+  const { error } = id
+    ? await sb.from('empleados').update(payload).eq('id', id)
+    : await sb.from('empleados').insert(payload);
 
-  // Timeline
-  html += `<div class="timeline-wrap">
-    <div class="timeline-label">📆 Mapa de días (${r.timeline.length} días calendario)</div>
-    <div class="timeline-grid">`;
-  r.timeline.forEach((d, i) => {
-    const dt = toDate(d.fecha);
-    const label = dt.getDate();
-    const dow = DIAS_ES[dt.getDay()];
-    const isStart = i === 0;
-    const isEnd   = d.tipo === 'worked' && !r.timeline.slice(i+1).some(x => x.tipo === 'worked');
-    const name = d.tipo === 'holiday' ? (FESTIVOS_NOMBRES[d.fecha] || 'Festivo') : dow;
-    let extra = isStart ? ' start' : '';
-    if (isEnd) extra += ' end';
-    html += `<div class="day-cell ${d.tipo}${extra}" title="${fmtCO(d.fecha)} ${dow}${d.tipo==='holiday'?' — '+name:''}">${label}</div>`;
-  });
-  html += `</div>
-    <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap">
-      <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--green)"><span style="width:10px;height:10px;border-radius:3px;background:rgba(34,197,94,.2);border:1px solid rgba(34,197,94,.3);display:inline-block"></span>Laborable</span>
-      <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--txt3)"><span style="width:10px;height:10px;border-radius:3px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);display:inline-block"></span>Fin de semana</span>
-      <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--yellow)"><span style="width:10px;height:10px;border-radius:3px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.25);display:inline-block"></span>Festivo</span>
-    </div>
-  </div>`;
+  if (error) { toast(error.message, 'error'); return; }
+  toast(id ? 'Empleado actualizado.' : 'Empleado registrado.', 'ok');
+  closeModal('modal-empleado');
+  markDirty('empleados','dashboard');
+  await renderEmpleados();
+};
 
-  // Excluidos
-  if (r.detalle.length) {
-    html += `<div class="sec-label">Días excluidos (${r.detalle.length})</div>
-    <div class="excl-list">`;
-    r.detalle.forEach(d => {
-      const dt = toDate(d.fecha);
-      const dow = DIAS_ES[dt.getDay()];
-      html += `<div class="excl-item">
-        <span class="excl-date">${fmtCO(d.fecha)} ${dow}</span>
-        <span class="excl-type ${d.tipo}">${d.tipo === 'holiday' ? '🟡 FESTIVO' : '⚫ FDS'}</span>
-        <span style="font-size:10px;color:var(--txt3)">${d.nombre}</span>
+/* ═══════════════════════════════════════════════
+   ASISTENCIA
+═══════════════════════════════════════════════ */
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+
+async function renderAsistencia() {
+  const esEmpleado = STATE.rol === 'empleado';
+  const canManage  = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
+
+  // Reloj solo para empleados y operadores
+  document.getElementById('asis-clock-section').classList.toggle('hidden', canManage);
+  document.getElementById('asis-admin-controls').classList.toggle('hidden', esEmpleado);
+  document.getElementById('btn-nueva-novedad').classList.toggle('hidden', !canManage);
+
+  if (!canManage) {
+    await setupClockButtons();
+  } else {
+    // Poblar selector de empleados
+    await loadEmpleados();
+    const sel = document.getElementById('asis-emp-filter');
+    sel.innerHTML = '<option value="">— Todos —</option>' +
+      STATE.empleados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+    sel.onchange = renderAsistenciaTabla;
+    document.getElementById('asis-mes-filter').onchange = renderAsistenciaTabla;
+  }
+
+  // Mes actual por defecto
+  const now = new Date();
+  const mesInput = document.getElementById('asis-mes-filter');
+  if (!mesInput.value) mesInput.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  renderCalendario();
+  await renderAsistenciaTabla();
+
+  document.getElementById('cal-prev').onclick = () => { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendario(); };
+  document.getElementById('cal-next').onclick = () => { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendario(); };
+}
+
+async function setupClockButtons() {
+  if (!STATE.empleado) return;
+  const today = new Date().toISOString().split('T')[0];
+  const { data } = await sb.from('asistencia')
+    .select('*')
+    .eq('empleado_id', STATE.empleado.id)
+    .eq('fecha', today)
+    .maybeSingle();
+
+  const btnIn  = document.getElementById('btn-entrada');
+  const btnOut = document.getElementById('btn-salida');
+  const status = document.getElementById('asis-status-hoy');
+
+  if (!data) {
+    btnIn.disabled = false; btnOut.disabled = true;
+    status.textContent = 'Sin registro hoy. Inicia tu labor cuando estés listo.';
+  } else if (data.hora_entrada && !data.hora_salida) {
+    btnIn.disabled = true; btnOut.disabled = false;
+    status.textContent = `Entrada registrada a las ${fmt.datetime(data.hora_entrada)}`;
+  } else if (data.hora_entrada && data.hora_salida) {
+    btnIn.disabled = true; btnOut.disabled = true;
+    status.innerHTML = `✅ Jornada completa · ${fmt.datetime(data.hora_entrada)} → ${fmt.datetime(data.hora_salida)} · <strong>${fmt.hours(data.hora_entrada, data.hora_salida)}</strong>`;
+  }
+
+  btnIn.onclick  = () => registrarMarca('entrada');
+  btnOut.onclick = () => registrarMarca('salida');
+}
+
+async function registrarMarca(tipo) {
+  const hoy = new Date().toISOString().split('T')[0];
+  const ahora = new Date().toISOString();
+
+  const { data: existente } = await sb.from('asistencia')
+    .select('*').eq('empleado_id', STATE.empleado.id).eq('fecha', hoy).maybeSingle();
+
+  let error;
+  if (tipo === 'entrada') {
+    if (existente) {
+      ({ error } = await sb.from('asistencia').update({ hora_entrada: ahora }).eq('id', existente.id));
+    } else {
+      ({ error } = await sb.from('asistencia').insert({
+        empresa_id: EMPRESA_ID, empleado_id: STATE.empleado.id,
+        fecha: hoy, hora_entrada: ahora, created_by: STATE.user.id,
+      }));
+    }
+  } else {
+    if (!existente) { toast('Registra primero tu entrada.', 'warn'); return; }
+    ({ error } = await sb.from('asistencia').update({ hora_salida: ahora }).eq('id', existente.id));
+  }
+
+  if (error) { toast(error.message, 'error'); return; }
+  toast(tipo === 'entrada' ? '▶ Entrada registrada.' : '⏹ Salida registrada.', 'ok');
+  await setupClockButtons();
+  await renderAsistenciaTabla();
+  renderCalendario();
+}
+
+function renderCalendario() {
+  const label = document.getElementById('cal-month-label');
+  const grid  = document.getElementById('asis-calendar');
+  const fecha = new Date(calYear, calMonth, 1);
+  label.textContent = fecha.toLocaleDateString('es-CO', { month:'long', year:'numeric' }).toUpperCase();
+
+  const dias = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
+  const hoy  = new Date().toISOString().split('T')[0];
+  const primerDia = fecha.getDay();
+  const totalDias = new Date(calYear, calMonth+1, 0).getDate();
+
+  grid.innerHTML =
+    dias.map(d => `<div class="cal-day-label">${d}</div>`).join('') +
+    Array(primerDia).fill(`<div class="cal-day empty"></div>`).join('') +
+    Array.from({length: totalDias}, (_,i) => {
+      const n = i + 1;
+      const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(n).padStart(2,'0')}`;
+      return `<div class="cal-day" id="cal-d-${dateStr}" data-date="${dateStr}">
+        <span class="day-num${dateStr===hoy?' text-rojo':''}">${n}</span>
+        <span class="day-dot"></span>
       </div>`;
-    });
-    html += `</div>`;
+    }).join('');
+
+  // Marcar días con datos (asíncrono)
+  loadCalData(calYear, calMonth);
+}
+
+async function loadCalData(y, m) {
+  const start = `${y}-${String(m+1).padStart(2,'0')}-01`;
+  const end   = `${y}-${String(m+1).padStart(2,'0')}-31`;
+  const empId = STATE.empleado?.id || document.getElementById('asis-emp-filter')?.value || null;
+
+  let q = sb.from('asistencia').select('fecha, estado').eq('empresa_id', EMPRESA_ID)
+    .gte('fecha', start).lte('fecha', end);
+  if (empId) q = q.eq('empleado_id', empId);
+
+  const { data } = await q;
+  data?.forEach(r => {
+    const el = document.getElementById(`cal-d-${r.fecha}`);
+    if (el) el.className = `cal-day ${r.estado==='completo'?'completo':r.estado==='ausente'?'ausente':'novedad'}`;
+  });
+}
+
+async function renderAsistenciaTabla() {
+  const tbody = document.getElementById('asis-tbody');
+  tbody.innerHTML = `<tr><td colspan="7"><div class="loading-center"><div class="spinner"></div></div></td></tr>`;
+
+  const mes    = document.getElementById('asis-mes-filter').value;
+  const empFil = document.getElementById('asis-emp-filter')?.value;
+  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
+
+  let [year, month] = mes ? mes.split('-') : [calYear, String(calMonth+1).padStart(2,'0')];
+  const start = `${year}-${month}-01`;
+  const end   = `${year}-${month}-31`;
+
+  let q = sb.from('asistencia')
+    .select('*, empleados(nombre_completo)')
+    .eq('empresa_id', EMPRESA_ID)
+    .gte('fecha', start).lte('fecha', end)
+    .order('fecha', { ascending: false });
+
+  if (canManage && empFil) q = q.eq('empleado_id', empFil);
+  if (!canManage && STATE.empleado) q = q.eq('empleado_id', STATE.empleado.id);
+
+  const { data } = await q;
+
+  if (!data?.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📅</div><div class="empty-text">Sin registros en este período</div></div></td></tr>`;
+    return;
   }
 
-  area.innerHTML = html;
+  tbody.innerHTML = data.map(r => `
+    <tr>
+      <td>${fmt.date(r.fecha)}</td>
+      <td>${r.empleados?.nombre_completo||'—'}</td>
+      <td>${fmt.datetime(r.hora_entrada)}</td>
+      <td>${fmt.datetime(r.hora_salida)}</td>
+      <td class="mono">${fmt.hours(r.hora_entrada, r.hora_salida)}</td>
+      <td>${badgeEstado(r.estado)}</td>
+      <td>
+        ${canManage && r.es_novedad ? `<button class="btn btn-sm btn-outline" onclick="verNovedad('${r.id}')">📋 Novedad</button>` : ''}
+      </td>
+    </tr>`).join('');
 }
 
-// ── API DOCS dynamic ─────────────────────────────────────────────────
-function updateApiUso(r) {
-  const inicio = document.getElementById('inp_inicio').value || 'YYYY-MM-DD';
-  const dias   = document.getElementById('inp_dias').value   || 10;
-  const festivos = getFestivosActivos();
-  const code = document.getElementById('api-uso-code');
-  code.innerHTML =
-    `<span class="c-kw">import</span> { calcularDiasLaborables } <span class="c-kw">from</span> <span class="c-str">'./dias_laborables.js'</span>;
+document.getElementById('btn-nueva-novedad').onclick = () => {
+  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
+  if (!canManage) return;
+  // Poblar select
+  document.getElementById('nov-empleado').innerHTML =
+    STATE.empleados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+  document.getElementById('nov-fecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('nov-asis-id').value = '';
+  openModal('modal-novedad');
+};
 
-<span class="c-kw">const</span> resultado = <span class="c-func">calcularDiasLaborables</span>(
-  <span class="c-str">'${inicio}'</span>,         <span class="c-comm">// fecha inicio</span>
-  <span class="c-num">${dias}</span>,                    <span class="c-comm">// días laborables objetivo</span>
-  {
-    <span class="c-key">excluirSabados</span>:  <span class="c-bool">${opts.sab}</span>,
-    <span class="c-key">excluirDomingos</span>: <span class="c-bool">${opts.dom}</span>,
-    <span class="c-key">festivos</span>: FESTIVOS_CO[<span class="c-num">${inicio.slice(0,4)||'YYYY'}</span>]
-    <span class="c-comm">// festivos: []  ← sin festivos</span>
+document.getElementById('btn-guardar-novedad').onclick = async () => {
+  const payload = {
+    empresa_id:   EMPRESA_ID,
+    empleado_id:  document.getElementById('nov-empleado').value,
+    fecha:        document.getElementById('nov-fecha').value,
+    tipo_novedad: document.getElementById('nov-tipo').value,
+    descripcion:  document.getElementById('nov-obs').value,
+    created_by:   STATE.user?.id,
+  };
+  const { error } = await sb.from('novedades_calendario').insert(payload);
+  if (error) { toast(error.message, 'error'); return; }
+  toast('Novedad registrada.', 'ok');
+  closeModal('modal-novedad');
+  markDirty('dashboard');
+};
+
+/* ═══════════════════════════════════════════════
+   HORAS EXTRA
+═══════════════════════════════════════════════ */
+async function renderHorasExtra() {
+  await loadEmpleados();
+
+  // Cargar tipos de hora extra
+  if (!STATE.tiposHex.length) {
+    const { data } = await sb.from('tipos_hora_extra').select('*').eq('activo', true).order('id');
+    STATE.tiposHex = data || [];
   }
-);
 
-<span class="c-comm">// → fechaFin, diasCalendario, diasExcluidos, detalle[]</span>
-${r ? `<span class="c-comm">// Último resultado: fechaFin = '${r.fechaFin}' (${r.diasCalendario} días calendario)</span>` : ''}`;
+  const now = new Date();
+  const hexMes = document.getElementById('hex-mes-filter');
+  if (!hexMes.value) hexMes.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  // Poblar selects
+  const empOpts = STATE.empleados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+  document.getElementById('hex-emp-filter').innerHTML = `<option value="">— Todos —</option>${empOpts}`;
+  document.getElementById('hex-empleado').innerHTML   = empOpts;
+  document.getElementById('hex-tipo').innerHTML =
+    STATE.tiposHex.map(t => `<option value="${t.id}">${t.descripcion} (×${t.factor})</option>`).join('');
+
+  document.getElementById('hex-fecha').value = now.toISOString().split('T')[0];
+
+  document.getElementById('hex-emp-filter').onchange = renderHexTabla;
+  document.getElementById('hex-mes-filter').onchange  = renderHexTabla;
+
+  // Auto-calcular horas desde inicio/fin
+  document.getElementById('hex-inicio').onchange =
+  document.getElementById('hex-fin').onchange = () => {
+    const ini = document.getElementById('hex-inicio').value;
+    const fin = document.getElementById('hex-fin').value;
+    if (ini && fin) {
+      const diff = (new Date(`2000-01-01T${fin}`) - new Date(`2000-01-01T${ini}`)) / 3600000;
+      if (diff > 0) document.getElementById('hex-horas').value = diff.toFixed(1);
+    }
+  };
+
+  await renderHexTabla();
+  await renderHexStats();
 }
 
-function renderApiRetorno(r) {
-  const el = document.getElementById('api-retorno-code');
-  el.innerHTML =
-    `<span class="c-gray">{</span>
-  <span class="c-key">fechaInicio</span>:    <span class="c-str">'${r.fechaInicio}'</span>,
-  <span class="c-key">fechaFin</span>:        <span class="c-str">'${r.fechaFin}'</span>,
-  <span class="c-key">diasLaborables</span>:  <span class="c-num">${r.diasLaborables}</span>,
-  <span class="c-key">diasCalendario</span>:  <span class="c-num">${r.diasCalendario}</span>,
-  <span class="c-key">diasExcluidos</span>:   <span class="c-num">${r.diasExcluidos}</span>,
-  <span class="c-key">detalle</span>: [        <span class="c-comm">// ${r.detalle.length} días excluidos</span>
-${r.detalle.slice(0,3).map(d=>`    { <span class="c-key">fecha</span>: <span class="c-str">'${d.fecha}'</span>, <span class="c-key">tipo</span>: <span class="c-str">'${d.tipo}'</span>, <span class="c-key">nombre</span>: <span class="c-str">'${d.nombre}'</span> }`).join(',\n')}${r.detalle.length>3?`,\n    <span class="c-gray">... ${r.detalle.length-3} más</span>`:''}
-  ],
-  <span class="c-key">configUsada</span>: {
-    <span class="c-key">excluirSabados</span>:  <span class="c-bool">${opts.sab}</span>,
-    <span class="c-key">excluirDomingos</span>: <span class="c-bool">${opts.dom}</span>,
-    <span class="c-key">festivos</span>: <span class="c-str">'${r.configUsada.festivos}'</span>
+async function renderHexStats() {
+  const mes = document.getElementById('hex-mes-filter').value || '';
+  let [year, month] = mes.split('-');
+  const { data } = await sb.from('horas_extra_detalle')
+    .select('tipo_hora_id, cantidad_horas, valor_total, tipos_hora_extra(descripcion)')
+    .eq('empresa_id', EMPRESA_ID)
+    .gte('fecha', `${year}-${month}-01`)
+    .lte('fecha', `${year}-${month}-31`);
+
+  const resumen = {};
+  data?.forEach(r => {
+    const key = r.tipos_hora_extra?.descripcion || `Tipo ${r.tipo_hora_id}`;
+    resumen[key] = (resumen[key]||0) + (r.cantidad_horas||0);
+  });
+
+  const totalH = Object.values(resumen).reduce((a,b)=>a+b, 0);
+  const totalV = data?.reduce((a,r)=>a+(r.valor_total||0), 0) || 0;
+
+  document.getElementById('hex-stats').innerHTML = `
+    <div class="stat-card" style="--accent:var(--amarillo)">
+      <div class="stat-label">Total horas extra</div>
+      <div class="stat-value">${totalH.toFixed(1)}</div>
+      <div class="stat-sub">en el período</div>
+    </div>
+    <div class="stat-card" style="--accent:var(--verde)">
+      <div class="stat-label">Valor total</div>
+      <div class="stat-value" style="font-size:1.4rem">${fmt.currency(totalV)}</div>
+      <div class="stat-sub">estimado</div>
+    </div>
+    ${Object.entries(resumen).map(([tipo, h]) => `
+    <div class="stat-card" style="--accent:var(--azul)">
+      <div class="stat-label">${tipo}</div>
+      <div class="stat-value">${h.toFixed(1)}h</div>
+    </div>`).join('')}`;
+}
+
+async function renderHexTabla() {
+  const tbody = document.getElementById('hex-tbody');
+  tbody.innerHTML = `<tr><td colspan="9"><div class="loading-center"><div class="spinner"></div></div></td></tr>`;
+
+  const mes    = document.getElementById('hex-mes-filter').value;
+  const empFil = document.getElementById('hex-emp-filter').value;
+  let [year, month] = mes ? mes.split('-') : [new Date().getFullYear(), String(new Date().getMonth()+1).padStart(2,'0')];
+
+  let q = sb.from('horas_extra_detalle')
+    .select('*, empleados(nombre_completo,salario_base), tipos_hora_extra(descripcion,factor)')
+    .eq('empresa_id', EMPRESA_ID)
+    .gte('fecha', `${year}-${month}-01`)
+    .lte('fecha', `${year}-${month}-31`)
+    .order('fecha', { ascending: false });
+
+  if (empFil) q = q.eq('empleado_id', empFil);
+  if (STATE.rol === 'empleado' && STATE.empleado) q = q.eq('empleado_id', STATE.empleado.id);
+
+  const { data } = await q;
+  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
+
+  if (!data?.length) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">⚡</div><div class="empty-text">Sin horas extra en el período</div></div></td></tr>`;
+    return;
   }
-<span class="c-gray">}</span>`;
+
+  tbody.innerHTML = data.map(r => {
+    // Valor = (salario/240) * factor * horas
+    const valorHora = r.empleados?.salario_base ? (r.empleados.salario_base / 240) * (r.tipos_hora_extra?.factor||1) : 0;
+    const valorTotal = r.valor_total || (valorHora * r.cantidad_horas);
+    return `<tr>
+      <td>${fmt.date(r.fecha)}</td>
+      <td>${r.empleados?.nombre_completo||'—'}</td>
+      <td><span class="badge badge-azul">${r.tipos_hora_extra?.descripcion||'—'}</span></td>
+      <td>${fmt.time(r.hora_inicio)}</td>
+      <td>${fmt.time(r.hora_fin)}</td>
+      <td class="mono font-bold">${r.cantidad_horas}h</td>
+      <td class="mono">${fmt.currency(valorTotal)}</td>
+      <td>${r.aprobado_por ? badgeEstado('activo') : badgeEstado('pendiente')}</td>
+      <td>
+        ${canManage ? `
+          <div class="flex gap-1">
+            <button class="btn-icon" onclick="editHex('${r.id}')">✏️</button>
+            <button class="btn-icon btn-danger" onclick="deleteHex('${r.id}')">🗑</button>
+          </div>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
 }
 
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('tab-'+name).classList.add('active');
-  if (name === 'retorno' && lastResult) renderApiRetorno(lastResult);
-  if (name === 'uso') updateApiUso(lastResult);
+document.getElementById('btn-nueva-hex').onclick = () => {
+  document.getElementById('hex-id').value = '';
+  document.getElementById('modal-hex-title').textContent = 'Registrar Horas Extra';
+  ['hex-inicio','hex-fin','hex-obs'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('hex-horas').value = '';
+  document.getElementById('hex-fecha').value = new Date().toISOString().split('T')[0];
+  if (STATE.empleado) document.getElementById('hex-empleado').value = STATE.empleado.id;
+  openModal('modal-hex');
+};
+
+document.getElementById('btn-guardar-hex').onclick = async () => {
+  const empId = document.getElementById('hex-empleado').value;
+  const emp   = STATE.empleados.find(e => e.id === empId);
+  const tipoId = parseInt(document.getElementById('hex-tipo').value);
+  const tipo   = STATE.tiposHex.find(t => t.id === tipoId);
+  const horas  = parseFloat(document.getElementById('hex-horas').value)||0;
+  const valorHora  = emp ? (emp.salario_base / 240) * (tipo?.factor||1) : 0;
+  const valorTotal = valorHora * horas;
+
+  const payload = {
+    empresa_id:     EMPRESA_ID,
+    empleado_id:    empId,
+    tipo_hora_id:   tipoId,
+    fecha:          document.getElementById('hex-fecha').value,
+    hora_inicio:    document.getElementById('hex-inicio').value || null,
+    hora_fin:       document.getElementById('hex-fin').value || null,
+    cantidad_horas: horas,
+    valor_hora:     Math.round(valorHora),
+    valor_total:    Math.round(valorTotal),
+    observacion:    document.getElementById('hex-obs').value,
+    created_by:     STATE.user?.id,
+  };
+
+  const id = document.getElementById('hex-id').value;
+  const { error } = id
+    ? await sb.from('horas_extra_detalle').update(payload).eq('id', id)
+    : await sb.from('horas_extra_detalle').insert(payload);
+
+  if (error) { toast(error.message, 'error'); return; }
+  toast('Horas extra guardadas.', 'ok');
+  closeModal('modal-hex');
+  await renderHexTabla();
+  await renderHexStats();
+};
+
+async function deleteHex(id) {
+  if (!confirm('¿Eliminar este registro?')) return;
+  const { error } = await sb.from('horas_extra_detalle').delete().eq('id', id);
+  if (error) { toast(error.message, 'error'); return; }
+  toast('Registro eliminado.', 'ok');
+  await renderHexTabla();
+  await renderHexStats();
 }
+
+/* ═══════════════════════════════════════════════
+   DOCUMENTOS
+═══════════════════════════════════════════════ */
+async function renderDocumentos() {
+  await loadEmpleados();
+  const empOpts = STATE.empleados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+  document.getElementById('doc-empleado').innerHTML = empOpts;
+
+  document.getElementById('doc-tipo-filter').onchange   = renderDocTabla;
+  document.getElementById('doc-alerta-filter').onchange = renderDocTabla;
+  document.getElementById('btn-nuevo-doc').onclick = () => {
+    document.getElementById('doc-id').value = '';
+    document.getElementById('modal-doc-title').textContent = 'Cargar Documento';
+    ['doc-entidad','doc-numero','doc-inicio','doc-vence','doc-desc','doc-url'].forEach(id => document.getElementById(id).value = '');
+    openModal('modal-doc');
+  };
+
+  await renderDocTabla();
+  await renderDocStats();
+}
+
+async function renderDocStats() {
+  const { data } = await sb.from('v_documentos_alertas').select('alerta').eq('empresa_id', EMPRESA_ID);
+  const counts = { vencido:0, critico:0, proximo:0, vigente:0 };
+  data?.forEach(d => { counts[d.alerta] = (counts[d.alerta]||0) + 1; });
+
+  document.getElementById('doc-stats').innerHTML = `
+    <div class="stat-card" style="--accent:var(--rojo)">
+      <div class="stat-label">Vencidos</div>
+      <div class="stat-value">${counts.vencido}</div>
+    </div>
+    <div class="stat-card" style="--accent:var(--naranja)">
+      <div class="stat-label">Críticos (30d)</div>
+      <div class="stat-value">${counts.critico}</div>
+    </div>
+    <div class="stat-card" style="--accent:var(--amarillo)">
+      <div class="stat-label">Próximos (60d)</div>
+      <div class="stat-value">${counts.proximo}</div>
+    </div>
+    <div class="stat-card" style="--accent:var(--verde)">
+      <div class="stat-label">Vigentes</div>
+      <div class="stat-value">${counts.vigente}</div>
+    </div>`;
+}
+
+async function renderDocTabla() {
+  const tbody = document.getElementById('doc-tbody');
+  tbody.innerHTML = `<tr><td colspan="8"><div class="loading-center"><div class="spinner"></div></div></td></tr>`;
+
+  const tipoFil   = document.getElementById('doc-tipo-filter').value;
+  const alertaFil = document.getElementById('doc-alerta-filter').value;
+
+  let q = sb.from('v_documentos_alertas').select('*').eq('empresa_id', EMPRESA_ID);
+  if (tipoFil)   q = q.eq('tipo', tipoFil);
+  if (alertaFil) q = q.eq('alerta', alertaFil);
+  if (STATE.rol === 'empleado' && STATE.empleado) q = q.eq('empleado_id', STATE.empleado.id);
+  q = q.order('dias_para_vencer');
+
+  const { data } = await q;
+  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
+
+  if (!data?.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📄</div><div class="empty-text">Sin documentos</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = data.map(d => {
+    const dias = d.dias_para_vencer;
+    const pct  = Math.max(0, Math.min(100, dias > 0 ? Math.round((dias/365)*100) : 0));
+    const barColor = dias < 0 ? 'var(--rojo)' : dias < 30 ? 'var(--naranja)' : dias < 60 ? 'var(--amarillo)' : 'var(--verde)';
+
+    return `<tr>
+      <td>
+        <div style="font-weight:600;font-size:0.85rem">${d.nombre_completo}</div>
+        <div class="text-xs text-muted">${d.cargo||''}</div>
+      </td>
+      <td><span class="badge badge-azul">${d.tipo}</span></td>
+      <td>${d.descripcion||'—'}</td>
+      <td class="text-sm">${fmt.date(d.fecha_inicio||null)}</td>
+      <td class="text-sm">${fmt.date(d.fecha_vencimiento)}</td>
+      <td>
+        <div class="mono text-sm">${dias < 0 ? `<span class="text-rojo">${Math.abs(dias)}d vencido</span>` : dias+'d'}</div>
+        <div class="doc-progress"><div class="doc-progress-bar" style="width:${pct}%;background:${barColor}"></div></div>
+      </td>
+      <td>${badgeEstado(d.alerta)}</td>
+      <td>
+        <div class="flex gap-1">
+          ${d.archivo_url ? `<a href="${d.archivo_url}" target="_blank" class="btn-icon" title="Descargar">⬇️</a>` : ''}
+          ${canManage ? `<button class="btn-icon" onclick="editDoc('${d.id}')">✏️</button>` : ''}
+          ${canManage ? `<button class="btn-icon" onclick="deleteDoc('${d.id}')">🗑</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('btn-guardar-doc').onclick = async () => {
+  const id = document.getElementById('doc-id').value;
+  const vence = document.getElementById('doc-vence').value;
+  const dias = vence ? diasParaVencer(vence) : null;
+  let estado = 'vigente';
+  if (dias !== null) {
+    if (dias < 0)  estado = 'vencido';
+    else if (dias < 30) estado = 'proximo_vencer';
+  }
+
+  const payload = {
+    empresa_id:       EMPRESA_ID,
+    empleado_id:      document.getElementById('doc-empleado').value,
+    tipo:             document.getElementById('doc-tipo').value,
+    entidad_emisora:  document.getElementById('doc-entidad').value,
+    numero_documento: document.getElementById('doc-numero').value,
+    fecha_inicio:     document.getElementById('doc-inicio').value || null,
+    fecha_vencimiento:vence || null,
+    descripcion:      document.getElementById('doc-desc').value,
+    archivo_url:      document.getElementById('doc-url').value || null,
+    estado,
+    created_by: STATE.user?.id,
+  };
+
+  const { error } = id
+    ? await sb.from('documentos_empleado').update(payload).eq('id', id)
+    : await sb.from('documentos_empleado').insert(payload);
+
+  if (error) { toast(error.message, 'error'); return; }
+  toast(id ? 'Documento actualizado.' : 'Documento cargado.', 'ok');
+  closeModal('modal-doc');
+  await renderDocTabla();
+  await renderDocStats();
+  markDirty('dashboard');
+};
+
+async function editDoc(id) {
+  const { data: d } = await sb.from('documentos_empleado').select('*').eq('id', id).single();
+  if (!d) return;
+  document.getElementById('doc-id').value = d.id;
+  document.getElementById('doc-empleado').value = d.empleado_id;
+  document.getElementById('doc-tipo').value = d.tipo;
+  document.getElementById('doc-entidad').value = d.entidad_emisora||'';
+  document.getElementById('doc-numero').value = d.numero_documento||'';
+  document.getElementById('doc-inicio').value = d.fecha_inicio||'';
+  document.getElementById('doc-vence').value = d.fecha_vencimiento||'';
+  document.getElementById('doc-desc').value = d.descripcion||'';
+  document.getElementById('doc-url').value = d.archivo_url||'';
+  document.getElementById('modal-doc-title').textContent = 'Editar Documento';
+  openModal('modal-doc');
+}
+
+async function deleteDoc(id) {
+  if (!confirm('¿Eliminar este documento?')) return;
+  const { error } = await sb.from('documentos_empleado').delete().eq('id', id);
+  if (error) { toast(error.message, 'error'); return; }
+  toast('Documento eliminado.', 'ok');
+  await renderDocTabla();
+  await renderDocStats();
+}
+
+/* ═══════════════════════════════════════════════
+   OBSERVACIONES
+═══════════════════════════════════════════════ */
+async function renderObservaciones() {
+  await loadEmpleados();
+  const empOpts = STATE.empleados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+  document.getElementById('obs-empleado').innerHTML = empOpts;
+  document.getElementById('obs-emp-filter').innerHTML = `<option value="">— Todos —</option>${empOpts}`;
+  document.getElementById('obs-emp-filter').onchange = loadObsList;
+
+  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
+  document.getElementById('btn-nueva-obs').classList.toggle('hidden', !canManage);
+
+  document.getElementById('btn-nueva-obs').onclick = () => openModal('modal-obs');
+
+  document.getElementById('btn-guardar-obs').onclick = async () => {
+    const payload = {
+      empresa_id:     EMPRESA_ID,
+      empleado_id:    document.getElementById('obs-empleado').value,
+      tipo:           document.getElementById('obs-tipo').value,
+      descripcion:    document.getElementById('obs-desc').value.trim(),
+      es_privada:     document.getElementById('obs-privada').checked,
+      registrado_por: STATE.user?.id,
+    };
+    if (!payload.descripcion) { toast('Descripción requerida.', 'warn'); return; }
+    const { error } = await sb.from('observaciones_empleado').insert(payload);
+    if (error) { toast(error.message, 'error'); return; }
+    toast('Observación registrada.', 'ok');
+    closeModal('modal-obs');
+    document.getElementById('obs-desc').value = '';
+    document.getElementById('obs-privada').checked = false;
+    await loadObsList();
+  };
+
+  await loadObsList();
+}
+
+async function loadObsList() {
+  const container = document.getElementById('obs-list');
+  container.innerHTML = `<div class="loading-center"><div class="spinner"></div></div>`;
+
+  const empFil = document.getElementById('obs-emp-filter').value;
+  let q = sb.from('observaciones_empleado')
+    .select('*, empleados(nombre_completo), usuarios(nombre)')
+    .eq('empresa_id', EMPRESA_ID)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (empFil) q = q.eq('empleado_id', empFil);
+  if (STATE.rol === 'empleado' && STATE.empleado) {
+    q = q.eq('empleado_id', STATE.empleado.id).eq('es_privada', false);
+  }
+
+  const { data } = await q;
+
+  const tipoBadge = {
+    general:'badge-gris', disciplinaria:'badge-rojo',
+    felicitacion:'badge-verde', capacitacion:'badge-azul', otro:'badge-gris',
+  };
+
+  if (!data?.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-text">Sin observaciones</div></div>`;
+    return;
+  }
+
+  container.innerHTML = data.map(o => `
+    <div class="card" style="margin-bottom:0.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;background:var(--gris-700);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:0.85rem">
+            ${fmt.initials(o.empleados?.nombre_completo||'?')}
+          </div>
+          <div>
+            <div style="font-weight:600;font-size:0.9rem">${o.empleados?.nombre_completo||'—'}</div>
+            <div class="text-xs text-muted">por ${o.usuarios?.nombre||'Sistema'} · ${fmt.datetime(o.created_at)}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="badge ${tipoBadge[o.tipo]||'badge-gris'}">${o.tipo}</span>
+          ${o.es_privada ? '<span class="badge badge-amarillo">🔒 Privada</span>' : ''}
+        </div>
+      </div>
+      <p style="font-size:0.875rem;color:var(--gris-200);line-height:1.6;white-space:pre-wrap">${o.descripcion}</p>
+    </div>`).join('');
+}
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════
+   OPERACIONES — MÓDULO FASE 4
+═══════════════════════════════════════════════ */
+let _opTimerInterval = null;
+let _opActivaId      = null;
+let _opActivaInicio  = null;
+let _opEstadoFiltro  = '';
+
+async function renderOperaciones() {
+  const esOperador = STATE.rol === 'operador';
+  const canManage  = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
+
+  // Fecha por defecto: hoy
+  const hoy = new Date().toISOString().split('T')[0];
+  const fechaEl = document.getElementById('op-fecha-filter');
+  if (!fechaEl.value) fechaEl.value = hoy;
+
+  // Cargar empleados y poblar selector de operadores
+  await loadEmpleados();
+  const operSel = document.getElementById('op-operador-filter');
+  operSel.innerHTML = '<option value="">— Todos los operadores —</option>' +
+    STATE.empleados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+
+  if (esOperador && STATE.empleado) {
+    operSel.value = STATE.empleado.id;
+    operSel.disabled = true;
+  }
+
+  // Poblar modales
+  await _poblarSelectsModalOp();
+
+  // Filtros de estado
+  document.querySelectorAll('.op-filter-btn').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.op-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _opEstadoFiltro = btn.dataset.estado;
+      renderOpList();
+    };
+  });
+
+  operSel.onchange = () => renderOpList();
+  fechaEl.onchange  = () => renderOpList();
+
+  document.getElementById('btn-nueva-op').onclick    = () => abrirModalIniciarOp();
+  document.getElementById('btn-finalizar-op').onclick = () => abrirModalFinalizar(_opActivaId);
+  document.getElementById('btn-obs-op-activa').onclick = () => {
+    document.getElementById('op-obs-id').value    = _opActivaId || '';
+    document.getElementById('op-obs-texto').value = '';
+    openModal('modal-op-obs');
+  };
+  document.getElementById('btn-guardar-op-obs').onclick  = _guardarObsRapida;
+  document.getElementById('btn-guardar-op').onclick       = guardarOperacion;
+  document.getElementById('btn-confirmar-fin').onclick    = confirmarFin;
+
+  await checkOpActiva();
+  await renderOpStats();
+  await renderOpList();
+}
+
+/* ── Verificar op. activa del operador logueado ─── */
+async function checkOpActiva() {
+  const empId = STATE.empleado?.id || null;
+  if (!empId) return;
+
+  const { data } = await sb.from('operaciones')
+    .select('*')
+    .eq('empresa_id', EMPRESA_ID)
+    .eq('operador_id', empId)
+    .eq('estado', 'en_curso')
+    .order('hora_inicio', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const section  = document.getElementById('op-activa-section');
+  const btnNueva = document.getElementById('btn-nueva-op');
+  if (!section || !btnNueva) return;
+
+  if (data) {
+    _opActivaId    = data.id;
+    _opActivaInicio = new Date(data.hora_inicio);
+    section.classList.remove('hidden');
+    btnNueva.disabled = true;
+    btnNueva.textContent = '⏸ Operación activa';
+
+    document.getElementById('op-activa-obra').textContent    = data.obra;
+    document.getElementById('op-activa-cliente').textContent = 'Cliente: ' + data.cliente;
+
+    document.getElementById('op-activa-meta').innerHTML = `
+      <div class="op-meta-item">
+        <div class="op-meta-label">Inicio</div>
+        <div class="op-meta-value">${new Date(data.hora_inicio).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <div class="op-meta-item">
+        <div class="op-meta-label">Ciudad</div>
+        <div class="op-meta-value">${data.ciudad_obra || '—'}</div>
+      </div>
+      ${data.bono_operacion > 0 ? `
+      <div class="op-meta-item">
+        <div class="op-meta-label">Bono</div>
+        <div class="op-meta-value" style="color:var(--amarillo)">${fmt.currency(data.bono_operacion)}</div>
+      </div>` : ''}`;
+
+    clearInterval(_opTimerInterval);
+    _opTimerInterval = setInterval(() => {
+      const el = document.getElementById('op-timer-display');
+      if (!el) { clearInterval(_opTimerInterval); return; }
+      const elapsed = Math.floor((Date.now() - _opActivaInicio) / 1000);
+      const h = String(Math.floor(elapsed / 3600)).padStart(2,'0');
+      const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2,'0');
+      const s = String(elapsed % 60).padStart(2,'0');
+      el.textContent = `${h}:${m}:${s}`;
+    }, 1000);
+  } else {
+    _opActivaId = null;
+    clearInterval(_opTimerInterval);
+    section.classList.add('hidden');
+    if (btnNueva) { btnNueva.disabled = false; btnNueva.textContent = '▶ Iniciar Operación'; }
+  }
+}
+
+/* ── Stats ─────────────────────────────────────────── */
+async function renderOpStats() {
+  const mes1 = new Date().toISOString().slice(0,7) + '-01';
+  let q = sb.from('operaciones')
+    .select('estado, duracion_horas, bono_operacion')
+    .eq('empresa_id', EMPRESA_ID)
+    .gte('hora_inicio', mes1);
+  if (STATE.empleado) q = q.eq('operador_id', STATE.empleado.id);
+
+  const { data } = await q;
+  const fin      = (data||[]).filter(o => o.estado === 'finalizada');
+  const curso    = (data||[]).filter(o => o.estado === 'en_curso');
+  const totalH   = fin.reduce((a,o) => a + (o.duracion_horas||0), 0);
+  const totalB   = (data||[]).reduce((a,o) => a + (o.bono_operacion||0), 0);
+
+  document.getElementById('op-stats').innerHTML = `
+    <div class="stat-card" style="--accent:var(--rojo)">
+      <div class="stat-label">En Curso</div>
+      <div class="stat-value">${curso.length}</div>
+      <div class="stat-sub">ahora mismo</div>
+    </div>
+    <div class="stat-card" style="--accent:var(--verde)">
+      <div class="stat-label">Finalizadas</div>
+      <div class="stat-value">${fin.length}</div>
+      <div class="stat-sub">este mes</div>
+    </div>
+    <div class="stat-card" style="--accent:var(--azul)">
+      <div class="stat-label">Horas en campo</div>
+      <div class="stat-value">${totalH.toFixed(1)}h</div>
+      <div class="stat-sub">este mes</div>
+    </div>
+    <div class="stat-card" style="--accent:var(--amarillo)">
+      <div class="stat-label">Bonos acumulados</div>
+      <div class="stat-value" style="font-size:1.3rem">${fmt.currency(totalB)}</div>
+      <div class="stat-sub">este mes</div>
+    </div>`;
+}
+
+/* ── Lista en cards ─────────────────────────────────── */
+async function renderOpList() {
+  const container = document.getElementById('op-list');
+  container.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+
+  const empFil   = document.getElementById('op-operador-filter').value;
+  const fechaFil = document.getElementById('op-fecha-filter').value;
+
+  let q = sb.from('operaciones')
+    .select('*, empleados(nombre_completo), equipos(codigo)')
+    .eq('empresa_id', EMPRESA_ID)
+    .order('hora_inicio', { ascending: false })
+    .limit(50);
+
+  if (empFil)           q = q.eq('operador_id', empFil);
+  else if (STATE.empleado) q = q.eq('operador_id', STATE.empleado.id);
+  if (_opEstadoFiltro)  q = q.eq('estado', _opEstadoFiltro);
+  if (fechaFil) {
+    q = q.gte('hora_inicio', fechaFil + 'T00:00:00')
+         .lte('hora_inicio', fechaFil + 'T23:59:59');
+  }
+
+  const { data } = await q;
+  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
+
+  if (!data?.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🏗</div>
+        <div class="empty-text">Sin operaciones en este período</div>
+        <div style="margin-top:1rem">
+          <button class="btn btn-primary btn-sm" onclick="abrirModalIniciarOp()">▶ Iniciar primera operación</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const BADGES = {
+    en_curso:   '<span class="badge badge-rojo">🔴 En Curso</span>',
+    finalizada: '<span class="badge badge-verde">✅ Finalizada</span>',
+    cancelada:  '<span class="badge badge-gris">⛔ Cancelada</span>',
+  };
+
+  container.innerHTML = data.map(op => {
+    const dur = op.duracion_horas
+      ? op.duracion_horas.toFixed(1) + 'h'
+      : op.estado === 'en_curso' ? '<span style="color:var(--rojo)">⏱ en curso</span>' : '—';
+
+    return `
+    <div class="op-card ${op.estado}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem">
+        <div>
+          <div style="font-family:var(--font-display);font-size:1.15rem;font-weight:800">${op.obra}</div>
+          <div style="font-size:0.85rem;color:var(--gris-400)">${op.cliente}${op.ciudad_obra?' · '+op.ciudad_obra:''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          ${BADGES[op.estado]||''}
+          ${op.bono_operacion>0?`<span class="bono-badge">💰 ${fmt.currency(op.bono_operacion)}</span>`:''}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0.5rem;margin-bottom:0.75rem">
+        <div class="op-meta-item">
+          <div class="op-meta-label">Operador</div>
+          <div class="op-meta-value" style="font-size:0.8rem">${op.empleados?.nombre_completo||'—'}</div>
+        </div>
+        <div class="op-meta-item">
+          <div class="op-meta-label">Equipo</div>
+          <div class="op-meta-value" style="font-size:0.8rem">${op.equipos?.codigo||'—'}</div>
+        </div>
+        <div class="op-meta-item">
+          <div class="op-meta-label">Inicio</div>
+          <div class="op-meta-value" style="font-size:0.8rem">${fmt.datetime(op.hora_inicio)}</div>
+        </div>
+        <div class="op-meta-item">
+          <div class="op-meta-label">Fin</div>
+          <div class="op-meta-value" style="font-size:0.8rem">${op.hora_fin?fmt.datetime(op.hora_fin):'—'}</div>
+        </div>
+        <div class="op-meta-item">
+          <div class="op-meta-label">Duración</div>
+          <div class="op-meta-value" style="font-size:0.95rem;font-weight:800">${dur}</div>
+        </div>
+      </div>
+
+      ${op.observaciones?`
+        <div style="background:var(--gris-700);border-radius:var(--radius);padding:8px 12px;font-size:0.78rem;color:var(--gris-300);white-space:pre-wrap;margin-bottom:0.75rem;max-height:72px;overflow-y:auto">${op.observaciones}</div>
+      `:''}
+
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        ${op.estado==='en_curso'?`
+          <button class="btn btn-sm btn-danger" onclick="abrirModalFinalizar('${op.id}')">⏹ Finalizar</button>
+          <button class="btn btn-sm btn-outline" onclick="opAgregarObs('${op.id}')">💬 Observación</button>
+        `:''}
+        ${canManage?`
+          <button class="btn btn-sm btn-outline" onclick="editarOp('${op.id}')">✏️ Editar</button>
+          ${op.estado==='finalizada'||op.estado==='cancelada'?`
+            <button class="btn btn-sm btn-ghost" onclick="eliminarOp('${op.id}')">🗑</button>
+          `:''}
+        `:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Abrir modal: iniciar ────────────────────────── */
+async function abrirModalIniciarOp() {
+  if (_opActivaId) { toast('Ya tienes una operación en curso. Finalízala primero.','warn'); return; }
+  await _poblarSelectsModalOp();
+  document.getElementById('op-id').value = '';
+  document.getElementById('modal-op-title').textContent = '▶ Iniciar Operación';
+  document.getElementById('btn-guardar-op').textContent  = '▶ Iniciar';
+
+  const now = new Date();
+  const localIso = new Date(now - now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  document.getElementById('op-hora-inicio').value = localIso;
+  document.getElementById('op-hora-fin').value    = '';
+  ['op-cliente','op-obra','op-ciudad','op-obs'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('op-bono').value = '0';
+
+  if (STATE.empleado) {
+    document.getElementById('op-operador').value = STATE.empleado.id;
+    if (STATE.empleado.equipo_id) document.getElementById('op-equipo').value = STATE.empleado.equipo_id;
+  }
+
+  const { data: prev } = await sb.from('operaciones').select('cliente')
+    .eq('empresa_id', EMPRESA_ID).order('hora_inicio',{ascending:false}).limit(60);
+  const clientes = [...new Set((prev||[]).map(o=>o.cliente))];
+  document.getElementById('op-clientes-list').innerHTML = clientes.map(c=>`<option value="${c}"></option>`).join('');
+
+  openModal('modal-op-iniciar');
+}
+
+async function _poblarSelectsModalOp() {
+  await loadEmpleados();
+  document.getElementById('op-operador').innerHTML =
+    STATE.empleados.filter(e=>e.estado==='activo')
+      .map(e=>`<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+
+  const { data: equipos } = await sb.from('equipos').select('*')
+    .eq('empresa_id', EMPRESA_ID).order('codigo');
+  document.getElementById('op-equipo').innerHTML =
+    '<option value="">— Sin equipo —</option>' +
+    (equipos||[]).map(eq=>`<option value="${eq.id}">${eq.codigo}${eq.descripcion?' — '+eq.descripcion:''}</option>`).join('');
+}
+
+/* ── Guardar (nueva o edición) ──────────────────── */
+async function guardarOperacion() {
+  const id          = document.getElementById('op-id').value;
+  const horaInicioV = document.getElementById('op-hora-inicio').value;
+  const horaFinV    = document.getElementById('op-hora-fin').value;
+  const cliente     = document.getElementById('op-cliente').value.trim();
+  const obra        = document.getElementById('op-obra').value.trim();
+
+  if (!cliente||!obra||!horaInicioV) {
+    toast('Cliente, obra y hora de inicio son obligatorios.','warn'); return;
+  }
+
+  const estado  = horaFinV ? 'finalizada' : 'en_curso';
+  const payload = {
+    empresa_id:    EMPRESA_ID,
+    operador_id:   document.getElementById('op-operador').value,
+    equipo_id:     document.getElementById('op-equipo').value||null,
+    cliente, obra,
+    ciudad_obra:   document.getElementById('op-ciudad').value.trim()||null,
+    hora_inicio:   new Date(horaInicioV).toISOString(),
+    hora_fin:      horaFinV ? new Date(horaFinV).toISOString() : null,
+    observaciones: document.getElementById('op-obs').value.trim()||null,
+    bono_operacion:parseFloat(document.getElementById('op-bono').value)||0,
+    estado,
+    created_by: STATE.user?.id,
+  };
+
+  const { error } = id
+    ? await sb.from('operaciones').update(payload).eq('id', id)
+    : await sb.from('operaciones').insert(payload);
+
+  if (error) { toast(error.message,'error'); return; }
+  toast(!id
+    ? (estado==='en_curso' ? '▶ Operación iniciada.' : '✅ Operación registrada.')
+    : 'Operación actualizada.','ok');
+
+  closeModal('modal-op-iniciar');
+  markDirty('dashboard');
+  await checkOpActiva();
+  await renderOpStats();
+  await renderOpList();
+}
+
+/* ── Finalizar ──────────────────────────────────── */
+async function abrirModalFinalizar(opId) {
+  if (!opId) return;
+  const { data: op } = await sb.from('operaciones')
+    .select('*, empleados(nombre_completo)').eq('id', opId).single();
+  if (!op) return;
+
+  document.getElementById('op-fin-id').value       = opId;
+  document.getElementById('op-fin-nombre').textContent = op.obra;
+  document.getElementById('op-fin-sub').textContent =
+    op.cliente + ' · Inicio: ' + fmt.datetime(op.hora_inicio);
+  document.getElementById('op-fin-bono').value  = op.bono_operacion||0;
+  document.getElementById('op-fin-obs').value   = '';
+
+  const now = new Date();
+  document.getElementById('op-fin-hora').value =
+    new Date(now - now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+
+  openModal('modal-op-finalizar');
+}
+
+async function confirmarFin() {
+  const opId   = document.getElementById('op-fin-id').value;
+  const horaFin = document.getElementById('op-fin-hora').value;
+  const bono    = parseFloat(document.getElementById('op-fin-bono').value)||0;
+  const obs     = document.getElementById('op-fin-obs').value.trim();
+
+  if (!horaFin) { toast('Indica la hora de finalización.','warn'); return; }
+
+  const { data: op } = await sb.from('operaciones').select('observaciones').eq('id', opId).single();
+  const obsBase   = op?.observaciones||'';
+  const obsNueva  = obs
+    ? (obsBase + (obsBase?'
+':'') + '[Cierre ' + new Date().toLocaleString('es-CO') + '] ' + obs).trim()
+    : obsBase;
+
+  const { error } = await sb.from('operaciones').update({
+    hora_fin:       new Date(horaFin).toISOString(),
+    estado:         'finalizada',
+    bono_operacion: bono,
+    observaciones:  obsNueva||null,
+  }).eq('id', opId);
+
+  if (error) { toast(error.message,'error'); return; }
+  toast('✅ Operación finalizada.','ok');
+  closeModal('modal-op-finalizar');
+  _opActivaId = null;
+  clearInterval(_opTimerInterval);
+  markDirty('dashboard');
+  await checkOpActiva();
+  await renderOpStats();
+  await renderOpList();
+}
+
+async function cancelarOp() {
+  const opId = document.getElementById('op-fin-id').value;
+  if (!opId||!confirm('¿Cancelar esta operación?')) return;
+  await sb.from('operaciones').update({ estado:'cancelada' }).eq('id', opId);
+  toast('Operación cancelada.','warn');
+  closeModal('modal-op-finalizar');
+  _opActivaId = null;
+  clearInterval(_opTimerInterval);
+  await checkOpActiva();
+  await renderOpStats();
+  await renderOpList();
+}
+
+/* ── Editar (admin/GH) ──────────────────────────── */
+async function editarOp(id) {
+  await _poblarSelectsModalOp();
+  const { data: op } = await sb.from('operaciones').select('*').eq('id', id).single();
+  if (!op) return;
+
+  document.getElementById('op-id').value = op.id;
+  document.getElementById('modal-op-title').textContent = 'Editar Operación';
+  document.getElementById('btn-guardar-op').textContent  = '💾 Guardar cambios';
+  document.getElementById('op-operador').value  = op.operador_id;
+  document.getElementById('op-equipo').value    = op.equipo_id||'';
+  document.getElementById('op-cliente').value   = op.cliente;
+  document.getElementById('op-obra').value      = op.obra;
+  document.getElementById('op-ciudad').value    = op.ciudad_obra||'';
+  document.getElementById('op-bono').value      = op.bono_operacion||0;
+  document.getElementById('op-obs').value       = op.observaciones||'';
+
+  const toLocal = iso => iso
+    ? new Date(new Date(iso) - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16)
+    : '';
+  document.getElementById('op-hora-inicio').value = toLocal(op.hora_inicio);
+  document.getElementById('op-hora-fin').value    = toLocal(op.hora_fin);
+
+  openModal('modal-op-iniciar');
+}
+
+async function eliminarOp(id) {
+  if (!confirm('¿Eliminar esta operación?')) return;
+  const { error } = await sb.from('operaciones').delete().eq('id', id);
+  if (error) { toast(error.message,'error'); return; }
+  toast('Operación eliminada.','ok');
+  await renderOpStats();
+  await renderOpList();
+}
+
+/* ── Observación rápida en tarjeta ─────────────── */
+function opAgregarObs(opId) {
+  document.getElementById('op-obs-id').value    = opId;
+  document.getElementById('op-obs-texto').value = '';
+  openModal('modal-op-obs');
+}
+
+async function _guardarObsRapida() {
+  const opId  = document.getElementById('op-obs-id').value;
+  const texto = document.getElementById('op-obs-texto').value.trim();
+  if (!texto||!opId) { toast('Escribe una observación.','warn'); return; }
+
+  const { data: op } = await sb.from('operaciones').select('observaciones').eq('id', opId).single();
+  const anterior = op?.observaciones||'';
+  const nueva = (anterior + (anterior?'
+':'') +
+    '[' + new Date().toLocaleString('es-CO') + '] ' + texto).trim();
+
+  const { error } = await sb.from('operaciones').update({ observaciones: nueva }).eq('id', opId);
+  if (error) { toast(error.message,'error'); return; }
+  toast('Observación guardada.','ok');
+  closeModal('modal-op-obs');
+  await renderOpList();
+}
+
+initAuth();
 </script>
 </body>
 </html>
