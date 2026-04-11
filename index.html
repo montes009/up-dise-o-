@@ -1755,6 +1755,7 @@ async function renderTab(tab) {
    RELOJ
 ═══════════════════════════════════════════════ */
 function startClock() {
+  if (_clockInterval) clearInterval(_clockInterval);
   function tick() {
     const now = new Date();
     const el = document.getElementById('clock-display');
@@ -1763,7 +1764,7 @@ function startClock() {
     if (dd) dd.textContent = now.toLocaleDateString('es-CO', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
   }
   tick();
-  setInterval(tick, 1000);
+  _clockInterval = setInterval(tick, 1000);
 }
 
 /* ═══════════════════════════════════════════════
@@ -1819,13 +1820,19 @@ async function renderDashboard() {
   document.getElementById('dash-stats').innerHTML = statsHTML;
 
   // Documentos por vencer
-  const { data: docsAlert } = await sb
+  let docsQuery = sb
     .from('v_documentos_alertas')
     .select('*')
-    .eq('empresa_id', canManage ? EMPRESA_ID : EMPRESA_ID)
+    .eq('empresa_id', EMPRESA_ID)
     .in('alerta', ['vencido','critico'])
     .order('dias_para_vencer')
     .limit(5);
+
+  if (!canManage && STATE.empleado) {
+    docsQuery = docsQuery.eq('empleado_id', STATE.empleado.id);
+  }
+
+  const { data: docsAlert } = await docsQuery;
 
   document.getElementById('dash-docs-alert').innerHTML = docsAlert?.length
     ? docsAlert.map(d => `
@@ -1842,13 +1849,19 @@ async function renderDashboard() {
     : '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Todo al día</div></div>';
 
   // Novedades recientes
-  const { data: novs } = await sb
+  let novsQuery = sb
     .from('novedades_calendario')
     .select('*, empleados(nombre_completo)')
     .eq('empresa_id', EMPRESA_ID)
     .eq('resuelto', false)
     .order('fecha', { ascending: false })
     .limit(5);
+
+  if (!canManage && STATE.empleado) {
+    novsQuery = novsQuery.eq('empleado_id', STATE.empleado.id);
+  }
+
+  const { data: novs } = await novsQuery;
 
   document.getElementById('dash-novedades').innerHTML = novs?.length
     ? novs.map(n => `
@@ -2005,6 +2018,7 @@ document.getElementById('btn-guardar-empleado').onclick = async () => {
 /* ═══════════════════════════════════════════════
    ASISTENCIA
 ═══════════════════════════════════════════════ */
+let _clockInterval = null;
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 
@@ -2014,7 +2028,7 @@ async function renderAsistencia() {
 
   // Reloj solo para empleados y operadores
   document.getElementById('asis-clock-section').classList.toggle('hidden', canManage);
-  document.getElementById('asis-admin-controls').classList.toggle('hidden', esEmpleado);
+  document.getElementById('asis-admin-controls').classList.toggle('hidden', !canManage);
   document.getElementById('btn-nueva-novedad').classList.toggle('hidden', !canManage);
 
   if (!canManage) {
@@ -2195,6 +2209,7 @@ document.getElementById('btn-nueva-novedad').onclick = () => {
 };
 
 document.getElementById('btn-guardar-novedad').onclick = async () => {
+  const novId = document.getElementById('nov-asis-id').value;
   const payload = {
     empresa_id:   EMPRESA_ID,
     empleado_id:  document.getElementById('nov-empleado').value,
@@ -2203,11 +2218,14 @@ document.getElementById('btn-guardar-novedad').onclick = async () => {
     descripcion:  document.getElementById('nov-obs').value,
     created_by:   STATE.user?.id,
   };
-  const { error } = await sb.from('novedades_calendario').insert(payload);
+  const { error } = novId
+    ? await sb.from('novedades_calendario').update(payload).eq('id', novId)
+    : await sb.from('novedades_calendario').insert(payload);
   if (error) { toast(error.message, 'error'); return; }
-  toast('Novedad registrada.', 'ok');
+  toast(novId ? 'Novedad actualizada.' : 'Novedad registrada.', 'ok');
   closeModal('modal-novedad');
   markDirty('dashboard');
+  await renderAsistenciaTabla();
 };
 
 /* ═══════════════════════════════════════════════
@@ -2636,6 +2654,59 @@ async function loadObsList() {
     </div>`).join('');
 }
 
+
+async function editHex(id) {
+  const { data: r, error } = await sb.from('horas_extra_detalle').select('*').eq('id', id).single();
+  if (error || !r) { toast('No se pudo cargar el registro.','error'); return; }
+  document.getElementById('hex-id').value = r.id;
+  document.getElementById('modal-hex-title').textContent = 'Editar Horas Extra';
+  document.getElementById('hex-empleado').value = r.empleado_id || '';
+  document.getElementById('hex-fecha').value = r.fecha || '';
+  document.getElementById('hex-tipo').value = r.tipo_hora_id || '';
+  document.getElementById('hex-inicio').value = r.hora_inicio ? String(r.hora_inicio).slice(0,5) : '';
+  document.getElementById('hex-fin').value = r.hora_fin ? String(r.hora_fin).slice(0,5) : '';
+  document.getElementById('hex-horas').value = r.cantidad_horas || '';
+  document.getElementById('hex-obs').value = r.observacion || '';
+  openModal('modal-hex');
+}
+
+async function verNovedad(asistenciaId) {
+  const { data: asistencia, error: errorAsis } = await sb.from('asistencia')
+    .select('id, empleado_id, fecha, estado, observacion, es_novedad, novedades_calendario_id')
+    .eq('id', asistenciaId)
+    .maybeSingle();
+
+  if (errorAsis || !asistencia) {
+    toast('No se pudo cargar la novedad.','error');
+    return;
+  }
+
+  let novedad = null;
+  if (asistencia.novedades_calendario_id) {
+    const { data } = await sb.from('novedades_calendario').select('*').eq('id', asistencia.novedades_calendario_id).maybeSingle();
+    novedad = data || null;
+  }
+  if (!novedad) {
+    const { data } = await sb.from('novedades_calendario')
+      .select('*')
+      .eq('empleado_id', asistencia.empleado_id)
+      .eq('fecha', asistencia.fecha)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    novedad = data || null;
+  }
+
+  document.getElementById('nov-asis-id').value = asistencia.id || '';
+  document.getElementById('nov-empleado').innerHTML =
+    STATE.empleados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+  document.getElementById('nov-empleado').value = novedad?.empleado_id || asistencia.empleado_id || '';
+  document.getElementById('nov-fecha').value = novedad?.fecha || asistencia.fecha || '';
+  document.getElementById('nov-tipo').value = novedad?.tipo_novedad || 'otro';
+  document.getElementById('nov-obs').value = novedad?.descripcion || asistencia.observacion || '';
+  openModal('modal-novedad');
+}
+
 /* ═══════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════ */
@@ -3019,8 +3090,7 @@ async function confirmarFin() {
   const { data: op } = await sb.from('operaciones').select('observaciones').eq('id', opId).single();
   const obsBase   = op?.observaciones||'';
   const obsNueva  = obs
-    ? (obsBase + (obsBase?'
-':'') + '[Cierre ' + new Date().toLocaleString('es-CO') + '] ' + obs).trim()
+    ? (obsBase + (obsBase?'\n':'') + '[Cierre ' + new Date().toLocaleString('es-CO') + '] ' + obs).trim()
     : obsBase;
 
   const { error } = await sb.from('operaciones').update({
@@ -3103,8 +3173,7 @@ async function _guardarObsRapida() {
 
   const { data: op } = await sb.from('operaciones').select('observaciones').eq('id', opId).single();
   const anterior = op?.observaciones||'';
-  const nueva = (anterior + (anterior?'
-':'') +
+  const nueva = (anterior + (anterior?'\n':'') +
     '[' + new Date().toLocaleString('es-CO') + '] ' + texto).trim();
 
   const { error } = await sb.from('operaciones').update({ observaciones: nueva }).eq('id', opId);
