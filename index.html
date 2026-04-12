@@ -1583,6 +1583,15 @@ const fmt = {
   initials: name => name ? name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() : '?',
 };
 
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function toast(msg, type='ok') {
   const icons = { ok:'✅', error:'❌', warn:'⚠️' };
   const el = document.createElement('div');
@@ -1740,20 +1749,28 @@ function switchTab(tabId) {
 function markDirty(...tabs) { tabs.forEach(t => STATE._dirty.add(t)); }
 
 async function renderTab(tab) {
-  switch(tab) {
-    case 'dashboard':    await renderDashboard();   break;
-    case 'empleados':    await renderEmpleados();   break;
-    case 'asistencia':   await renderAsistencia();  break;
-    case 'horas-extra':  await renderHorasExtra();  break;
-    case 'documentos':   await renderDocumentos();  break;
-    case 'observaciones':await renderObservaciones();break;
-    case 'operaciones':  await renderOperaciones();  break;
+  try {
+    switch(tab) {
+      case 'dashboard':    await renderDashboard();   break;
+      case 'empleados':    await renderEmpleados();   break;
+      case 'asistencia':   await renderAsistencia();  break;
+      case 'horas-extra':  await renderHorasExtra();  break;
+      case 'documentos':   await renderDocumentos();  break;
+      case 'observaciones':await renderObservaciones();break;
+      case 'operaciones':  await renderOperaciones();  break;
+    }
+  } catch(e) {
+    console.error('renderTab error [' + tab + ']:', e);
+    toast('Error cargando módulo. Intenta de nuevo.', 'error');
+    STATE._dirty.add(tab);
+    STATE._rendered.delete(tab);
   }
 }
 
 /* ═══════════════════════════════════════════════
    RELOJ
 ═══════════════════════════════════════════════ */
+let _clockInterval = null;
 function startClock() {
   if (_clockInterval) clearInterval(_clockInterval);
   function tick() {
@@ -2018,7 +2035,6 @@ document.getElementById('btn-guardar-empleado').onclick = async () => {
 /* ═══════════════════════════════════════════════
    ASISTENCIA
 ═══════════════════════════════════════════════ */
-let _clockInterval = null;
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 
@@ -2141,7 +2157,7 @@ function renderCalendario() {
 
 async function loadCalData(y, m) {
   const start = `${y}-${String(m+1).padStart(2,'0')}-01`;
-  const end   = `${y}-${String(m+1).padStart(2,'0')}-31`;
+  const end   = new Date(y, m + 1, 0).toISOString().split('T')[0];
   const empId = STATE.empleado?.id || document.getElementById('asis-emp-filter')?.value || null;
 
   let q = sb.from('asistencia').select('fecha, estado').eq('empresa_id', EMPRESA_ID)
@@ -2165,7 +2181,7 @@ async function renderAsistenciaTabla() {
 
   let [year, month] = mes ? mes.split('-') : [calYear, String(calMonth+1).padStart(2,'0')];
   const start = `${year}-${month}-01`;
-  const end   = `${year}-${month}-31`;
+  const end   = new Date(Number(year), Number(month), 0).toISOString().split('T')[0];
 
   let q = sb.from('asistencia')
     .select('*, empleados(nombre_completo)')
@@ -2278,7 +2294,7 @@ async function renderHexStats() {
     .select('tipo_hora_id, cantidad_horas, valor_total, tipos_hora_extra(descripcion)')
     .eq('empresa_id', EMPRESA_ID)
     .gte('fecha', `${year}-${month}-01`)
-    .lte('fecha', `${year}-${month}-31`);
+    .lte('fecha', new Date(Number(year), Number(month), 0).toISOString().split('T')[0]);
 
   const resumen = {};
   data?.forEach(r => {
@@ -2319,7 +2335,7 @@ async function renderHexTabla() {
     .select('*, empleados(nombre_completo,salario_base), tipos_hora_extra(descripcion,factor)')
     .eq('empresa_id', EMPRESA_ID)
     .gte('fecha', `${year}-${month}-01`)
-    .lte('fecha', `${year}-${month}-31`)
+    .lte('fecha', new Date(Number(year), Number(month), 0).toISOString().split('T')[0])
     .order('fecha', { ascending: false });
 
   if (empFil) q = q.eq('empleado_id', empFil);
@@ -2498,7 +2514,7 @@ async function renderDocTabla() {
       <td>${badgeEstado(d.alerta)}</td>
       <td>
         <div class="flex gap-1">
-          ${d.archivo_url ? `<a href="${d.archivo_url}" target="_blank" class="btn-icon" title="Descargar">⬇️</a>` : ''}
+          ${d.archivo_url && /^https?:\/\//.test(d.archivo_url) ? `<a href="${escHtml(d.archivo_url)}" target="_blank" rel="noopener noreferrer" class="btn-icon" title="Descargar">⬇️</a>` : ''}
           ${canManage ? `<button class="btn-icon" onclick="editDoc('${d.id}')">✏️</button>` : ''}
           ${canManage ? `<button class="btn-icon" onclick="deleteDoc('${d.id}')">🗑</button>` : ''}
         </div>
@@ -2650,7 +2666,7 @@ async function loadObsList() {
           ${o.es_privada ? '<span class="badge badge-amarillo">🔒 Privada</span>' : ''}
         </div>
       </div>
-      <p style="font-size:0.875rem;color:var(--gris-200);line-height:1.6;white-space:pre-wrap">${o.descripcion}</p>
+      <p style="font-size:0.875rem;color:var(--gris-200);line-height:1.6;white-space:pre-wrap">${escHtml(o.descripcion)}</p>
     </div>`).join('');
 }
 
@@ -2955,7 +2971,7 @@ async function renderOpList() {
       </div>
 
       ${op.observaciones?`
-        <div style="background:var(--gris-700);border-radius:var(--radius);padding:8px 12px;font-size:0.78rem;color:var(--gris-300);white-space:pre-wrap;margin-bottom:0.75rem;max-height:72px;overflow-y:auto">${op.observaciones}</div>
+        <div style="background:var(--gris-700);border-radius:var(--radius);padding:8px 12px;font-size:0.78rem;color:var(--gris-300);white-space:pre-wrap;margin-bottom:0.75rem;max-height:72px;overflow-y:auto">${escHtml(op.observaciones)}</div>
       `:''}
 
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
@@ -3114,7 +3130,8 @@ async function confirmarFin() {
 async function cancelarOp() {
   const opId = document.getElementById('op-fin-id').value;
   if (!opId||!confirm('¿Cancelar esta operación?')) return;
-  await sb.from('operaciones').update({ estado:'cancelada' }).eq('id', opId);
+  const { error } = await sb.from('operaciones').update({ estado:'cancelada' }).eq('id', opId);
+  if (error) { toast(error.message, 'error'); return; }
   toast('Operación cancelada.','warn');
   closeModal('modal-op-finalizar');
   _opActivaId = null;
