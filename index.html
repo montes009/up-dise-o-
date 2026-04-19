@@ -1,3206 +1,746 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>GRUAS & EQUIPOS — Sistema de Nómina</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-/* ═══════════════════════════════════════════════
-   TOKENS & RESET
-═══════════════════════════════════════════════ */
-:root {
-  --rojo:        #C8102E;
-  --rojo-hover:  #a00d24;
-  --rojo-dim:    rgba(200,16,46,0.15);
-  --negro:       #0a0a0a;
-  --gris-900:    #111111;
-  --gris-800:    #1a1a1a;
-  --gris-700:    #252525;
-  --gris-600:    #333333;
-  --gris-500:    #555555;
-  --gris-400:    #888888;
-  --gris-200:    #cccccc;
-  --blanco:      #f5f5f0;
-  --amarillo:    #f5c518;
-  --verde:       #22c55e;
-  --azul:        #3b82f6;
-  --naranja:     #f97316;
-  --font-display: 'Barlow Condensed', sans-serif;
-  --font-body:    'Barlow', sans-serif;
-  --radius:       4px;
-  --radius-lg:    8px;
-  --shadow:       0 4px 24px rgba(0,0,0,0.6);
-  --transition:   0.18s ease;
-}
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 15px; }
-body {
-  background: var(--negro);
-  color: var(--blanco);
-  font-family: var(--font-body);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-a { color: inherit; text-decoration: none; }
-input, select, textarea, button {
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-}
-button { cursor: pointer; border: none; outline: none; }
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--gris-800); }
-::-webkit-scrollbar-thumb { background: var(--gris-600); border-radius: 3px; }
-
-/* ═══════════════════════════════════════════════
-   UTILIDADES
-═══════════════════════════════════════════════ */
-.hidden   { display: none !important; }
-.flex     { display: flex; }
-.flex-col { flex-direction: column; }
-.items-center  { align-items: center; }
-.justify-between { justify-content: space-between; }
-.gap-1 { gap: 0.5rem; }
-.gap-2 { gap: 1rem; }
-.gap-3 { gap: 1.5rem; }
-.w-full { width: 100%; }
-.text-right { text-align: right; }
-.text-center { text-align: center; }
-.font-bold { font-weight: 700; }
-.text-sm { font-size: 0.8rem; }
-.text-xs { font-size: 0.72rem; }
-.text-rojo { color: var(--rojo); }
-.text-verde { color: var(--verde); }
-.text-amarillo { color: var(--amarillo); }
-.text-naranja { color: var(--naranja); }
-.text-muted { color: var(--gris-400); }
-.uppercase { text-transform: uppercase; letter-spacing: 0.08em; }
-.mono { font-family: 'Courier New', monospace; }
-
-/* ═══════════════════════════════════════════════
-   BOTONES
-═══════════════════════════════════════════════ */
-.btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 18px; border-radius: var(--radius);
-  font-family: var(--font-display);
-  font-weight: 600; font-size: 0.9rem;
-  letter-spacing: 0.04em; text-transform: uppercase;
-  transition: var(--transition); cursor: pointer;
-}
-.btn-primary {
-  background: var(--rojo); color: #fff;
-  border: 1px solid var(--rojo);
-}
-.btn-primary:hover { background: var(--rojo-hover); }
-.btn-outline {
-  background: transparent; color: var(--blanco);
-  border: 1px solid var(--gris-600);
-}
-.btn-outline:hover { border-color: var(--rojo); color: var(--rojo); }
-.btn-ghost {
-  background: transparent; color: var(--gris-400);
-  border: none; padding: 6px 12px;
-}
-.btn-ghost:hover { color: var(--blanco); }
-.btn-danger {
-  background: transparent; color: var(--rojo);
-  border: 1px solid var(--rojo);
-}
-.btn-danger:hover { background: var(--rojo); color: #fff; }
-.btn-sm { padding: 5px 12px; font-size: 0.78rem; }
-.btn-icon {
-  background: var(--gris-700); color: var(--gris-200);
-  border: 1px solid var(--gris-600); border-radius: var(--radius);
-  width: 32px; height: 32px; display: inline-flex;
-  align-items: center; justify-content: center;
-  font-size: 1rem; transition: var(--transition);
-}
-.btn-icon:hover { background: var(--rojo); color: #fff; border-color: var(--rojo); }
-
-/* ═══════════════════════════════════════════════
-   FORMULARIOS
-═══════════════════════════════════════════════ */
-.form-group { display: flex; flex-direction: column; gap: 5px; }
-.form-label {
-  font-family: var(--font-display);
-  font-size: 0.75rem; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--gris-400);
-}
-.form-control {
-  background: var(--gris-800);
-  border: 1px solid var(--gris-600);
-  color: var(--blanco);
-  padding: 9px 12px;
-  border-radius: var(--radius);
-  font-size: 0.9rem;
-  transition: border-color var(--transition);
-  width: 100%;
-}
-.form-control:focus {
-  outline: none;
-  border-color: var(--rojo);
-  box-shadow: 0 0 0 2px var(--rojo-dim);
-}
-.form-control::placeholder { color: var(--gris-500); }
-select.form-control option { background: var(--gris-800); }
-.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
-.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
-.col-span-2 { grid-column: span 2; }
-.col-span-3 { grid-column: span 3; }
-
-/* ═══════════════════════════════════════════════
-   TARJETAS
-═══════════════════════════════════════════════ */
-.card {
-  background: var(--gris-800);
-  border: 1px solid var(--gris-700);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem;
-}
-.card-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 1rem; padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--gris-700);
-}
-.card-title {
-  font-family: var(--font-display);
-  font-size: 1rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--blanco);
-}
-
-/* Stat cards */
-.stat-card {
-  background: var(--gris-800);
-  border: 1px solid var(--gris-700);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem 1.5rem;
-  position: relative; overflow: hidden;
-}
-.stat-card::before {
-  content: '';
-  position: absolute; top: 0; left: 0;
-  width: 3px; height: 100%;
-  background: var(--accent, var(--rojo));
-}
-.stat-label {
-  font-family: var(--font-display);
-  font-size: 0.7rem; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--gris-400); margin-bottom: 6px;
-}
-.stat-value {
-  font-family: var(--font-display);
-  font-size: 2rem; font-weight: 800;
-  color: var(--blanco); line-height: 1;
-}
-.stat-sub { font-size: 0.75rem; color: var(--gris-500); margin-top: 4px; }
-
-/* ═══════════════════════════════════════════════
-   TABLA
-═══════════════════════════════════════════════ */
-.table-wrap { overflow-x: auto; border-radius: var(--radius-lg); }
-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-thead tr {
-  background: var(--gris-700);
-  border-bottom: 2px solid var(--rojo);
-}
-thead th {
-  padding: 10px 14px; text-align: left;
-  font-family: var(--font-display);
-  font-size: 0.7rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.09em;
-  color: var(--gris-400); white-space: nowrap;
-}
-tbody tr {
-  border-bottom: 1px solid var(--gris-700);
-  transition: background var(--transition);
-}
-tbody tr:hover { background: rgba(255,255,255,0.03); }
-tbody td { padding: 10px 14px; vertical-align: middle; }
-tbody tr:last-child { border-bottom: none; }
-
-/* ═══════════════════════════════════════════════
-   BADGES
-═══════════════════════════════════════════════ */
-.badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 9px; border-radius: 20px;
-  font-family: var(--font-display);
-  font-size: 0.68rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.07em;
-}
-.badge-verde   { background: rgba(34,197,94,0.15);  color: var(--verde); }
-.badge-rojo    { background: rgba(200,16,46,0.15);   color: var(--rojo); }
-.badge-amarillo{ background: rgba(245,197,24,0.15);  color: var(--amarillo); }
-.badge-azul    { background: rgba(59,130,246,0.15);  color: var(--azul); }
-.badge-naranja { background: rgba(249,115,22,0.15);  color: var(--naranja); }
-.badge-gris    { background: rgba(136,136,136,0.15); color: var(--gris-400); }
-
-/* ═══════════════════════════════════════════════
-   MODAL
-═══════════════════════════════════════════════ */
-.modal-backdrop {
-  position: fixed; inset: 0; z-index: 900;
-  background: rgba(0,0,0,0.75);
-  display: flex; align-items: center; justify-content: center;
-  padding: 1.5rem;
-  animation: fadeIn 0.15s ease;
-}
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.modal {
-  background: var(--gris-800);
-  border: 1px solid var(--gris-600);
-  border-radius: var(--radius-lg);
-  width: 100%; max-width: 640px;
-  max-height: 90vh; overflow-y: auto;
-  box-shadow: var(--shadow);
-  animation: slideUp 0.2s ease;
-}
-.modal-lg { max-width: 860px; }
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
-.modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--gris-700);
-  position: sticky; top: 0; background: var(--gris-800); z-index: 1;
-}
-.modal-title {
-  font-family: var(--font-display);
-  font-size: 1.1rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.05em;
-}
-.modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
-.modal-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--gris-700);
-  display: flex; justify-content: flex-end; gap: 0.75rem;
-  background: var(--gris-800);
-  position: sticky; bottom: 0;
-}
-.btn-close {
-  background: none; border: none; color: var(--gris-400);
-  font-size: 1.4rem; line-height: 1; cursor: pointer; padding: 2px;
-}
-.btn-close:hover { color: var(--blanco); }
-
-/* ═══════════════════════════════════════════════
-   TOAST
-═══════════════════════════════════════════════ */
-#toast-container {
-  position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;
-  display: flex; flex-direction: column; gap: 0.5rem;
-}
-.toast {
-  display: flex; align-items: center; gap: 10px;
-  padding: 12px 18px; border-radius: var(--radius);
-  background: var(--gris-700); border: 1px solid var(--gris-600);
-  box-shadow: var(--shadow); font-size: 0.875rem;
-  animation: toastIn 0.25s ease;
-  min-width: 280px; max-width: 400px;
-}
-@keyframes toastIn { from { transform: translateX(100px); opacity: 0; } }
-.toast.ok    { border-left: 3px solid var(--verde); }
-.toast.error { border-left: 3px solid var(--rojo); }
-.toast.warn  { border-left: 3px solid var(--amarillo); }
-
-/* ═══════════════════════════════════════════════
-   PANTALLA LOGIN
-═══════════════════════════════════════════════ */
-#login-screen {
-  min-height: 100vh;
-  display: flex; align-items: center; justify-content: center;
-  background:
-    radial-gradient(ellipse 60% 50% at 50% 100%, rgba(200,16,46,0.12) 0%, transparent 70%),
-    var(--negro);
-  padding: 2rem;
-}
-.login-box {
-  width: 100%; max-width: 400px;
-}
-.login-logo {
-  text-align: center; margin-bottom: 2.5rem;
-}
-.login-logo-mark {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 64px; height: 64px; background: var(--rojo);
-  border-radius: 12px; margin-bottom: 1rem;
-  font-family: var(--font-display);
-  font-size: 2rem; font-weight: 800; color: #fff;
-}
-.login-title {
-  font-family: var(--font-display);
-  font-size: 1.6rem; font-weight: 800;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--blanco);
-}
-.login-sub {
-  font-size: 0.8rem; color: var(--gris-400);
-  margin-top: 4px; letter-spacing: 0.05em;
-}
-.login-card {
-  background: var(--gris-800);
-  border: 1px solid var(--gris-700);
-  border-radius: var(--radius-lg);
-  padding: 2rem;
-  display: flex; flex-direction: column; gap: 1.25rem;
-}
-.login-btn {
-  width: 100%; padding: 12px;
-  background: var(--rojo); color: #fff;
-  border: none; border-radius: var(--radius);
-  font-family: var(--font-display);
-  font-size: 1rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.07em;
-  cursor: pointer; transition: background var(--transition);
-}
-.login-btn:hover:not(:disabled) { background: var(--rojo-hover); }
-.login-btn:disabled { opacity: 0.5; cursor: default; }
-.login-error {
-  background: rgba(200,16,46,0.12);
-  border: 1px solid rgba(200,16,46,0.3);
-  border-radius: var(--radius);
-  padding: 10px 14px; font-size: 0.83rem; color: #ff6b6b;
-}
-
-/* ═══════════════════════════════════════════════
-   APP SHELL
-═══════════════════════════════════════════════ */
-#app-shell { display: none; min-height: 100vh; }
-
-/* TOPBAR */
-.topbar {
-  height: 56px;
-  background: var(--gris-900);
-  border-bottom: 1px solid var(--gris-700);
-  display: flex; align-items: center;
-  padding: 0 1.5rem; gap: 1rem;
-  position: sticky; top: 0; z-index: 100;
-}
-.topbar-brand {
-  display: flex; align-items: center; gap: 10px;
-  flex-shrink: 0;
-}
-.topbar-mark {
-  width: 32px; height: 32px; background: var(--rojo);
-  border-radius: 6px; display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-display); font-weight: 800; font-size: 1.1rem; color: #fff;
-}
-.topbar-name {
-  font-family: var(--font-display);
-  font-size: 1rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  display: none;
-}
-@media(min-width:640px) { .topbar-name { display: block; } }
-
-/* TABS NAV */
-.tabs-nav {
-  display: flex; align-items: center; gap: 2px;
-  flex: 1; overflow-x: auto;
-  scrollbar-width: none;
-}
-.tabs-nav::-webkit-scrollbar { display: none; }
-.tab-btn {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 14px; border-radius: var(--radius);
-  font-family: var(--font-display);
-  font-size: 0.8rem; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--gris-400); white-space: nowrap;
-  background: none; border: none; cursor: pointer;
-  transition: var(--transition);
-}
-.tab-btn:hover { color: var(--blanco); background: var(--gris-700); }
-.tab-btn.active {
-  color: var(--blanco);
-  background: var(--gris-700);
-  border-bottom: 2px solid var(--rojo);
-}
-.tab-icon { font-size: 1rem; }
-
-/* User info */
-.topbar-user {
-  display: flex; align-items: center; gap: 8px;
-  flex-shrink: 0; cursor: pointer;
-  position: relative;
-}
-.user-avatar {
-  width: 32px; height: 32px; border-radius: 50%;
-  background: var(--gris-600);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-display); font-weight: 700; font-size: 0.85rem;
-}
-.user-role-badge {
-  font-size: 0.65rem; font-family: var(--font-display);
-  text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--gris-400);
-}
-.user-dropdown {
-  position: absolute; top: calc(100% + 8px); right: 0;
-  background: var(--gris-800); border: 1px solid var(--gris-600);
-  border-radius: var(--radius-lg); min-width: 180px;
-  box-shadow: var(--shadow); z-index: 200;
-  overflow: hidden;
-}
-.user-dropdown a {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 16px; font-size: 0.875rem; color: var(--gris-200);
-  transition: var(--transition);
-}
-.user-dropdown a:hover { background: var(--gris-700); color: var(--blanco); }
-
-/* MAIN CONTENT */
-.main-content { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
-
-/* SECTION HEADER */
-.section-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
-}
-.section-title {
-  font-family: var(--font-display);
-  font-size: 1.5rem; font-weight: 800;
-  text-transform: uppercase; letter-spacing: 0.05em;
-}
-.section-sub { font-size: 0.8rem; color: var(--gris-400); margin-top: 2px; }
-
-/* Stats grid */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem; margin-bottom: 1.5rem;
-}
-
-/* ═══════════════════════════════════════════════
-   ASISTENCIA — CLOCK
-═══════════════════════════════════════════════ */
-.clock-card {
-  background: linear-gradient(135deg, var(--gris-800) 0%, var(--gris-700) 100%);
-  border: 1px solid var(--gris-600);
-  border-radius: var(--radius-lg);
-  padding: 2rem; text-align: center;
-  margin-bottom: 1.5rem;
-}
-.clock-time {
-  font-family: var(--font-display);
-  font-size: 3.5rem; font-weight: 800;
-  color: var(--blanco); letter-spacing: 0.05em;
-  line-height: 1;
-}
-.clock-date {
-  font-size: 0.85rem; color: var(--gris-400); margin-top: 6px;
-  text-transform: uppercase; letter-spacing: 0.08em;
-}
-.clock-actions {
-  display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;
-}
-.clock-btn {
-  display: flex; flex-direction: column; align-items: center;
-  gap: 8px; padding: 1rem 2rem;
-  border-radius: var(--radius-lg);
-  font-family: var(--font-display);
-  font-size: 0.85rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  cursor: pointer; border: 2px solid transparent;
-  transition: var(--transition);
-}
-.clock-btn-in {
-  background: rgba(34,197,94,0.15);
-  border-color: var(--verde); color: var(--verde);
-}
-.clock-btn-in:hover:not(:disabled) {
-  background: var(--verde); color: var(--negro);
-}
-.clock-btn-out {
-  background: rgba(200,16,46,0.15);
-  border-color: var(--rojo); color: var(--rojo);
-}
-.clock-btn-out:hover:not(:disabled) {
-  background: var(--rojo); color: #fff;
-}
-.clock-btn:disabled { opacity: 0.35; cursor: default; }
-.clock-btn-icon { font-size: 2rem; }
-
-/* ═══════════════════════════════════════════════
-   CALENDARIO ASISTENCIA
-═══════════════════════════════════════════════ */
-.calendar-wrap { }
-.cal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 1rem;
-}
-.cal-title {
-  font-family: var(--font-display);
-  font-size: 1.1rem; font-weight: 700;
-  text-transform: uppercase;
-}
-.cal-grid {
-  display: grid; grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
-}
-.cal-day-label {
-  padding: 6px; text-align: center;
-  font-family: var(--font-display);
-  font-size: 0.65rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--gris-500);
-}
-.cal-day {
-  padding: 8px 4px; min-height: 52px;
-  background: var(--gris-800); border-radius: var(--radius);
-  border: 1px solid var(--gris-700);
-  display: flex; flex-direction: column; align-items: center;
-  font-size: 0.8rem; cursor: default;
-}
-.cal-day.empty { background: transparent; border-color: transparent; }
-.cal-day.hoy { border-color: var(--rojo); }
-.cal-day .day-num {
-  font-family: var(--font-display); font-weight: 700;
-  font-size: 0.85rem; color: var(--gris-200);
-}
-.cal-day .day-dot {
-  width: 7px; height: 7px; border-radius: 50%; margin-top: 4px;
-}
-.cal-day.completo { background: rgba(34,197,94,0.08); }
-.cal-day.completo .day-dot { background: var(--verde); }
-.cal-day.novedad { background: rgba(249,115,22,0.08); }
-.cal-day.novedad .day-dot { background: var(--naranja); }
-.cal-day.ausente { background: rgba(200,16,46,0.08); }
-.cal-day.ausente .day-dot { background: var(--rojo); }
-
-/* ═══════════════════════════════════════════════
-   LOADING
-═══════════════════════════════════════════════ */
-.spinner {
-  display: inline-block; width: 18px; height: 18px;
-  border: 2px solid var(--gris-600);
-  border-top-color: var(--rojo);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-center {
-  display: flex; justify-content: center; padding: 3rem;
-}
-
-/* EMPTY STATE */
-.empty-state {
-  text-align: center; padding: 3rem 1rem; color: var(--gris-500);
-}
-.empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
-.empty-text {
-  font-family: var(--font-display);
-  font-size: 1rem; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.06em;
-}
-
-/* DIVIDER */
-.divider {
-  border: none; border-top: 1px solid var(--gris-700);
-  margin: 1.25rem 0;
-}
-
-/* Search bar */
-.search-bar {
-  position: relative;
-  max-width: 320px;
-}
-.search-bar input {
-  padding-left: 36px;
-}
-.search-icon {
-  position: absolute; left: 10px; top: 50%;
-  transform: translateY(-50%); color: var(--gris-500);
-  pointer-events: none;
-}
-
-/* Progress bar docs */
-.doc-progress {
-  height: 4px; background: var(--gris-700);
-  border-radius: 2px; overflow: hidden; margin-top: 6px;
-}
-.doc-progress-bar {
-  height: 100%; border-radius: 2px;
-  transition: width 0.5s ease;
-}
-
-/* ═══════════════════════════════════════════════
-   RESPONSIVE
-═══════════════════════════════════════════════ */
-
-/* ═══════════════════════════════════════════════
-   OPERACIONES — ESTILOS
-═══════════════════════════════════════════════ */
-.op-active-card {
-  background: linear-gradient(135deg, rgba(200,16,46,0.1) 0%, rgba(10,10,10,0) 70%), var(--gris-800);
-  border: 1px solid rgba(200,16,46,0.45);
-  border-radius: var(--radius-lg);
-  padding: 2rem; margin-bottom: 1.5rem;
-  position: relative; overflow: hidden;
-}
-.op-active-card::before {
-  content: ''; position: absolute; top: 0; left: 0;
-  width: 4px; height: 100%; background: var(--rojo);
-}
-.op-active-pulse {
-  display: inline-flex; align-items: center; gap: 8px;
-  font-family: var(--font-display); font-size: 0.72rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--rojo); margin-bottom: 0.75rem;
-}
-.op-active-pulse::before {
-  content: ''; width: 8px; height: 8px; border-radius: 50%;
-  background: var(--rojo); animation: pulse-dot 1.4s ease-in-out infinite;
-}
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.7); }
-}
-.op-active-title {
-  font-family: var(--font-display); font-size: 1.6rem; font-weight: 800;
-  color: var(--blanco); margin-bottom: 4px;
-}
-.op-active-sub { font-size: 0.85rem; color: var(--gris-400); margin-bottom: 1.25rem; }
-.op-active-meta {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr));
-  gap: 0.75rem; margin-bottom: 1rem;
-}
-.op-meta-item { background: rgba(255,255,255,0.05); border-radius: var(--radius); padding: 10px 14px; }
-.op-meta-label {
-  font-family: var(--font-display); font-size: 0.65rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.09em; color: var(--gris-500); margin-bottom: 3px;
-}
-.op-meta-value { font-size: 0.9rem; font-weight: 600; color: var(--blanco); }
-.op-timer {
-  font-family: var(--font-display); font-size: 2.6rem; font-weight: 800;
-  color: var(--amarillo); letter-spacing: 0.05em; margin: 0.5rem 0;
-}
-.op-card {
-  background: var(--gris-800); border: 1px solid var(--gris-700);
-  border-radius: var(--radius-lg); padding: 1.25rem;
-  transition: border-color var(--transition); margin-bottom: 0.75rem;
-}
-.op-card:hover { border-color: var(--gris-500); }
-.op-card.en-curso   { border-left: 3px solid var(--rojo); }
-.op-card.finalizada { border-left: 3px solid var(--verde); }
-.op-card.cancelada  { border-left: 3px solid var(--gris-600); }
-.op-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
-.op-filter-btn {
-  padding: 6px 14px; border-radius: 20px; border: 1px solid var(--gris-600);
-  background: transparent; color: var(--gris-400);
-  font-family: var(--font-display); font-size: 0.75rem; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  cursor: pointer; transition: var(--transition);
-}
-.op-filter-btn:hover, .op-filter-btn.active {
-  border-color: var(--rojo); color: var(--rojo); background: rgba(200,16,46,0.12);
-}
-.bono-badge {
-  background: rgba(245,197,24,0.15); border: 1px solid rgba(245,197,24,0.3);
-  color: var(--amarillo); padding: 3px 10px; border-radius: 20px;
-  font-family: var(--font-display); font-size: 0.75rem; font-weight: 700;
-}
-@media(max-width:640px) {
-  .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
-  .col-span-2, .col-span-3 { grid-column: span 1; }
-  .clock-time { font-size: 2.5rem; }
-  .clock-actions { flex-direction: column; align-items: center; }
-  .modal { max-width: 100%; margin: 0; }
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ALCON OPS Chatbot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{
+      --bg:#0b1220; --line:#21304d; --txt:#e8eefc; --muted:#98a8c7;
+      --pri:#2f7cff; --pri2:#1f5fd1; --bot:#16233b; --usr:#2f7cff;
+      --warn:#f59e0b; --ok:#10b981; --err:#ef4444;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0b1220;color:var(--txt)}
+    .app{height:100%;display:flex;align-items:center;justify-content:center;padding:16px}
+    .panel{width:min(1100px,100%);height:min(92vh,900px);display:grid;grid-template-columns:320px 1fr;background:#0f1728;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+    .left{border-right:1px solid var(--line);display:flex;flex-direction:column}
+    .brand{padding:18px;border-bottom:1px solid var(--line)}
+    .brand h1{margin:0;font-size:18px}
+    .brand p{margin:6px 0 0;color:var(--muted);font-size:12px}
+    .ctx{padding:14px 18px;border-bottom:1px solid var(--line);display:grid;gap:6px}
+    .ctx .kv{font-size:12px;color:var(--muted)}
+    .ctx .kv b{color:var(--txt)}
+    .quick{padding:14px;display:grid;gap:8px;overflow:auto}
+    .qbtn{border:1px solid #2a3b60;background:#13203a;color:#dbe7ff;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;text-align:left}
+    .qbtn:hover{background:#1a2b4a}
+    .right{display:flex;flex-direction:column;min-width:0}
+    .top{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+    .badge{font-size:11px;padding:4px 10px;border:1px solid #314a7a;border-radius:999px;background:#1a2744;color:#bcd0ff}
+    .messages{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+    .msg-wrap{display:flex}
+    .msg-wrap.user{justify-content:flex-end}
+    .msg{max-width:min(82%,700px);padding:10px 12px;border-radius:12px;font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word;border:1px solid transparent}
+    .msg.bot{background:var(--bot);border-color:#263b62}
+    .msg.user{background:var(--usr);color:#fff}
+    .msg.system{background:#2a1f10;border-color:#5f4215;color:#ffd9a1}
+    .input{border-top:1px solid var(--line);padding:10px;display:flex;gap:10px}
+    .input input{flex:1;background:#111d34;border:1px solid #2a3f69;color:#e5eeff;border-radius:10px;padding:11px 12px;font-size:14px;outline:none}
+    .input button{background:var(--pri);border:0;color:#fff;border-radius:10px;padding:0 16px;font-weight:700;cursor:pointer}
+    .input button:hover{background:var(--pri2)}
+    .login-wrap{height:100%;display:flex;align-items:center;justify-content:center;padding:20px}
+    .login{width:min(420px,100%);background:#0f1728;border:1px solid var(--line);border-radius:14px;padding:20px}
+    .login h2{margin:0 0 8px}
+    .login p{margin:0 0 14px;color:var(--muted);font-size:13px}
+    .f{display:grid;gap:8px;margin-bottom:12px}
+    .f label{font-size:12px;color:#b8c7e6}
+    .f input{background:#101a2f;border:1px solid #2a3b61;color:#eaf1ff;border-radius:10px;padding:10px 11px;font-size:14px;outline:none}
+    .login button{width:100%;height:42px;border:0;border-radius:10px;background:var(--pri);color:#fff;font-weight:700;cursor:pointer}
+    .err{margin-top:10px;color:#ffb4b4;font-size:12px;min-height:16px}
+    .hidden{display:none!important}
+    .mini-table{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px}
+    .mini-table th,.mini-table td{border-bottom:1px solid #2a3f67;padding:6px 4px;text-align:left}
+    .mini-table th{color:#a8bee8;font-weight:600}
+    .typing{display:inline-flex;gap:5px;align-items:center}
+    .typing i{width:7px;height:7px;border-radius:50%;background:#9db7f3;display:inline-block;animation:blink 1.1s infinite}
+    .typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+    @keyframes blink{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}
+    @media(max-width:920px){.panel{grid-template-columns:1fr}.left{display:none}}
+  </style>
 </head>
 <body>
-
-<!-- ═══════════════ TOAST ═══════════════ -->
-<div id="toast-container"></div>
-
-<!-- ═══════════════ LOGIN ═══════════════ -->
-<div id="login-screen">
-  <div class="login-box">
-    <div class="login-logo">
-      <div class="login-logo-mark">GE</div>
-      <div class="login-title">Grúas & Equipos</div>
-      <div class="login-sub">Sistema de Nómina y Gestión Humana</div>
-    </div>
-    <div class="login-card">
-      <div class="form-group">
-        <label class="form-label">Correo electrónico</label>
-        <input id="login-email" type="email" class="form-control" placeholder="usuario@empresa.com" autocomplete="email"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Contraseña</label>
-        <input id="login-pass" type="password" class="form-control" placeholder="••••••••" autocomplete="current-password"/>
-      </div>
-      <div id="login-error" class="login-error hidden"></div>
-      <button id="login-btn" class="login-btn">Ingresar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════ APP SHELL ═══════════════ -->
-<div id="app-shell">
-
-  <!-- TOPBAR -->
-  <nav class="topbar">
-    <div class="topbar-brand">
-      <div class="topbar-mark">GE</div>
-      <span class="topbar-name">Grúas & Equipos</span>
-    </div>
-    <div class="tabs-nav" id="tabs-nav">
-      <!-- generado por JS según rol -->
-    </div>
-    <div class="topbar-user" id="user-menu-trigger">
-      <div class="user-avatar" id="user-initials">?</div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end">
-        <span style="font-size:0.8rem;font-weight:600" id="user-name-top">—</span>
-        <span class="user-role-badge" id="user-role-top">—</span>
-      </div>
-      <span style="color:var(--gris-500);font-size:0.75rem">▾</span>
-      <div class="user-dropdown hidden" id="user-dropdown">
-        <a href="#" id="logout-btn">🚪 Cerrar sesión</a>
-      </div>
-    </div>
-  </nav>
-
-  <!-- CONTENT -->
-  <div class="main-content">
-
-    <!-- ═══ DASHBOARD ═══ -->
-    <div id="tab-dashboard" class="tab-panel">
-      <div class="section-header">
-        <div>
-          <div class="section-title">Dashboard</div>
-          <div class="section-sub" id="dash-greeting">Bienvenido</div>
-        </div>
-        <div style="color:var(--gris-400);font-size:0.8rem" id="dash-fecha"></div>
-      </div>
-
-      <div class="stats-grid" id="dash-stats">
-        <div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem" id="dash-panels">
-        <!-- Documentos próximos a vencer -->
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">⚠️ Documentos por vencer</span>
-            <button class="btn btn-ghost btn-sm" onclick="switchTab('documentos')">Ver todos</button>
-          </div>
-          <div id="dash-docs-alert"><div class="loading-center"><div class="spinner"></div></div></div>
-        </div>
-        <!-- Novedades recientes -->
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">📋 Novedades recientes</span>
-            <button class="btn btn-ghost btn-sm" onclick="switchTab('asistencia')">Ver todas</button>
-          </div>
-          <div id="dash-novedades"><div class="loading-center"><div class="spinner"></div></div></div>
-        </div>
+  <div class="app">
+    <div id="loginScreen" class="login-wrap">
+      <div class="login">
+        <h2>ALCON OPS</h2>
+        <p>Acceso al asistente operativo</p>
+        <div class="f"><label>Correo</label><input id="loginEmail" type="email" autocomplete="username" /></div>
+        <div class="f"><label>Contraseña</label><input id="loginPassword" type="password" autocomplete="current-password" /></div>
+        <button id="btnLogin">Ingresar</button>
+        <div id="loginError" class="err"></div>
       </div>
     </div>
 
-    <!-- ═══ EMPLEADOS ═══ -->
-    <div id="tab-empleados" class="tab-panel">
-      <div class="section-header">
-        <div>
-          <div class="section-title">👷 Empleados</div>
-          <div class="section-sub">Gestión del personal activo</div>
+    <div id="chatScreen" class="panel hidden">
+      <aside class="left">
+        <div class="brand"><h1>ALCON OPS · Chatbot</h1><p>Asistente operativo de empresa</p></div>
+        <div class="ctx">
+          <div class="kv">Usuario: <b id="ctxUser">-</b></div>
+          <div class="kv">Empresa: <b id="ctxEmpresa">-</b></div>
+          <div class="kv">Rol: <b id="ctxRol">-</b></div>
         </div>
-        <div class="flex gap-1">
-          <div class="search-bar">
-            <span class="search-icon">🔍</span>
-            <input id="emp-search" type="text" class="form-control" placeholder="Buscar empleado…"/>
-          </div>
-          <button class="btn btn-primary" id="btn-nuevo-empleado">+ Nuevo</button>
+        <div class="quick" id="quickActions">
+          <button class="qbtn" data-q="crear cliente">Crear cliente</button>
+          <button class="qbtn" data-q="crear cotización">Crear cotización</button>
+          <button class="qbtn" data-q="crear alquiler">Crear alquiler</button>
+          <button class="qbtn" data-q="alquileres activos">Alquileres activos</button>
+          <button class="qbtn" data-q="cotizaciones aprobadas">Cotizaciones aprobadas</button>
+          <button class="qbtn" data-q="máquinas disponibles">Máquinas disponibles</button>
+          <button class="qbtn" data-q="resumen del día">Resumen</button>
+          <button class="qbtn" data-q="finanzas">Finanzas</button>
         </div>
-      </div>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Código</th><th>Nombre</th><th>Cédula</th>
-                <th>Cargo</th><th>Equipo</th><th>Salario Base</th>
-                <th>Estado</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="emp-tbody">
-              <tr><td colspan="8"><div class="loading-center"><div class="spinner"></div></div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══ ASISTENCIA ═══ -->
-    <div id="tab-asistencia" class="tab-panel">
-      <div class="section-header">
-        <div>
-          <div class="section-title">⏱ Asistencia</div>
-          <div class="section-sub">Control de entrada y salida</div>
-        </div>
-        <div class="flex gap-1" id="asis-admin-controls">
-          <select id="asis-emp-filter" class="form-control" style="max-width:220px">
-            <option value="">— Todos los empleados —</option>
-          </select>
-          <input id="asis-mes-filter" type="month" class="form-control" style="max-width:160px"/>
-        </div>
-      </div>
-
-      <!-- Reloj solo para empleados -->
-      <div id="asis-clock-section" class="hidden">
-        <div class="clock-card">
-          <div class="clock-time" id="clock-display">00:00:00</div>
-          <div class="clock-date" id="clock-date-display"></div>
-          <div class="clock-actions">
-            <button class="clock-btn clock-btn-in" id="btn-entrada" disabled>
-              <span class="clock-btn-icon">▶</span>Iniciar labor
-            </button>
-            <button class="clock-btn clock-btn-out" id="btn-salida" disabled>
-              <span class="clock-btn-icon">⏹</span>Finalizar labor
-            </button>
-          </div>
-          <div style="margin-top:1rem;font-size:0.8rem;color:var(--gris-400)" id="asis-status-hoy"></div>
-        </div>
-      </div>
-
-      <!-- Vista calendario -->
-      <div class="card" id="asis-calendar-section">
-        <div class="cal-header">
-          <button class="btn-icon" id="cal-prev">◀</button>
-          <span class="cal-title" id="cal-month-label"></span>
-          <button class="btn-icon" id="cal-next">▶</button>
-        </div>
-        <div class="cal-grid" id="asis-calendar"></div>
-      </div>
-
-      <!-- Tabla registros -->
-      <div class="card" style="margin-top:1rem">
-        <div class="card-header">
-          <span class="card-title">Registros del mes</span>
-          <button class="btn btn-outline btn-sm hidden" id="btn-nueva-novedad">+ Novedad</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th><th>Empleado</th><th>Entrada</th>
-                <th>Salida</th><th>Horas</th><th>Estado</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="asis-tbody">
-              <tr><td colspan="7"><div class="loading-center"><div class="spinner"></div></div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══ HORAS EXTRA ═══ -->
-    <div id="tab-horas-extra" class="tab-panel">
-      <div class="section-header">
-        <div>
-          <div class="section-title">⚡ Horas Extra</div>
-          <div class="section-sub">Registro y control de recargos</div>
-        </div>
-        <div class="flex gap-1">
-          <select id="hex-emp-filter" class="form-control" style="max-width:200px">
-            <option value="">— Todos —</option>
-          </select>
-          <input id="hex-mes-filter" type="month" class="form-control" style="max-width:160px"/>
-          <button class="btn btn-primary" id="btn-nueva-hex">+ Registrar</button>
-        </div>
-      </div>
-
-      <!-- Resumen por tipo -->
-      <div class="stats-grid" id="hex-stats">
-        <div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>
-      </div>
-
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th><th>Empleado</th><th>Tipo</th>
-                <th>Inicio</th><th>Fin</th><th>Horas</th>
-                <th>Valor</th><th>Estado</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="hex-tbody">
-              <tr><td colspan="9"><div class="loading-center"><div class="spinner"></div></div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══ DOCUMENTOS ═══ -->
-    <div id="tab-documentos" class="tab-panel">
-      <div class="section-header">
-        <div>
-          <div class="section-title">📄 Documentos</div>
-          <div class="section-sub">ARL · Salud · Curso Alturas · Otros</div>
-        </div>
-        <div class="flex gap-1">
-          <select id="doc-tipo-filter" class="form-control" style="max-width:180px">
-            <option value="">— Todos los tipos —</option>
-            <option value="ARL">ARL</option>
-            <option value="SALUD">Salud</option>
-            <option value="CURSO_ALTURAS">Curso Alturas</option>
-            <option value="PENSION">Pensión</option>
-            <option value="CEDULA">Cédula</option>
-            <option value="CONTRATO">Contrato</option>
-            <option value="OTRO">Otro</option>
-          </select>
-          <select id="doc-alerta-filter" class="form-control" style="max-width:160px">
-            <option value="">— Todos —</option>
-            <option value="vencido">Vencidos</option>
-            <option value="critico">Críticos (30d)</option>
-            <option value="proximo">Próximos (60d)</option>
-          </select>
-          <button class="btn btn-primary" id="btn-nuevo-doc">+ Cargar</button>
-        </div>
-      </div>
-
-      <div class="stats-grid" id="doc-stats">
-        <div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>
-      </div>
-
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Empleado</th><th>Tipo</th><th>Descripción</th>
-                <th>Vigencia desde</th><th>Vence</th>
-                <th>Días</th><th>Estado</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="doc-tbody">
-              <tr><td colspan="8"><div class="loading-center"><div class="spinner"></div></div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══ OBSERVACIONES ═══ -->
-    <div id="tab-observaciones" class="tab-panel">
-      <div class="section-header">
-        <div>
-          <div class="section-title">💬 Observaciones</div>
-          <div class="section-sub">Historial de anotaciones por empleado</div>
-        </div>
-        <div class="flex gap-1">
-          <select id="obs-emp-filter" class="form-control" style="max-width:220px">
-            <option value="">— Todos los empleados —</option>
-          </select>
-          <button class="btn btn-primary" id="btn-nueva-obs">+ Registrar</button>
-        </div>
-      </div>
-      <div id="obs-list">
-        <div class="loading-center"><div class="spinner"></div></div>
-      </div>
-    </div>
-
-
-    <!-- ═══ OPERACIONES ═══ -->
-    <div id="tab-operaciones" class="tab-panel">
-      <div class="section-header">
-        <div>
-          <div class="section-title">🏗 Operaciones</div>
-          <div class="section-sub">Control de trabajo en campo</div>
-        </div>
-        <div class="flex gap-1" style="flex-wrap:wrap">
-          <select id="op-operador-filter" class="form-control" style="max-width:220px">
-            <option value="">— Todos los operadores —</option>
-          </select>
-          <input id="op-fecha-filter" type="date" class="form-control" style="max-width:160px"/>
-          <button class="btn btn-primary" id="btn-nueva-op">▶ Iniciar Operación</button>
-        </div>
-      </div>
-
-      <!-- Hero: operación activa -->
-      <div id="op-activa-section" class="hidden">
-        <div class="op-active-card">
-          <div class="op-active-pulse">Operación en curso</div>
-          <div class="op-active-title" id="op-activa-obra">—</div>
-          <div class="op-active-sub"  id="op-activa-cliente">—</div>
-          <div class="op-active-meta" id="op-activa-meta"></div>
-          <div class="op-timer" id="op-timer-display">00:00:00</div>
-          <div class="flex gap-1" style="margin-top:1rem;flex-wrap:wrap">
-            <button class="btn btn-danger"  id="btn-finalizar-op">⏹ Finalizar Operación</button>
-            <button class="btn btn-outline btn-sm" id="btn-obs-op-activa">💬 Observación</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Stats -->
-      <div class="stats-grid" id="op-stats">
-        <div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>
-      </div>
-
-      <!-- Filtros -->
-      <div class="op-filters">
-        <button class="op-filter-btn active" data-estado="">Todas</button>
-        <button class="op-filter-btn" data-estado="en_curso">🔴 En Curso</button>
-        <button class="op-filter-btn" data-estado="finalizada">✅ Finalizadas</button>
-        <button class="op-filter-btn" data-estado="cancelada">⛔ Canceladas</button>
-      </div>
-
-      <!-- Cards -->
-      <div id="op-list">
-        <div class="loading-center"><div class="spinner"></div></div>
-      </div>
-    </div>
-
-  </div><!-- /main-content -->
-</div><!-- /app-shell -->
-
-<!-- ═══════════════ MODALES ═══════════════ -->
-
-<!-- Modal: Empleado -->
-<div class="modal-backdrop hidden" id="modal-empleado">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-emp-title">Nuevo Empleado</span>
-      <button class="btn-close" onclick="closeModal('modal-empleado')">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="emp-id"/>
-      <div style="font-family:var(--font-display);font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gris-500);margin-bottom:0.25rem">Información Personal</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Cédula *</label>
-          <input id="emp-cedula" type="text" class="form-control" placeholder="1234567890"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Nombre completo *</label>
-          <input id="emp-nombre" type="text" class="form-control" placeholder="APELLIDO NOMBRE"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Código</label>
-          <input id="emp-codigo" type="text" class="form-control" placeholder="Código interno"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Cargo</label>
-          <input id="emp-cargo" type="text" class="form-control" placeholder="Operador, Técnico…"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Celular</label>
-          <input id="emp-celular" type="tel" class="form-control"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Ciudad</label>
-          <input id="emp-ciudad" type="text" class="form-control"/>
-        </div>
-      </div>
-      <hr class="divider"/>
-      <div style="font-family:var(--font-display);font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gris-500);margin-bottom:0.25rem">Contrato y Nómina</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Salario base *</label>
-          <input id="emp-salario" type="number" class="form-control" placeholder="1423500"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Tipo contrato</label>
-          <select id="emp-contrato" class="form-control">
-            <option value="indefinido">Indefinido</option>
-            <option value="fijo">Término fijo</option>
-            <option value="obra_labor">Obra o labor</option>
-            <option value="aprendizaje">Aprendizaje</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Fecha ingreso *</label>
-          <input id="emp-ingreso" type="date" class="form-control"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Equipo asignado</label>
-          <select id="emp-equipo" class="form-control">
-            <option value="">— Sin asignar —</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Estado</label>
-          <select id="emp-estado" class="form-control">
-            <option value="activo">Activo</option>
-            <option value="vacaciones">Vacaciones</option>
-            <option value="incapacidad">Incapacidad</option>
-            <option value="retirado">Retirado</option>
-          </select>
-        </div>
-      </div>
-      <hr class="divider"/>
-      <div style="font-family:var(--font-display);font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gris-500);margin-bottom:0.25rem">Datos Bancarios</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Banco</label>
-          <select id="emp-banco" class="form-control">
-            <option value="">— Seleccionar —</option>
-            <option>Scotiabank</option><option>Bancolombia</option>
-            <option>Davivienda</option><option>Banco de Bogotá</option>
-            <option>Nequi</option><option>Daviplata</option>
-            <option>Banco Popular</option><option>BBVA</option>
-            <option>Otro</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Número de cuenta</label>
-          <input id="emp-cuenta" type="text" class="form-control"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Tipo cuenta</label>
-          <select id="emp-tipo-cuenta" class="form-control">
-            <option value="Ahorro">Ahorro</option>
-            <option value="Corriente">Corriente</option>
-          </select>
-        </div>
-      </div>
-      <hr class="divider"/>
-      <div style="font-family:var(--font-display);font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gris-500);margin-bottom:0.25rem">Seguridad Social</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">EPS</label>
-          <input id="emp-eps" type="text" class="form-control"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Fondo pensión</label>
-          <input id="emp-pension-fondo" type="text" class="form-control"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">ARL</label>
-          <input id="emp-arl" type="text" class="form-control"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Caja compensación</label>
-          <input id="emp-caja" type="text" class="form-control"/>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-empleado')">Cancelar</button>
-      <button class="btn btn-primary" id="btn-guardar-empleado">Guardar</button>
+      </aside>
+      <section class="right">
+        <div class="top"><div>Asistente Operativo</div><div class="badge">Conectado</div></div>
+        <div id="messages" class="messages"></div>
+        <div class="input"><input id="chatInput" placeholder="Escribe una consulta o comando..." /><button id="btnSend">Enviar</button></div>
+      </section>
     </div>
   </div>
-</div>
 
-<!-- Modal: Horas Extra -->
-<div class="modal-backdrop hidden" id="modal-hex">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-hex-title">Registrar Horas Extra</span>
-      <button class="btn-close" onclick="closeModal('modal-hex')">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="hex-id"/>
-      <div class="form-group">
-        <label class="form-label">Empleado *</label>
-        <select id="hex-empleado" class="form-control"></select>
-      </div>
-      <div class="form-grid-2">
-        <div class="form-group">
-          <label class="form-label">Fecha *</label>
-          <input id="hex-fecha" type="date" class="form-control"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Tipo de hora *</label>
-          <select id="hex-tipo" class="form-control"></select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Hora inicio</label>
-          <input id="hex-inicio" type="time" class="form-control"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Hora fin</label>
-          <input id="hex-fin" type="time" class="form-control"/>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Cantidad horas *</label>
-        <input id="hex-horas" type="number" step="0.5" min="0.5" class="form-control" placeholder="2.5"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Observación</label>
-        <textarea id="hex-obs" class="form-control" rows="2"></textarea>
-      </div>
-      <div style="background:var(--gris-700);border-radius:var(--radius);padding:1rem;font-size:0.8rem;color:var(--gris-400)">
-        ⚙️ El valor se calcula automáticamente: <strong>(salario / 240) × factor del tipo</strong>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-hex')">Cancelar</button>
-      <button class="btn btn-primary" id="btn-guardar-hex">Guardar</button>
-    </div>
-  </div>
-</div>
+  <script>
+    const SUPABASE_URL = "https://oguxdohmutqgacahcwop.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ndXhkb2htdXRxZ2FjYWhjd29wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3Mjc0NzcsImV4cCI6MjA4ODMwMzQ3N30.RRruTo8B7k4R97Igq7_KV1PV58FqrpIzEu0R_MXIwR8";
 
-<!-- Modal: Documento -->
-<div class="modal-backdrop hidden" id="modal-doc">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-doc-title">Cargar Documento</span>
-      <button class="btn-close" onclick="closeModal('modal-doc')">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="doc-id"/>
-      <div class="form-group">
-        <label class="form-label">Empleado *</label>
-        <select id="doc-empleado" class="form-control"></select>
-      </div>
-      <div class="form-grid-2">
-        <div class="form-group">
-          <label class="form-label">Tipo de documento *</label>
-          <select id="doc-tipo" class="form-control">
-            <option value="ARL">ARL</option>
-            <option value="SALUD">Salud</option>
-            <option value="CURSO_ALTURAS">Curso Alturas</option>
-            <option value="PENSION">Pensión</option>
-            <option value="CEDULA">Cédula</option>
-            <option value="CONTRATO">Contrato</option>
-            <option value="OTRO">Otro</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Entidad emisora</label>
-          <input id="doc-entidad" type="text" class="form-control" placeholder="AXA Colpatria, Sura…"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">No. documento</label>
-          <input id="doc-numero" type="text" class="form-control"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Fecha inicio</label>
-          <input id="doc-inicio" type="date" class="form-control"/>
-        </div>
-        <div class="form-group col-span-2">
-          <label class="form-label">Fecha vencimiento</label>
-          <input id="doc-vence" type="date" class="form-control"/>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Descripción</label>
-        <input id="doc-desc" type="text" class="form-control" placeholder="Descripción del documento"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">URL del archivo (Google Drive, Drive, etc.)</label>
-        <input id="doc-url" type="url" class="form-control" placeholder="https://drive.google.com/…"/>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-doc')">Cancelar</button>
-      <button class="btn btn-primary" id="btn-guardar-doc">Guardar</button>
-    </div>
-  </div>
-</div>
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let empresa_id = null;
+    let rol_usuario = null;
+    let flujoActual = null;
+    let user_id = null;
+    let empresa_nombre = "";
+    let usuario_email = "";
 
-<!-- Modal: Observación -->
-<div class="modal-backdrop hidden" id="modal-obs">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Registrar Observación</span>
-      <button class="btn-close" onclick="closeModal('modal-obs')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Empleado *</label>
-        <select id="obs-empleado" class="form-control"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Tipo</label>
-        <select id="obs-tipo" class="form-control">
-          <option value="general">General</option>
-          <option value="disciplinaria">Disciplinaria</option>
-          <option value="felicitacion">Felicitación</option>
-          <option value="capacitacion">Capacitación</option>
-          <option value="otro">Otro</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Descripción *</label>
-        <textarea id="obs-desc" class="form-control" rows="4" placeholder="Detalle de la observación…"></textarea>
-      </div>
-      <div class="form-group">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-          <input type="checkbox" id="obs-privada"/>
-          <span class="form-label" style="margin:0">Observación privada (solo Gestión Humana)</span>
-        </label>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-obs')">Cancelar</button>
-      <button class="btn btn-primary" id="btn-guardar-obs">Guardar</button>
-    </div>
-  </div>
-</div>
+    function fmt(n){ return (Number(n) || 0).toLocaleString("es-CO"); }
+    function normalizarTexto(t){ return (t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim(); }
 
-<!-- Modal: Novedad asistencia -->
-<div class="modal-backdrop hidden" id="modal-novedad">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Registrar Novedad</span>
-      <button class="btn-close" onclick="closeModal('modal-novedad')">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="nov-asis-id"/>
-      <div class="form-group">
-        <label class="form-label">Empleado *</label>
-        <select id="nov-empleado" class="form-control"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Fecha *</label>
-        <input id="nov-fecha" type="date" class="form-control"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Tipo de novedad</label>
-        <select id="nov-tipo" class="form-control">
-          <option value="ausencia_justificada">Ausencia justificada</option>
-          <option value="ausencia_injustificada">Ausencia injustificada</option>
-          <option value="incapacidad">Incapacidad</option>
-          <option value="permiso">Permiso</option>
-          <option value="vacaciones">Vacaciones</option>
-          <option value="calamidad">Calamidad doméstica</option>
-          <option value="otro">Otro</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Observación</label>
-        <textarea id="nov-obs" class="form-control" rows="3"></textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-novedad')">Cancelar</button>
-      <button class="btn btn-primary" id="btn-guardar-novedad">Guardar</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- Modal: Iniciar / Editar Operación -->
-<div class="modal-backdrop hidden" id="modal-op-iniciar">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-op-title">▶ Iniciar Operación</span>
-      <button class="btn-close" onclick="closeModal('modal-op-iniciar')">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="op-id"/>
-      <div style="font-family:var(--font-display);font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gris-500);margin-bottom:0.5rem">Datos de la Operación</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Operador *</label>
-          <select id="op-operador" class="form-control"></select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Equipo asignado</label>
-          <select id="op-equipo" class="form-control"><option value="">— Sin equipo —</option></select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Cliente *</label>
-          <input id="op-cliente" type="text" class="form-control" placeholder="Nombre del cliente" list="op-clientes-list"/>
-          <datalist id="op-clientes-list"></datalist>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Obra / Proyecto *</label>
-          <input id="op-obra" type="text" class="form-control" placeholder="Nombre de la obra"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Ciudad</label>
-          <input id="op-ciudad" type="text" class="form-control" placeholder="Barranquilla"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Bono por operación (COP)</label>
-          <input id="op-bono" type="number" min="0" step="1000" class="form-control" placeholder="0"/>
-        </div>
-      </div>
-      <hr class="divider"/>
-      <div style="font-family:var(--font-display);font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gris-500);margin-bottom:0.5rem">Tiempo</div>
-      <div class="form-grid-2">
-        <div class="form-group">
-          <label class="form-label">Hora inicio *</label>
-          <input id="op-hora-inicio" type="datetime-local" class="form-control"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Hora fin <span style="color:var(--gris-500);font-weight:400;text-transform:none">(vacío = en curso)</span></label>
-          <input id="op-hora-fin" type="datetime-local" class="form-control"/>
-        </div>
-      </div>
-      <hr class="divider"/>
-      <div class="form-group">
-        <label class="form-label">Observaciones</label>
-        <textarea id="op-obs" class="form-control" rows="3" placeholder="Condiciones, novedades, equipamiento adicional…"></textarea>
-      </div>
-      <div style="background:var(--gris-700);border-radius:var(--radius);padding:0.75rem 1rem;font-size:0.8rem;color:var(--gris-400)">
-        💡 El bono se suma al total a pagar del operador en la liquidación del período.
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-op-iniciar')">Cancelar</button>
-      <button class="btn btn-primary" id="btn-guardar-op">▶ Iniciar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: Finalizar Operación -->
-<div class="modal-backdrop hidden" id="modal-op-finalizar">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">⏹ Finalizar Operación</span>
-      <button class="btn-close" onclick="closeModal('modal-op-finalizar')">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="op-fin-id"/>
-      <div class="card" style="background:var(--gris-700);margin-bottom:0.75rem">
-        <div style="font-weight:700;margin-bottom:4px" id="op-fin-nombre">—</div>
-        <div class="text-sm text-muted" id="op-fin-sub">—</div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Hora de finalización *</label>
-        <input id="op-fin-hora" type="datetime-local" class="form-control"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Bono por esta operación (COP)</label>
-        <input id="op-fin-bono" type="number" min="0" step="1000" class="form-control"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Observaciones de cierre</label>
-        <textarea id="op-fin-obs" class="form-control" rows="3" placeholder="Resumen del trabajo, incidencias, materiales…"></textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-danger" style="margin-right:auto" onclick="cancelarOp()">⛔ Cancelar op.</button>
-      <button class="btn btn-outline" onclick="closeModal('modal-op-finalizar')">Volver</button>
-      <button class="btn btn-primary" id="btn-confirmar-fin">✅ Confirmar cierre</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: Observación rápida -->
-<div class="modal-backdrop hidden" id="modal-op-obs">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">💬 Observación de operación</span>
-      <button class="btn-close" onclick="closeModal('modal-op-obs')">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="op-obs-id"/>
-      <div class="form-group">
-        <label class="form-label">Observación *</label>
-        <textarea id="op-obs-texto" class="form-control" rows="4" placeholder="Novedad, incidencia, cambio en la operación…"></textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-op-obs')">Cancelar</button>
-      <button class="btn btn-primary" id="btn-guardar-op-obs">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<script>
-/* ═══════════════════════════════════════════════
-   CONFIGURACIÓN — REEMPLAZA CON TUS CREDENCIALES
-═══════════════════════════════════════════════ */
-const SUPABASE_URL  = 'https://qhnritmqllfixmiohbsn.supabase.co';
-const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFobnJpdG1xbGxmaXhtaW9oYnNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NzMwNjUsImV4cCI6MjA5MTQ0OTA2NX0.1LsgY59-Zvs-hOsiebMlxM5rjvBGcL4-b8HHZEAK8hY';
-const EMPRESA_ID    = '00000000-0000-0000-0000-000000000001';
-
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-/* ═══════════════════════════════════════════════
-   ESTADO GLOBAL
-═══════════════════════════════════════════════ */
-const STATE = {
-  user:        null,
-  usuario:     null,  // row from public.usuarios
-  empleado:    null,  // row from public.empleados (si rol=empleado)
-  rol:         null,
-  empresa_id:  EMPRESA_ID,
-  activeTab:   'dashboard',
-  empleados:   [],
-  tiposHex:    [],
-  calYear:     new Date().getFullYear(),
-  calMonth:    new Date().getMonth(),
-  // rendered tabs
-  _rendered:   new Set(),
-  _dirty:      new Set(['dashboard','empleados','asistencia','horas-extra','documentos','observaciones','operaciones']),
-};
-
-/* ═══════════════════════════════════════════════
-   ROLES Y TABS
-═══════════════════════════════════════════════ */
-const ROL_LABELS = {
-  superadmin:     'Super Admin',
-  admin_empresa:  'Admin',
-  gestion_humana: 'Gestión Humana',
-  operador:       'Operador',
-  empleado:       'Empleado',
-};
-
-const ROL_TABS = {
-  superadmin:     ['dashboard','empleados','asistencia','horas-extra','documentos','observaciones','operaciones'],
-  admin_empresa:  ['dashboard','empleados','asistencia','horas-extra','documentos','observaciones','operaciones'],
-  gestion_humana: ['dashboard','empleados','asistencia','horas-extra','documentos','observaciones','operaciones'],
-  operador:       ['dashboard','asistencia','documentos','operaciones'],
-  empleado:       ['dashboard','asistencia','horas-extra','documentos'],
-};
-
-const TAB_META = {
-  dashboard:      { label: 'Dashboard',     icon: '📊' },
-  empleados:      { label: 'Empleados',     icon: '👷' },
-  asistencia:     { label: 'Asistencia',    icon: '⏱' },
-  'horas-extra':  { label: 'Horas Extra',   icon: '⚡' },
-  documentos:     { label: 'Documentos',    icon: '📄' },
-  observaciones:  { label: 'Observaciones', icon: '💬' },
-  operaciones:    { label: 'Operaciones',   icon: '🏗' },
-};
-
-/* ═══════════════════════════════════════════════
-   UTILIDADES
-═══════════════════════════════════════════════ */
-const fmt = {
-  currency: v => new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', maximumFractionDigits:0 }).format(v||0),
-  date: v => v ? new Date(v+'T12:00:00').toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' }) : '—',
-  time: v => v ? v.slice(0,5) : '—',
-  datetime: v => v ? new Date(v).toLocaleString('es-CO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—',
-  hours: (entry, exit) => {
-    if (!entry || !exit) return '—';
-    const diff = (new Date(exit) - new Date(entry)) / 3600000;
-    return diff.toFixed(1) + 'h';
-  },
-  initials: name => name ? name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() : '?',
-};
-
-function escHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function toast(msg, type='ok') {
-  const icons = { ok:'✅', error:'❌', warn:'⚠️' };
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
-  document.getElementById('toast-container').appendChild(el);
-  setTimeout(() => el.remove(), 4000);
-}
-
-function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
-function badgeEstado(estado) {
-  const map = {
-    activo:'badge-verde', vacaciones:'badge-azul',
-    incapacidad:'badge-amarillo', retirado:'badge-gris', inactivo:'badge-gris',
-    completo:'badge-verde', sin_salida:'badge-amarillo', sin_entrada:'badge-naranja',
-    novedad:'badge-naranja', ausente:'badge-rojo', pendiente:'badge-gris',
-    vigente:'badge-verde', vencido:'badge-rojo', proximo_vencer:'badge-amarillo',
-    critico:'badge-naranja',
-  };
-  return `<span class="badge ${map[estado]||'badge-gris'}">${estado.replace(/_/g,' ')}</span>`;
-}
-
-function diasParaVencer(fecha) {
-  if (!fecha) return null;
-  return Math.floor((new Date(fecha+'T12:00:00') - new Date()) / 86400000);
-}
-
-/* ═══════════════════════════════════════════════
-   AUTH
-═══════════════════════════════════════════════ */
-async function initAuth() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) await loadUserProfile(session.user);
-  else showLogin();
-
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN')  await loadUserProfile(session.user);
-    if (event === 'SIGNED_OUT') showLogin();
-  });
-}
-
-async function loadUserProfile(authUser) {
-  STATE.user = authUser;
-  try {
-    const { data, error } = await sb
-      .from('usuarios')
-      .select('*, roles_sistema(codigo, nombre)')
-      .eq('id', authUser.id)
-      .single();
-
-    if (error) throw error;
-    STATE.usuario  = data;
-    STATE.rol      = data.roles_sistema.codigo;
-
-    if (data.empleado_id) {
-      const { data: emp } = await sb.from('empleados').select('*').eq('id', data.empleado_id).single();
-      STATE.empleado = emp;
+    function initSupabase(){
+      if(!SUPABASE_URL.includes("supabase.co") || SUPABASE_ANON_KEY === "TU-ANON-KEY"){
+        document.getElementById("loginError").textContent = "Configura SUPABASE_URL y SUPABASE_ANON_KEY.";
+      }
     }
 
-    showApp();
-  } catch(e) {
-    // Si no tiene perfil aún, crea uno básico
-    console.error('Perfil no encontrado:', e.message);
-    toast('Perfil de usuario no configurado. Contacta al administrador.', 'warn');
-    STATE.rol = 'admin_empresa'; // fallback para demo
-    showApp();
-  }
-}
-
-document.getElementById('login-btn').onclick = async () => {
-  const email = document.getElementById('login-email').value.trim();
-  const pass  = document.getElementById('login-pass').value;
-  const btn   = document.getElementById('login-btn');
-  const err   = document.getElementById('login-error');
-
-  if (!email || !pass) { err.textContent = 'Ingresa correo y contraseña.'; err.classList.remove('hidden'); return; }
-  err.classList.add('hidden');
-  btn.disabled = true; btn.textContent = 'Ingresando…';
-
-  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-  if (error) {
-    err.textContent = 'Credenciales incorrectas. Verifica e intenta de nuevo.';
-    err.classList.remove('hidden');
-  }
-  btn.disabled = false; btn.textContent = 'Ingresar';
-};
-
-document.getElementById('login-email').onkeydown =
-document.getElementById('login-pass').onkeydown = (e) => {
-  if (e.key === 'Enter') document.getElementById('login-btn').click();
-};
-
-document.getElementById('logout-btn').onclick = async (e) => {
-  e.preventDefault();
-  await sb.auth.signOut();
-};
-
-// User dropdown toggle
-document.getElementById('user-menu-trigger').onclick = (e) => {
-  e.stopPropagation();
-  document.getElementById('user-dropdown').classList.toggle('hidden');
-};
-document.addEventListener('click', () => {
-  document.getElementById('user-dropdown').classList.add('hidden');
-});
-
-/* ═══════════════════════════════════════════════
-   SHOW / HIDE SCREENS
-═══════════════════════════════════════════════ */
-function showLogin() {
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('app-shell').style.display = 'none';
-}
-
-function showApp() {
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app-shell').style.display = 'block';
-  setupNav();
-  switchTab('dashboard');
-  startClock();
-}
-
-function setupNav() {
-  const nav  = document.getElementById('tabs-nav');
-  const tabs = ROL_TABS[STATE.rol] || ROL_TABS.empleado;
-  nav.innerHTML = tabs.map(t => `
-    <button class="tab-btn" data-tab="${t}" onclick="switchTab('${t}')">
-      <span class="tab-icon">${TAB_META[t].icon}</span>
-      <span>${TAB_META[t].label}</span>
-    </button>`).join('');
-
-  // User info
-  const nombre = STATE.usuario?.nombre || STATE.user?.email || 'Usuario';
-  document.getElementById('user-name-top').textContent = nombre.split(' ')[0];
-  document.getElementById('user-role-top').textContent = ROL_LABELS[STATE.rol] || STATE.rol;
-  document.getElementById('user-initials').textContent = fmt.initials(nombre);
-}
-
-function switchTab(tabId) {
-  STATE.activeTab = tabId;
-  // Highlight tab button
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
-  // Show panel
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${tabId}`));
-
-  if (STATE._dirty.has(tabId)) {
-    STATE._dirty.delete(tabId);
-    STATE._rendered.add(tabId);
-    renderTab(tabId);
-  }
-}
-
-function markDirty(...tabs) { tabs.forEach(t => STATE._dirty.add(t)); }
-
-async function renderTab(tab) {
-  try {
-    switch(tab) {
-      case 'dashboard':    await renderDashboard();   break;
-      case 'empleados':    await renderEmpleados();   break;
-      case 'asistencia':   await renderAsistencia();  break;
-      case 'horas-extra':  await renderHorasExtra();  break;
-      case 'documentos':   await renderDocumentos();  break;
-      case 'observaciones':await renderObservaciones();break;
-      case 'operaciones':  await renderOperaciones();  break;
+    function agregarMensaje(tipo,texto,html=false){
+      const box = document.getElementById("messages");
+      const wrap = document.createElement("div");
+      const msg = document.createElement("div");
+      wrap.className = "msg-wrap " + (tipo==="user" ? "user" : "");
+      msg.className = "msg " + (tipo==="user" ? "user" : (tipo==="system" ? "system" : "bot"));
+      if(html) msg.innerHTML = texto; else msg.textContent = texto;
+      wrap.appendChild(msg);
+      box.appendChild(wrap);
+      box.scrollTop = box.scrollHeight;
+      return wrap;
     }
-  } catch(e) {
-    console.error('renderTab error [' + tab + ']:', e);
-    toast('Error cargando módulo. Intenta de nuevo.', 'error');
-    STATE._dirty.add(tab);
-    STATE._rendered.delete(tab);
-  }
-}
 
-/* ═══════════════════════════════════════════════
-   RELOJ
-═══════════════════════════════════════════════ */
-let _clockInterval = null;
-function startClock() {
-  if (_clockInterval) clearInterval(_clockInterval);
-  function tick() {
-    const now = new Date();
-    const el = document.getElementById('clock-display');
-    const dd = document.getElementById('clock-date-display');
-    if (el) el.textContent = now.toLocaleTimeString('es-CO');
-    if (dd) dd.textContent = now.toLocaleDateString('es-CO', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-  }
-  tick();
-  _clockInterval = setInterval(tick, 1000);
-}
-
-/* ═══════════════════════════════════════════════
-   DASHBOARD
-═══════════════════════════════════════════════ */
-async function renderDashboard() {
-  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
-  const now = new Date();
-
-  document.getElementById('dash-greeting').textContent =
-    `Bienvenido, ${STATE.usuario?.nombre?.split(' ')[0] || 'usuario'} · ${ROL_LABELS[STATE.rol]}`;
-  document.getElementById('dash-fecha').textContent =
-    now.toLocaleDateString('es-CO', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-
-  // Stats cards
-  let statsHTML = '';
-  if (canManage) {
-    const [{ count: totalEmp }, { count: totalDocs }, novedades] = await Promise.all([
-      sb.from('empleados').select('*', { count:'exact', head:true }).eq('empresa_id', EMPRESA_ID).eq('estado','activo'),
-      sb.from('documentos_empleado').select('*', { count:'exact', head:true }).eq('empresa_id', EMPRESA_ID).eq('estado','vencido'),
-      sb.from('novedades_calendario').select('*', { count:'exact', head:true }).eq('empresa_id', EMPRESA_ID).eq('resuelto', false),
-    ]);
-    statsHTML = `
-      <div class="stat-card" style="--accent:var(--verde)">
-        <div class="stat-label">Empleados Activos</div>
-        <div class="stat-value">${totalEmp||0}</div>
-        <div class="stat-sub">en nómina</div>
-      </div>
-      <div class="stat-card" style="--accent:var(--rojo)">
-        <div class="stat-label">Docs Vencidos</div>
-        <div class="stat-value">${totalDocs||0}</div>
-        <div class="stat-sub">requieren atención</div>
-      </div>
-      <div class="stat-card" style="--accent:var(--naranja)">
-        <div class="stat-label">Novedades Abiertas</div>
-        <div class="stat-value">${novedades.count||0}</div>
-        <div class="stat-sub">sin resolver</div>
-      </div>
-      <div class="stat-card" style="--accent:var(--azul)">
-        <div class="stat-label">Mes actual</div>
-        <div class="stat-value">${now.toLocaleDateString('es-CO',{month:'short'}).toUpperCase()}</div>
-        <div class="stat-sub">${now.getFullYear()}</div>
-      </div>`;
-  } else {
-    // Para empleado: su estado hoy
-    statsHTML = `
-      <div class="stat-card" style="--accent:var(--azul)">
-        <div class="stat-label">Hoy</div>
-        <div class="stat-value">${now.getDate()}</div>
-        <div class="stat-sub">${now.toLocaleDateString('es-CO',{month:'long'})}</div>
-      </div>`;
-  }
-  document.getElementById('dash-stats').innerHTML = statsHTML;
-
-  // Documentos por vencer
-  let docsQuery = sb
-    .from('v_documentos_alertas')
-    .select('*')
-    .eq('empresa_id', EMPRESA_ID)
-    .in('alerta', ['vencido','critico'])
-    .order('dias_para_vencer')
-    .limit(5);
-
-  if (!canManage && STATE.empleado) {
-    docsQuery = docsQuery.eq('empleado_id', STATE.empleado.id);
-  }
-
-  const { data: docsAlert } = await docsQuery;
-
-  document.getElementById('dash-docs-alert').innerHTML = docsAlert?.length
-    ? docsAlert.map(d => `
-      <div style="padding:8px 0;border-bottom:1px solid var(--gris-700);display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div style="font-size:0.85rem;font-weight:600">${d.nombre_completo}</div>
-          <div class="text-xs text-muted">${d.tipo} · ${d.descripcion||''}</div>
-        </div>
-        <div style="text-align:right">
-          ${badgeEstado(d.alerta)}
-          <div class="text-xs text-muted">${d.dias_para_vencer < 0 ? Math.abs(d.dias_para_vencer)+'d vencido' : d.dias_para_vencer+'d'}</div>
-        </div>
-      </div>`).join('')
-    : '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Todo al día</div></div>';
-
-  // Novedades recientes
-  let novsQuery = sb
-    .from('novedades_calendario')
-    .select('*, empleados(nombre_completo)')
-    .eq('empresa_id', EMPRESA_ID)
-    .eq('resuelto', false)
-    .order('fecha', { ascending: false })
-    .limit(5);
-
-  if (!canManage && STATE.empleado) {
-    novsQuery = novsQuery.eq('empleado_id', STATE.empleado.id);
-  }
-
-  const { data: novs } = await novsQuery;
-
-  document.getElementById('dash-novedades').innerHTML = novs?.length
-    ? novs.map(n => `
-      <div style="padding:8px 0;border-bottom:1px solid var(--gris-700)">
-        <div style="display:flex;justify-content:space-between">
-          <span style="font-size:0.85rem;font-weight:600">${n.empleados?.nombre_completo||'—'}</span>
-          <span class="text-xs text-muted">${fmt.date(n.fecha)}</span>
-        </div>
-        <div class="text-xs" style="color:var(--naranja);margin-top:2px">${n.tipo_novedad.replace(/_/g,' ')}</div>
-      </div>`).join('')
-    : '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Sin novedades</div></div>';
-}
-
-/* ═══════════════════════════════════════════════
-   EMPLEADOS
-═══════════════════════════════════════════════ */
-async function loadEmpleados() {
-  const { data } = await sb
-    .from('empleados')
-    .select('*, equipos(codigo,descripcion)')
-    .eq('empresa_id', EMPRESA_ID)
-    .order('nombre_completo');
-  STATE.empleados = data || [];
-  return STATE.empleados;
-}
-
-async function renderEmpleados() {
-  const emps = await loadEmpleados();
-  renderEmpTable(emps);
-  await loadEquiposIntoSelects();
-
-  document.getElementById('emp-search').oninput = e => {
-    const q = e.target.value.toLowerCase();
-    renderEmpTable(STATE.empleados.filter(em =>
-      em.nombre_completo.toLowerCase().includes(q) ||
-      em.cedula.includes(q) ||
-      (em.cargo||'').toLowerCase().includes(q)
-    ));
-  };
-
-  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
-  document.getElementById('btn-nuevo-empleado').classList.toggle('hidden', !canManage);
-}
-
-function renderEmpTable(emps) {
-  const tbody = document.getElementById('emp-tbody');
-  if (!emps.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">👷</div><div class="empty-text">Sin empleados</div></div></td></tr>`;
-    return;
-  }
-  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
-  tbody.innerHTML = emps.map(e => `
-    <tr>
-      <td><span class="mono text-sm">${e.codigo||'—'}</span></td>
-      <td>
-        <div style="font-weight:600">${e.nombre_completo}</div>
-        <div class="text-xs text-muted">${e.cargo||'Sin cargo'}</div>
-      </td>
-      <td class="mono">${e.cedula}</td>
-      <td>${e.cargo||'—'}</td>
-      <td>${e.equipos?.codigo||'—'}</td>
-      <td class="mono">${fmt.currency(e.salario_base)}</td>
-      <td>${badgeEstado(e.estado)}</td>
-      <td>
-        <div class="flex gap-1">
-          ${canManage ? `<button class="btn-icon" title="Editar" onclick="editEmpleado('${e.id}')">✏️</button>` : ''}
-          <button class="btn-icon" title="Documentos" onclick="switchTab('documentos')">📄</button>
-        </div>
-      </td>
-    </tr>`).join('');
-}
-
-async function loadEquiposIntoSelects() {
-  const { data: equipos } = await sb.from('equipos').select('*').eq('empresa_id', EMPRESA_ID).order('codigo');
-  const opts = equipos?.map(eq => `<option value="${eq.id}">${eq.codigo} — ${eq.descripcion||''}</option>`).join('') || '';
-  document.getElementById('emp-equipo').innerHTML = `<option value="">— Sin asignar —</option>${opts}`;
-}
-
-document.getElementById('btn-nuevo-empleado').onclick = () => {
-  document.getElementById('emp-id').value = '';
-  document.getElementById('modal-emp-title').textContent = 'Nuevo Empleado';
-  ['emp-cedula','emp-nombre','emp-codigo','emp-cargo','emp-celular','emp-ciudad',
-   'emp-salario','emp-ingreso','emp-banco','emp-cuenta','emp-eps','emp-pension-fondo',
-   'emp-arl','emp-caja'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('emp-contrato').value = 'indefinido';
-  document.getElementById('emp-estado').value = 'activo';
-  document.getElementById('emp-tipo-cuenta').value = 'Ahorro';
-  openModal('modal-empleado');
-};
-
-async function editEmpleado(id) {
-  const e = STATE.empleados.find(x => x.id === id);
-  if (!e) return;
-  document.getElementById('emp-id').value = e.id;
-  document.getElementById('modal-emp-title').textContent = 'Editar Empleado';
-  document.getElementById('emp-cedula').value = e.cedula||'';
-  document.getElementById('emp-nombre').value = e.nombre_completo||'';
-  document.getElementById('emp-codigo').value = e.codigo||'';
-  document.getElementById('emp-cargo').value = e.cargo||'';
-  document.getElementById('emp-celular').value = e.celular||'';
-  document.getElementById('emp-ciudad').value = e.ciudad||'';
-  document.getElementById('emp-salario').value = e.salario_base||'';
-  document.getElementById('emp-contrato').value = e.tipo_contrato||'indefinido';
-  document.getElementById('emp-ingreso').value = e.fecha_ingreso||'';
-  document.getElementById('emp-estado').value = e.estado||'activo';
-  document.getElementById('emp-equipo').value = e.equipo_id||'';
-  document.getElementById('emp-banco').value = e.banco||'';
-  document.getElementById('emp-cuenta').value = e.cuenta_banco||'';
-  document.getElementById('emp-tipo-cuenta').value = e.tipo_cuenta||'Ahorro';
-  document.getElementById('emp-eps').value = e.eps||'';
-  document.getElementById('emp-pension-fondo').value = e.fondo_pension||'';
-  document.getElementById('emp-arl').value = e.arl||'';
-  document.getElementById('emp-caja').value = e.caja_compensacion||'';
-  openModal('modal-empleado');
-}
-
-document.getElementById('btn-guardar-empleado').onclick = async () => {
-  const id = document.getElementById('emp-id').value;
-  const payload = {
-    empresa_id:        EMPRESA_ID,
-    cedula:            document.getElementById('emp-cedula').value.trim(),
-    nombre_completo:   document.getElementById('emp-nombre').value.trim().toUpperCase(),
-    codigo:            document.getElementById('emp-codigo').value.trim(),
-    cargo:             document.getElementById('emp-cargo').value.trim(),
-    celular:           document.getElementById('emp-celular').value.trim(),
-    ciudad:            document.getElementById('emp-ciudad').value.trim(),
-    salario_base:      parseFloat(document.getElementById('emp-salario').value)||0,
-    tipo_contrato:     document.getElementById('emp-contrato').value,
-    fecha_ingreso:     document.getElementById('emp-ingreso').value,
-    estado:            document.getElementById('emp-estado').value,
-    equipo_id:         document.getElementById('emp-equipo').value || null,
-    banco:             document.getElementById('emp-banco').value,
-    cuenta_banco:      document.getElementById('emp-cuenta').value.trim(),
-    tipo_cuenta:       document.getElementById('emp-tipo-cuenta').value,
-    eps:               document.getElementById('emp-eps').value.trim(),
-    fondo_pension:     document.getElementById('emp-pension-fondo').value.trim(),
-    arl:               document.getElementById('emp-arl').value.trim(),
-    caja_compensacion: document.getElementById('emp-caja').value.trim(),
-  };
-  if (!payload.cedula || !payload.nombre_completo || !payload.fecha_ingreso) {
-    toast('Cédula, nombre y fecha de ingreso son obligatorios.', 'warn'); return;
-  }
-  const { error } = id
-    ? await sb.from('empleados').update(payload).eq('id', id)
-    : await sb.from('empleados').insert(payload);
-
-  if (error) { toast(error.message, 'error'); return; }
-  toast(id ? 'Empleado actualizado.' : 'Empleado registrado.', 'ok');
-  closeModal('modal-empleado');
-  markDirty('empleados','dashboard');
-  await renderEmpleados();
-};
-
-/* ═══════════════════════════════════════════════
-   ASISTENCIA
-═══════════════════════════════════════════════ */
-let calYear = new Date().getFullYear();
-let calMonth = new Date().getMonth();
-
-async function renderAsistencia() {
-  const esEmpleado = STATE.rol === 'empleado';
-  const canManage  = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
-
-  // Reloj solo para empleados y operadores
-  document.getElementById('asis-clock-section').classList.toggle('hidden', canManage);
-  document.getElementById('asis-admin-controls').classList.toggle('hidden', !canManage);
-  document.getElementById('btn-nueva-novedad').classList.toggle('hidden', !canManage);
-
-  if (!canManage) {
-    await setupClockButtons();
-  } else {
-    // Poblar selector de empleados
-    await loadEmpleados();
-    const sel = document.getElementById('asis-emp-filter');
-    sel.innerHTML = '<option value="">— Todos —</option>' +
-      STATE.empleados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
-    sel.onchange = renderAsistenciaTabla;
-    document.getElementById('asis-mes-filter').onchange = renderAsistenciaTabla;
-  }
-
-  // Mes actual por defecto
-  const now = new Date();
-  const mesInput = document.getElementById('asis-mes-filter');
-  if (!mesInput.value) mesInput.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-
-  renderCalendario();
-  await renderAsistenciaTabla();
-
-  document.getElementById('cal-prev').onclick = () => { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendario(); };
-  document.getElementById('cal-next').onclick = () => { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendario(); };
-}
-
-async function setupClockButtons() {
-  if (!STATE.empleado) return;
-  const today = new Date().toISOString().split('T')[0];
-  const { data } = await sb.from('asistencia')
-    .select('*')
-    .eq('empleado_id', STATE.empleado.id)
-    .eq('fecha', today)
-    .maybeSingle();
-
-  const btnIn  = document.getElementById('btn-entrada');
-  const btnOut = document.getElementById('btn-salida');
-  const status = document.getElementById('asis-status-hoy');
-
-  if (!data) {
-    btnIn.disabled = false; btnOut.disabled = true;
-    status.textContent = 'Sin registro hoy. Inicia tu labor cuando estés listo.';
-  } else if (data.hora_entrada && !data.hora_salida) {
-    btnIn.disabled = true; btnOut.disabled = false;
-    status.textContent = `Entrada registrada a las ${fmt.datetime(data.hora_entrada)}`;
-  } else if (data.hora_entrada && data.hora_salida) {
-    btnIn.disabled = true; btnOut.disabled = true;
-    status.innerHTML = `✅ Jornada completa · ${fmt.datetime(data.hora_entrada)} → ${fmt.datetime(data.hora_salida)} · <strong>${fmt.hours(data.hora_entrada, data.hora_salida)}</strong>`;
-  }
-
-  btnIn.onclick  = () => registrarMarca('entrada');
-  btnOut.onclick = () => registrarMarca('salida');
-}
-
-async function registrarMarca(tipo) {
-  const hoy = new Date().toISOString().split('T')[0];
-  const ahora = new Date().toISOString();
-
-  const { data: existente } = await sb.from('asistencia')
-    .select('*').eq('empleado_id', STATE.empleado.id).eq('fecha', hoy).maybeSingle();
-
-  let error;
-  if (tipo === 'entrada') {
-    if (existente) {
-      ({ error } = await sb.from('asistencia').update({ hora_entrada: ahora }).eq('id', existente.id));
-    } else {
-      ({ error } = await sb.from('asistencia').insert({
-        empresa_id: EMPRESA_ID, empleado_id: STATE.empleado.id,
-        fecha: hoy, hora_entrada: ahora, created_by: STATE.user.id,
-      }));
+    function mostrarTyping(){
+      const w = agregarMensaje("bot","");
+      const m = w.querySelector(".msg");
+      m.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+      return {
+        stop: (t, h=false) => {
+          if(h) m.innerHTML = t; else m.textContent = t;
+          const box = document.getElementById("messages");
+          box.scrollTop = box.scrollHeight;
+        }
+      };
     }
-  } else {
-    if (!existente) { toast('Registra primero tu entrada.', 'warn'); return; }
-    ({ error } = await sb.from('asistencia').update({ hora_salida: ahora }).eq('id', existente.id));
-  }
 
-  if (error) { toast(error.message, 'error'); return; }
-  toast(tipo === 'entrada' ? '▶ Entrada registrada.' : '⏹ Salida registrada.', 'ok');
-  await setupClockButtons();
-  await renderAsistenciaTabla();
-  renderCalendario();
-}
-
-function renderCalendario() {
-  const label = document.getElementById('cal-month-label');
-  const grid  = document.getElementById('asis-calendar');
-  const fecha = new Date(calYear, calMonth, 1);
-  label.textContent = fecha.toLocaleDateString('es-CO', { month:'long', year:'numeric' }).toUpperCase();
-
-  const dias = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
-  const hoy  = new Date().toISOString().split('T')[0];
-  const primerDia = fecha.getDay();
-  const totalDias = new Date(calYear, calMonth+1, 0).getDate();
-
-  grid.innerHTML =
-    dias.map(d => `<div class="cal-day-label">${d}</div>`).join('') +
-    Array(primerDia).fill(`<div class="cal-day empty"></div>`).join('') +
-    Array.from({length: totalDias}, (_,i) => {
-      const n = i + 1;
-      const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(n).padStart(2,'0')}`;
-      return `<div class="cal-day" id="cal-d-${dateStr}" data-date="${dateStr}">
-        <span class="day-num${dateStr===hoy?' text-rojo':''}">${n}</span>
-        <span class="day-dot"></span>
-      </div>`;
-    }).join('');
-
-  // Marcar días con datos (asíncrono)
-  loadCalData(calYear, calMonth);
-}
-
-async function loadCalData(y, m) {
-  const start = `${y}-${String(m+1).padStart(2,'0')}-01`;
-  const end   = new Date(y, m + 1, 0).toISOString().split('T')[0];
-  const empId = STATE.empleado?.id || document.getElementById('asis-emp-filter')?.value || null;
-
-  let q = sb.from('asistencia').select('fecha, estado').eq('empresa_id', EMPRESA_ID)
-    .gte('fecha', start).lte('fecha', end);
-  if (empId) q = q.eq('empleado_id', empId);
-
-  const { data } = await q;
-  data?.forEach(r => {
-    const el = document.getElementById(`cal-d-${r.fecha}`);
-    if (el) el.className = `cal-day ${r.estado==='completo'?'completo':r.estado==='ausente'?'ausente':'novedad'}`;
-  });
-}
-
-async function renderAsistenciaTabla() {
-  const tbody = document.getElementById('asis-tbody');
-  tbody.innerHTML = `<tr><td colspan="7"><div class="loading-center"><div class="spinner"></div></div></td></tr>`;
-
-  const mes    = document.getElementById('asis-mes-filter').value;
-  const empFil = document.getElementById('asis-emp-filter')?.value;
-  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
-
-  let [year, month] = mes ? mes.split('-') : [calYear, String(calMonth+1).padStart(2,'0')];
-  const start = `${year}-${month}-01`;
-  const end   = new Date(Number(year), Number(month), 0).toISOString().split('T')[0];
-
-  let q = sb.from('asistencia')
-    .select('*, empleados(nombre_completo)')
-    .eq('empresa_id', EMPRESA_ID)
-    .gte('fecha', start).lte('fecha', end)
-    .order('fecha', { ascending: false });
-
-  if (canManage && empFil) q = q.eq('empleado_id', empFil);
-  if (!canManage && STATE.empleado) q = q.eq('empleado_id', STATE.empleado.id);
-
-  const { data } = await q;
-
-  if (!data?.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📅</div><div class="empty-text">Sin registros en este período</div></div></td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = data.map(r => `
-    <tr>
-      <td>${fmt.date(r.fecha)}</td>
-      <td>${r.empleados?.nombre_completo||'—'}</td>
-      <td>${fmt.datetime(r.hora_entrada)}</td>
-      <td>${fmt.datetime(r.hora_salida)}</td>
-      <td class="mono">${fmt.hours(r.hora_entrada, r.hora_salida)}</td>
-      <td>${badgeEstado(r.estado)}</td>
-      <td>
-        ${canManage && r.es_novedad ? `<button class="btn btn-sm btn-outline" onclick="verNovedad('${r.id}')">📋 Novedad</button>` : ''}
-      </td>
-    </tr>`).join('');
-}
-
-document.getElementById('btn-nueva-novedad').onclick = () => {
-  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
-  if (!canManage) return;
-  // Poblar select
-  document.getElementById('nov-empleado').innerHTML =
-    STATE.empleados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
-  document.getElementById('nov-fecha').value = new Date().toISOString().split('T')[0];
-  document.getElementById('nov-asis-id').value = '';
-  openModal('modal-novedad');
-};
-
-document.getElementById('btn-guardar-novedad').onclick = async () => {
-  const novId = document.getElementById('nov-asis-id').value;
-  const payload = {
-    empresa_id:   EMPRESA_ID,
-    empleado_id:  document.getElementById('nov-empleado').value,
-    fecha:        document.getElementById('nov-fecha').value,
-    tipo_novedad: document.getElementById('nov-tipo').value,
-    descripcion:  document.getElementById('nov-obs').value,
-    created_by:   STATE.user?.id,
-  };
-  const { error } = novId
-    ? await sb.from('novedades_calendario').update(payload).eq('id', novId)
-    : await sb.from('novedades_calendario').insert(payload);
-  if (error) { toast(error.message, 'error'); return; }
-  toast(novId ? 'Novedad actualizada.' : 'Novedad registrada.', 'ok');
-  closeModal('modal-novedad');
-  markDirty('dashboard');
-  await renderAsistenciaTabla();
-};
-
-/* ═══════════════════════════════════════════════
-   HORAS EXTRA
-═══════════════════════════════════════════════ */
-async function renderHorasExtra() {
-  await loadEmpleados();
-
-  // Cargar tipos de hora extra
-  if (!STATE.tiposHex.length) {
-    const { data } = await sb.from('tipos_hora_extra').select('*').eq('activo', true).order('id');
-    STATE.tiposHex = data || [];
-  }
-
-  const now = new Date();
-  const hexMes = document.getElementById('hex-mes-filter');
-  if (!hexMes.value) hexMes.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-
-  // Poblar selects
-  const empOpts = STATE.empleados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
-  document.getElementById('hex-emp-filter').innerHTML = `<option value="">— Todos —</option>${empOpts}`;
-  document.getElementById('hex-empleado').innerHTML   = empOpts;
-  document.getElementById('hex-tipo').innerHTML =
-    STATE.tiposHex.map(t => `<option value="${t.id}">${t.descripcion} (×${t.factor})</option>`).join('');
-
-  document.getElementById('hex-fecha').value = now.toISOString().split('T')[0];
-
-  document.getElementById('hex-emp-filter').onchange = renderHexTabla;
-  document.getElementById('hex-mes-filter').onchange  = renderHexTabla;
-
-  // Auto-calcular horas desde inicio/fin
-  document.getElementById('hex-inicio').onchange =
-  document.getElementById('hex-fin').onchange = () => {
-    const ini = document.getElementById('hex-inicio').value;
-    const fin = document.getElementById('hex-fin').value;
-    if (ini && fin) {
-      const diff = (new Date(`2000-01-01T${fin}`) - new Date(`2000-01-01T${ini}`)) / 3600000;
-      if (diff > 0) document.getElementById('hex-horas').value = diff.toFixed(1);
+    function puedeEjecutarAccion(tipo){
+      if(!rol_usuario) return false;
+      if(rol_usuario === "superadmin" || rol_usuario === "admin_empresa") return true;
+      const rol = normalizarTexto(rol_usuario);
+      if(rol === "operaciones"){
+        if(["crear_alquiler","asignar_maquina","cambiar_estado_maquina","consultar_alquileres","consultar_maquinas","consultar_clientes","consultar_finanzas","consultar_resumen"].includes(tipo)) return true;
+        return false;
+      }
+      if(rol === "comercial"){
+        if(["crear_cliente","crear_cotizacion","consultar_cotizaciones","consultar_clientes","consultar_resumen"].includes(tipo)) return true;
+        return false;
+      }
+      return false;
     }
-  };
-
-  await renderHexTabla();
-  await renderHexStats();
-}
-
-async function renderHexStats() {
-  const mes = document.getElementById('hex-mes-filter').value || '';
-  let [year, month] = mes.split('-');
-  const { data } = await sb.from('horas_extra_detalle')
-    .select('tipo_hora_id, cantidad_horas, valor_total, tipos_hora_extra(descripcion)')
-    .eq('empresa_id', EMPRESA_ID)
-    .gte('fecha', `${year}-${month}-01`)
-    .lte('fecha', new Date(Number(year), Number(month), 0).toISOString().split('T')[0]);
-
-  const resumen = {};
-  data?.forEach(r => {
-    const key = r.tipos_hora_extra?.descripcion || `Tipo ${r.tipo_hora_id}`;
-    resumen[key] = (resumen[key]||0) + (r.cantidad_horas||0);
-  });
-
-  const totalH = Object.values(resumen).reduce((a,b)=>a+b, 0);
-  const totalV = data?.reduce((a,r)=>a+(r.valor_total||0), 0) || 0;
-
-  document.getElementById('hex-stats').innerHTML = `
-    <div class="stat-card" style="--accent:var(--amarillo)">
-      <div class="stat-label">Total horas extra</div>
-      <div class="stat-value">${totalH.toFixed(1)}</div>
-      <div class="stat-sub">en el período</div>
-    </div>
-    <div class="stat-card" style="--accent:var(--verde)">
-      <div class="stat-label">Valor total</div>
-      <div class="stat-value" style="font-size:1.4rem">${fmt.currency(totalV)}</div>
-      <div class="stat-sub">estimado</div>
-    </div>
-    ${Object.entries(resumen).map(([tipo, h]) => `
-    <div class="stat-card" style="--accent:var(--azul)">
-      <div class="stat-label">${tipo}</div>
-      <div class="stat-value">${h.toFixed(1)}h</div>
-    </div>`).join('')}`;
-}
-
-async function renderHexTabla() {
-  const tbody = document.getElementById('hex-tbody');
-  tbody.innerHTML = `<tr><td colspan="9"><div class="loading-center"><div class="spinner"></div></div></td></tr>`;
-
-  const mes    = document.getElementById('hex-mes-filter').value;
-  const empFil = document.getElementById('hex-emp-filter').value;
-  let [year, month] = mes ? mes.split('-') : [new Date().getFullYear(), String(new Date().getMonth()+1).padStart(2,'0')];
-
-  let q = sb.from('horas_extra_detalle')
-    .select('*, empleados(nombre_completo,salario_base), tipos_hora_extra(descripcion,factor)')
-    .eq('empresa_id', EMPRESA_ID)
-    .gte('fecha', `${year}-${month}-01`)
-    .lte('fecha', new Date(Number(year), Number(month), 0).toISOString().split('T')[0])
-    .order('fecha', { ascending: false });
-
-  if (empFil) q = q.eq('empleado_id', empFil);
-  if (STATE.rol === 'empleado' && STATE.empleado) q = q.eq('empleado_id', STATE.empleado.id);
-
-  const { data } = await q;
-  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
-
-  if (!data?.length) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">⚡</div><div class="empty-text">Sin horas extra en el período</div></div></td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = data.map(r => {
-    // Valor = (salario/240) * factor * horas
-    const valorHora = r.empleados?.salario_base ? (r.empleados.salario_base / 240) * (r.tipos_hora_extra?.factor||1) : 0;
-    const valorTotal = r.valor_total || (valorHora * r.cantidad_horas);
-    return `<tr>
-      <td>${fmt.date(r.fecha)}</td>
-      <td>${r.empleados?.nombre_completo||'—'}</td>
-      <td><span class="badge badge-azul">${r.tipos_hora_extra?.descripcion||'—'}</span></td>
-      <td>${fmt.time(r.hora_inicio)}</td>
-      <td>${fmt.time(r.hora_fin)}</td>
-      <td class="mono font-bold">${r.cantidad_horas}h</td>
-      <td class="mono">${fmt.currency(valorTotal)}</td>
-      <td>${r.aprobado_por ? badgeEstado('activo') : badgeEstado('pendiente')}</td>
-      <td>
-        ${canManage ? `
-          <div class="flex gap-1">
-            <button class="btn-icon" onclick="editHex('${r.id}')">✏️</button>
-            <button class="btn-icon btn-danger" onclick="deleteHex('${r.id}')">🗑</button>
-          </div>` : ''}
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-document.getElementById('btn-nueva-hex').onclick = () => {
-  document.getElementById('hex-id').value = '';
-  document.getElementById('modal-hex-title').textContent = 'Registrar Horas Extra';
-  ['hex-inicio','hex-fin','hex-obs'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('hex-horas').value = '';
-  document.getElementById('hex-fecha').value = new Date().toISOString().split('T')[0];
-  if (STATE.empleado) document.getElementById('hex-empleado').value = STATE.empleado.id;
-  openModal('modal-hex');
-};
-
-document.getElementById('btn-guardar-hex').onclick = async () => {
-  const empId = document.getElementById('hex-empleado').value;
-  const emp   = STATE.empleados.find(e => e.id === empId);
-  const tipoId = parseInt(document.getElementById('hex-tipo').value);
-  const tipo   = STATE.tiposHex.find(t => t.id === tipoId);
-  const horas  = parseFloat(document.getElementById('hex-horas').value)||0;
-  const valorHora  = emp ? (emp.salario_base / 240) * (tipo?.factor||1) : 0;
-  const valorTotal = valorHora * horas;
-
-  const payload = {
-    empresa_id:     EMPRESA_ID,
-    empleado_id:    empId,
-    tipo_hora_id:   tipoId,
-    fecha:          document.getElementById('hex-fecha').value,
-    hora_inicio:    document.getElementById('hex-inicio').value || null,
-    hora_fin:       document.getElementById('hex-fin').value || null,
-    cantidad_horas: horas,
-    valor_hora:     Math.round(valorHora),
-    valor_total:    Math.round(valorTotal),
-    observacion:    document.getElementById('hex-obs').value,
-    created_by:     STATE.user?.id,
-  };
-
-  const id = document.getElementById('hex-id').value;
-  const { error } = id
-    ? await sb.from('horas_extra_detalle').update(payload).eq('id', id)
-    : await sb.from('horas_extra_detalle').insert(payload);
-
-  if (error) { toast(error.message, 'error'); return; }
-  toast('Horas extra guardadas.', 'ok');
-  closeModal('modal-hex');
-  await renderHexTabla();
-  await renderHexStats();
-};
-
-async function deleteHex(id) {
-  if (!confirm('¿Eliminar este registro?')) return;
-  const { error } = await sb.from('horas_extra_detalle').delete().eq('id', id);
-  if (error) { toast(error.message, 'error'); return; }
-  toast('Registro eliminado.', 'ok');
-  await renderHexTabla();
-  await renderHexStats();
-}
-
-/* ═══════════════════════════════════════════════
-   DOCUMENTOS
-═══════════════════════════════════════════════ */
-async function renderDocumentos() {
-  await loadEmpleados();
-  const empOpts = STATE.empleados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
-  document.getElementById('doc-empleado').innerHTML = empOpts;
-
-  document.getElementById('doc-tipo-filter').onchange   = renderDocTabla;
-  document.getElementById('doc-alerta-filter').onchange = renderDocTabla;
-  document.getElementById('btn-nuevo-doc').onclick = () => {
-    document.getElementById('doc-id').value = '';
-    document.getElementById('modal-doc-title').textContent = 'Cargar Documento';
-    ['doc-entidad','doc-numero','doc-inicio','doc-vence','doc-desc','doc-url'].forEach(id => document.getElementById(id).value = '');
-    openModal('modal-doc');
-  };
-
-  await renderDocTabla();
-  await renderDocStats();
-}
-
-async function renderDocStats() {
-  const { data } = await sb.from('v_documentos_alertas').select('alerta').eq('empresa_id', EMPRESA_ID);
-  const counts = { vencido:0, critico:0, proximo:0, vigente:0 };
-  data?.forEach(d => { counts[d.alerta] = (counts[d.alerta]||0) + 1; });
-
-  document.getElementById('doc-stats').innerHTML = `
-    <div class="stat-card" style="--accent:var(--rojo)">
-      <div class="stat-label">Vencidos</div>
-      <div class="stat-value">${counts.vencido}</div>
-    </div>
-    <div class="stat-card" style="--accent:var(--naranja)">
-      <div class="stat-label">Críticos (30d)</div>
-      <div class="stat-value">${counts.critico}</div>
-    </div>
-    <div class="stat-card" style="--accent:var(--amarillo)">
-      <div class="stat-label">Próximos (60d)</div>
-      <div class="stat-value">${counts.proximo}</div>
-    </div>
-    <div class="stat-card" style="--accent:var(--verde)">
-      <div class="stat-label">Vigentes</div>
-      <div class="stat-value">${counts.vigente}</div>
-    </div>`;
-}
-
-async function renderDocTabla() {
-  const tbody = document.getElementById('doc-tbody');
-  tbody.innerHTML = `<tr><td colspan="8"><div class="loading-center"><div class="spinner"></div></div></td></tr>`;
-
-  const tipoFil   = document.getElementById('doc-tipo-filter').value;
-  const alertaFil = document.getElementById('doc-alerta-filter').value;
-
-  let q = sb.from('v_documentos_alertas').select('*').eq('empresa_id', EMPRESA_ID);
-  if (tipoFil)   q = q.eq('tipo', tipoFil);
-  if (alertaFil) q = q.eq('alerta', alertaFil);
-  if (STATE.rol === 'empleado' && STATE.empleado) q = q.eq('empleado_id', STATE.empleado.id);
-  q = q.order('dias_para_vencer');
-
-  const { data } = await q;
-  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
-
-  if (!data?.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📄</div><div class="empty-text">Sin documentos</div></div></td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = data.map(d => {
-    const dias = d.dias_para_vencer;
-    const pct  = Math.max(0, Math.min(100, dias > 0 ? Math.round((dias/365)*100) : 0));
-    const barColor = dias < 0 ? 'var(--rojo)' : dias < 30 ? 'var(--naranja)' : dias < 60 ? 'var(--amarillo)' : 'var(--verde)';
-
-    return `<tr>
-      <td>
-        <div style="font-weight:600;font-size:0.85rem">${d.nombre_completo}</div>
-        <div class="text-xs text-muted">${d.cargo||''}</div>
-      </td>
-      <td><span class="badge badge-azul">${d.tipo}</span></td>
-      <td>${d.descripcion||'—'}</td>
-      <td class="text-sm">${fmt.date(d.fecha_inicio||null)}</td>
-      <td class="text-sm">${fmt.date(d.fecha_vencimiento)}</td>
-      <td>
-        <div class="mono text-sm">${dias < 0 ? `<span class="text-rojo">${Math.abs(dias)}d vencido</span>` : dias+'d'}</div>
-        <div class="doc-progress"><div class="doc-progress-bar" style="width:${pct}%;background:${barColor}"></div></div>
-      </td>
-      <td>${badgeEstado(d.alerta)}</td>
-      <td>
-        <div class="flex gap-1">
-          ${d.archivo_url && /^https?:\/\//.test(d.archivo_url) ? `<a href="${escHtml(d.archivo_url)}" target="_blank" rel="noopener noreferrer" class="btn-icon" title="Descargar">⬇️</a>` : ''}
-          ${canManage ? `<button class="btn-icon" onclick="editDoc('${d.id}')">✏️</button>` : ''}
-          ${canManage ? `<button class="btn-icon" onclick="deleteDoc('${d.id}')">🗑</button>` : ''}
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-document.getElementById('btn-guardar-doc').onclick = async () => {
-  const id = document.getElementById('doc-id').value;
-  const vence = document.getElementById('doc-vence').value;
-  const dias = vence ? diasParaVencer(vence) : null;
-  let estado = 'vigente';
-  if (dias !== null) {
-    if (dias < 0)  estado = 'vencido';
-    else if (dias < 30) estado = 'proximo_vencer';
-  }
-
-  const payload = {
-    empresa_id:       EMPRESA_ID,
-    empleado_id:      document.getElementById('doc-empleado').value,
-    tipo:             document.getElementById('doc-tipo').value,
-    entidad_emisora:  document.getElementById('doc-entidad').value,
-    numero_documento: document.getElementById('doc-numero').value,
-    fecha_inicio:     document.getElementById('doc-inicio').value || null,
-    fecha_vencimiento:vence || null,
-    descripcion:      document.getElementById('doc-desc').value,
-    archivo_url:      document.getElementById('doc-url').value || null,
-    estado,
-    created_by: STATE.user?.id,
-  };
-
-  const { error } = id
-    ? await sb.from('documentos_empleado').update(payload).eq('id', id)
-    : await sb.from('documentos_empleado').insert(payload);
-
-  if (error) { toast(error.message, 'error'); return; }
-  toast(id ? 'Documento actualizado.' : 'Documento cargado.', 'ok');
-  closeModal('modal-doc');
-  await renderDocTabla();
-  await renderDocStats();
-  markDirty('dashboard');
-};
-
-async function editDoc(id) {
-  const { data: d } = await sb.from('documentos_empleado').select('*').eq('id', id).single();
-  if (!d) return;
-  document.getElementById('doc-id').value = d.id;
-  document.getElementById('doc-empleado').value = d.empleado_id;
-  document.getElementById('doc-tipo').value = d.tipo;
-  document.getElementById('doc-entidad').value = d.entidad_emisora||'';
-  document.getElementById('doc-numero').value = d.numero_documento||'';
-  document.getElementById('doc-inicio').value = d.fecha_inicio||'';
-  document.getElementById('doc-vence').value = d.fecha_vencimiento||'';
-  document.getElementById('doc-desc').value = d.descripcion||'';
-  document.getElementById('doc-url').value = d.archivo_url||'';
-  document.getElementById('modal-doc-title').textContent = 'Editar Documento';
-  openModal('modal-doc');
-}
-
-async function deleteDoc(id) {
-  if (!confirm('¿Eliminar este documento?')) return;
-  const { error } = await sb.from('documentos_empleado').delete().eq('id', id);
-  if (error) { toast(error.message, 'error'); return; }
-  toast('Documento eliminado.', 'ok');
-  await renderDocTabla();
-  await renderDocStats();
-}
-
-/* ═══════════════════════════════════════════════
-   OBSERVACIONES
-═══════════════════════════════════════════════ */
-async function renderObservaciones() {
-  await loadEmpleados();
-  const empOpts = STATE.empleados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
-  document.getElementById('obs-empleado').innerHTML = empOpts;
-  document.getElementById('obs-emp-filter').innerHTML = `<option value="">— Todos —</option>${empOpts}`;
-  document.getElementById('obs-emp-filter').onchange = loadObsList;
-
-  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
-  document.getElementById('btn-nueva-obs').classList.toggle('hidden', !canManage);
-
-  document.getElementById('btn-nueva-obs').onclick = () => openModal('modal-obs');
-
-  document.getElementById('btn-guardar-obs').onclick = async () => {
-    const payload = {
-      empresa_id:     EMPRESA_ID,
-      empleado_id:    document.getElementById('obs-empleado').value,
-      tipo:           document.getElementById('obs-tipo').value,
-      descripcion:    document.getElementById('obs-desc').value.trim(),
-      es_privada:     document.getElementById('obs-privada').checked,
-      registrado_por: STATE.user?.id,
-    };
-    if (!payload.descripcion) { toast('Descripción requerida.', 'warn'); return; }
-    const { error } = await sb.from('observaciones_empleado').insert(payload);
-    if (error) { toast(error.message, 'error'); return; }
-    toast('Observación registrada.', 'ok');
-    closeModal('modal-obs');
-    document.getElementById('obs-desc').value = '';
-    document.getElementById('obs-privada').checked = false;
-    await loadObsList();
-  };
-
-  await loadObsList();
-}
-
-async function loadObsList() {
-  const container = document.getElementById('obs-list');
-  container.innerHTML = `<div class="loading-center"><div class="spinner"></div></div>`;
-
-  const empFil = document.getElementById('obs-emp-filter').value;
-  let q = sb.from('observaciones_empleado')
-    .select('*, empleados(nombre_completo), usuarios(nombre)')
-    .eq('empresa_id', EMPRESA_ID)
-    .order('created_at', { ascending: false })
-    .limit(50);
-
-  if (empFil) q = q.eq('empleado_id', empFil);
-  if (STATE.rol === 'empleado' && STATE.empleado) {
-    q = q.eq('empleado_id', STATE.empleado.id).eq('es_privada', false);
-  }
-
-  const { data } = await q;
-
-  const tipoBadge = {
-    general:'badge-gris', disciplinaria:'badge-rojo',
-    felicitacion:'badge-verde', capacitacion:'badge-azul', otro:'badge-gris',
-  };
-
-  if (!data?.length) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-text">Sin observaciones</div></div>`;
-    return;
-  }
-
-  container.innerHTML = data.map(o => `
-    <div class="card" style="margin-bottom:0.75rem">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:36px;height:36px;background:var(--gris-700);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:0.85rem">
-            ${fmt.initials(o.empleados?.nombre_completo||'?')}
-          </div>
-          <div>
-            <div style="font-weight:600;font-size:0.9rem">${o.empleados?.nombre_completo||'—'}</div>
-            <div class="text-xs text-muted">por ${o.usuarios?.nombre||'Sistema'} · ${fmt.datetime(o.created_at)}</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span class="badge ${tipoBadge[o.tipo]||'badge-gris'}">${o.tipo}</span>
-          ${o.es_privada ? '<span class="badge badge-amarillo">🔒 Privada</span>' : ''}
-        </div>
-      </div>
-      <p style="font-size:0.875rem;color:var(--gris-200);line-height:1.6;white-space:pre-wrap">${escHtml(o.descripcion)}</p>
-    </div>`).join('');
-}
-
-
-async function editHex(id) {
-  const { data: r, error } = await sb.from('horas_extra_detalle').select('*').eq('id', id).single();
-  if (error || !r) { toast('No se pudo cargar el registro.','error'); return; }
-  document.getElementById('hex-id').value = r.id;
-  document.getElementById('modal-hex-title').textContent = 'Editar Horas Extra';
-  document.getElementById('hex-empleado').value = r.empleado_id || '';
-  document.getElementById('hex-fecha').value = r.fecha || '';
-  document.getElementById('hex-tipo').value = r.tipo_hora_id || '';
-  document.getElementById('hex-inicio').value = r.hora_inicio ? String(r.hora_inicio).slice(0,5) : '';
-  document.getElementById('hex-fin').value = r.hora_fin ? String(r.hora_fin).slice(0,5) : '';
-  document.getElementById('hex-horas').value = r.cantidad_horas || '';
-  document.getElementById('hex-obs').value = r.observacion || '';
-  openModal('modal-hex');
-}
-
-async function verNovedad(asistenciaId) {
-  const { data: asistencia, error: errorAsis } = await sb.from('asistencia')
-    .select('id, empleado_id, fecha, estado, observacion, es_novedad, novedades_calendario_id')
-    .eq('id', asistenciaId)
-    .maybeSingle();
-
-  if (errorAsis || !asistencia) {
-    toast('No se pudo cargar la novedad.','error');
-    return;
-  }
-
-  let novedad = null;
-  if (asistencia.novedades_calendario_id) {
-    const { data } = await sb.from('novedades_calendario').select('*').eq('id', asistencia.novedades_calendario_id).maybeSingle();
-    novedad = data || null;
-  }
-  if (!novedad) {
-    const { data } = await sb.from('novedades_calendario')
-      .select('*')
-      .eq('empleado_id', asistencia.empleado_id)
-      .eq('fecha', asistencia.fecha)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    novedad = data || null;
-  }
-
-  document.getElementById('nov-asis-id').value = asistencia.id || '';
-  document.getElementById('nov-empleado').innerHTML =
-    STATE.empleados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
-  document.getElementById('nov-empleado').value = novedad?.empleado_id || asistencia.empleado_id || '';
-  document.getElementById('nov-fecha').value = novedad?.fecha || asistencia.fecha || '';
-  document.getElementById('nov-tipo').value = novedad?.tipo_novedad || 'otro';
-  document.getElementById('nov-obs').value = novedad?.descripcion || asistencia.observacion || '';
-  openModal('modal-novedad');
-}
-
-/* ═══════════════════════════════════════════════
-   INIT
-═══════════════════════════════════════════════ */
-
-/* ═══════════════════════════════════════════════
-   OPERACIONES — MÓDULO FASE 4
-═══════════════════════════════════════════════ */
-let _opTimerInterval = null;
-let _opActivaId      = null;
-let _opActivaInicio  = null;
-let _opEstadoFiltro  = '';
-
-async function renderOperaciones() {
-  const esOperador = STATE.rol === 'operador';
-  const canManage  = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
-
-  // Fecha por defecto: hoy
-  const hoy = new Date().toISOString().split('T')[0];
-  const fechaEl = document.getElementById('op-fecha-filter');
-  if (!fechaEl.value) fechaEl.value = hoy;
-
-  // Cargar empleados y poblar selector de operadores
-  await loadEmpleados();
-  const operSel = document.getElementById('op-operador-filter');
-  operSel.innerHTML = '<option value="">— Todos los operadores —</option>' +
-    STATE.empleados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
-
-  if (esOperador && STATE.empleado) {
-    operSel.value = STATE.empleado.id;
-    operSel.disabled = true;
-  }
-
-  // Poblar modales
-  await _poblarSelectsModalOp();
-
-  // Filtros de estado
-  document.querySelectorAll('.op-filter-btn').forEach(btn => {
-    btn.onclick = () => {
-      document.querySelectorAll('.op-filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      _opEstadoFiltro = btn.dataset.estado;
-      renderOpList();
-    };
-  });
-
-  operSel.onchange = () => renderOpList();
-  fechaEl.onchange  = () => renderOpList();
-
-  document.getElementById('btn-nueva-op').onclick    = () => abrirModalIniciarOp();
-  document.getElementById('btn-finalizar-op').onclick = () => abrirModalFinalizar(_opActivaId);
-  document.getElementById('btn-obs-op-activa').onclick = () => {
-    document.getElementById('op-obs-id').value    = _opActivaId || '';
-    document.getElementById('op-obs-texto').value = '';
-    openModal('modal-op-obs');
-  };
-  document.getElementById('btn-guardar-op-obs').onclick  = _guardarObsRapida;
-  document.getElementById('btn-guardar-op').onclick       = guardarOperacion;
-  document.getElementById('btn-confirmar-fin').onclick    = confirmarFin;
-
-  await checkOpActiva();
-  await renderOpStats();
-  await renderOpList();
-}
-
-/* ── Verificar op. activa del operador logueado ─── */
-async function checkOpActiva() {
-  const empId = STATE.empleado?.id || null;
-  if (!empId) return;
-
-  const { data } = await sb.from('operaciones')
-    .select('*')
-    .eq('empresa_id', EMPRESA_ID)
-    .eq('operador_id', empId)
-    .eq('estado', 'en_curso')
-    .order('hora_inicio', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const section  = document.getElementById('op-activa-section');
-  const btnNueva = document.getElementById('btn-nueva-op');
-  if (!section || !btnNueva) return;
-
-  if (data) {
-    _opActivaId    = data.id;
-    _opActivaInicio = new Date(data.hora_inicio);
-    section.classList.remove('hidden');
-    btnNueva.disabled = true;
-    btnNueva.textContent = '⏸ Operación activa';
-
-    document.getElementById('op-activa-obra').textContent    = data.obra;
-    document.getElementById('op-activa-cliente').textContent = 'Cliente: ' + data.cliente;
-
-    document.getElementById('op-activa-meta').innerHTML = `
-      <div class="op-meta-item">
-        <div class="op-meta-label">Inicio</div>
-        <div class="op-meta-value">${new Date(data.hora_inicio).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}</div>
-      </div>
-      <div class="op-meta-item">
-        <div class="op-meta-label">Ciudad</div>
-        <div class="op-meta-value">${data.ciudad_obra || '—'}</div>
-      </div>
-      ${data.bono_operacion > 0 ? `
-      <div class="op-meta-item">
-        <div class="op-meta-label">Bono</div>
-        <div class="op-meta-value" style="color:var(--amarillo)">${fmt.currency(data.bono_operacion)}</div>
-      </div>` : ''}`;
-
-    clearInterval(_opTimerInterval);
-    _opTimerInterval = setInterval(() => {
-      const el = document.getElementById('op-timer-display');
-      if (!el) { clearInterval(_opTimerInterval); return; }
-      const elapsed = Math.floor((Date.now() - _opActivaInicio) / 1000);
-      const h = String(Math.floor(elapsed / 3600)).padStart(2,'0');
-      const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2,'0');
-      const s = String(elapsed % 60).padStart(2,'0');
-      el.textContent = `${h}:${m}:${s}`;
-    }, 1000);
-  } else {
-    _opActivaId = null;
-    clearInterval(_opTimerInterval);
-    section.classList.add('hidden');
-    if (btnNueva) { btnNueva.disabled = false; btnNueva.textContent = '▶ Iniciar Operación'; }
-  }
-}
-
-/* ── Stats ─────────────────────────────────────────── */
-async function renderOpStats() {
-  const mes1 = new Date().toISOString().slice(0,7) + '-01';
-  let q = sb.from('operaciones')
-    .select('estado, duracion_horas, bono_operacion')
-    .eq('empresa_id', EMPRESA_ID)
-    .gte('hora_inicio', mes1);
-  if (STATE.empleado) q = q.eq('operador_id', STATE.empleado.id);
-
-  const { data } = await q;
-  const fin      = (data||[]).filter(o => o.estado === 'finalizada');
-  const curso    = (data||[]).filter(o => o.estado === 'en_curso');
-  const totalH   = fin.reduce((a,o) => a + (o.duracion_horas||0), 0);
-  const totalB   = (data||[]).reduce((a,o) => a + (o.bono_operacion||0), 0);
-
-  document.getElementById('op-stats').innerHTML = `
-    <div class="stat-card" style="--accent:var(--rojo)">
-      <div class="stat-label">En Curso</div>
-      <div class="stat-value">${curso.length}</div>
-      <div class="stat-sub">ahora mismo</div>
-    </div>
-    <div class="stat-card" style="--accent:var(--verde)">
-      <div class="stat-label">Finalizadas</div>
-      <div class="stat-value">${fin.length}</div>
-      <div class="stat-sub">este mes</div>
-    </div>
-    <div class="stat-card" style="--accent:var(--azul)">
-      <div class="stat-label">Horas en campo</div>
-      <div class="stat-value">${totalH.toFixed(1)}h</div>
-      <div class="stat-sub">este mes</div>
-    </div>
-    <div class="stat-card" style="--accent:var(--amarillo)">
-      <div class="stat-label">Bonos acumulados</div>
-      <div class="stat-value" style="font-size:1.3rem">${fmt.currency(totalB)}</div>
-      <div class="stat-sub">este mes</div>
-    </div>`;
-}
-
-/* ── Lista en cards ─────────────────────────────────── */
-async function renderOpList() {
-  const container = document.getElementById('op-list');
-  container.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
-
-  const empFil   = document.getElementById('op-operador-filter').value;
-  const fechaFil = document.getElementById('op-fecha-filter').value;
-
-  let q = sb.from('operaciones')
-    .select('*, empleados(nombre_completo), equipos(codigo)')
-    .eq('empresa_id', EMPRESA_ID)
-    .order('hora_inicio', { ascending: false })
-    .limit(50);
-
-  if (empFil)           q = q.eq('operador_id', empFil);
-  else if (STATE.empleado) q = q.eq('operador_id', STATE.empleado.id);
-  if (_opEstadoFiltro)  q = q.eq('estado', _opEstadoFiltro);
-  if (fechaFil) {
-    q = q.gte('hora_inicio', fechaFil + 'T00:00:00')
-         .lte('hora_inicio', fechaFil + 'T23:59:59');
-  }
-
-  const { data } = await q;
-  const canManage = ['admin_empresa','gestion_humana','superadmin'].includes(STATE.rol);
-
-  if (!data?.length) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">🏗</div>
-        <div class="empty-text">Sin operaciones en este período</div>
-        <div style="margin-top:1rem">
-          <button class="btn btn-primary btn-sm" onclick="abrirModalIniciarOp()">▶ Iniciar primera operación</button>
-        </div>
-      </div>`;
-    return;
-  }
-
-  const BADGES = {
-    en_curso:   '<span class="badge badge-rojo">🔴 En Curso</span>',
-    finalizada: '<span class="badge badge-verde">✅ Finalizada</span>',
-    cancelada:  '<span class="badge badge-gris">⛔ Cancelada</span>',
-  };
-
-  container.innerHTML = data.map(op => {
-    const dur = op.duracion_horas
-      ? op.duracion_horas.toFixed(1) + 'h'
-      : op.estado === 'en_curso' ? '<span style="color:var(--rojo)">⏱ en curso</span>' : '—';
-
-    return `
-    <div class="op-card ${op.estado}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem">
-        <div>
-          <div style="font-family:var(--font-display);font-size:1.15rem;font-weight:800">${op.obra}</div>
-          <div style="font-size:0.85rem;color:var(--gris-400)">${op.cliente}${op.ciudad_obra?' · '+op.ciudad_obra:''}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-          ${BADGES[op.estado]||''}
-          ${op.bono_operacion>0?`<span class="bono-badge">💰 ${fmt.currency(op.bono_operacion)}</span>`:''}
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0.5rem;margin-bottom:0.75rem">
-        <div class="op-meta-item">
-          <div class="op-meta-label">Operador</div>
-          <div class="op-meta-value" style="font-size:0.8rem">${op.empleados?.nombre_completo||'—'}</div>
-        </div>
-        <div class="op-meta-item">
-          <div class="op-meta-label">Equipo</div>
-          <div class="op-meta-value" style="font-size:0.8rem">${op.equipos?.codigo||'—'}</div>
-        </div>
-        <div class="op-meta-item">
-          <div class="op-meta-label">Inicio</div>
-          <div class="op-meta-value" style="font-size:0.8rem">${fmt.datetime(op.hora_inicio)}</div>
-        </div>
-        <div class="op-meta-item">
-          <div class="op-meta-label">Fin</div>
-          <div class="op-meta-value" style="font-size:0.8rem">${op.hora_fin?fmt.datetime(op.hora_fin):'—'}</div>
-        </div>
-        <div class="op-meta-item">
-          <div class="op-meta-label">Duración</div>
-          <div class="op-meta-value" style="font-size:0.95rem;font-weight:800">${dur}</div>
-        </div>
-      </div>
-
-      ${op.observaciones?`
-        <div style="background:var(--gris-700);border-radius:var(--radius);padding:8px 12px;font-size:0.78rem;color:var(--gris-300);white-space:pre-wrap;margin-bottom:0.75rem;max-height:72px;overflow-y:auto">${escHtml(op.observaciones)}</div>
-      `:''}
-
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-        ${op.estado==='en_curso'?`
-          <button class="btn btn-sm btn-danger" onclick="abrirModalFinalizar('${op.id}')">⏹ Finalizar</button>
-          <button class="btn btn-sm btn-outline" onclick="opAgregarObs('${op.id}')">💬 Observación</button>
-        `:''}
-        ${canManage?`
-          <button class="btn btn-sm btn-outline" onclick="editarOp('${op.id}')">✏️ Editar</button>
-          ${op.estado==='finalizada'||op.estado==='cancelada'?`
-            <button class="btn btn-sm btn-ghost" onclick="eliminarOp('${op.id}')">🗑</button>
-          `:''}
-        `:''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-/* ── Abrir modal: iniciar ────────────────────────── */
-async function abrirModalIniciarOp() {
-  if (_opActivaId) { toast('Ya tienes una operación en curso. Finalízala primero.','warn'); return; }
-  await _poblarSelectsModalOp();
-  document.getElementById('op-id').value = '';
-  document.getElementById('modal-op-title').textContent = '▶ Iniciar Operación';
-  document.getElementById('btn-guardar-op').textContent  = '▶ Iniciar';
-
-  const now = new Date();
-  const localIso = new Date(now - now.getTimezoneOffset()*60000).toISOString().slice(0,16);
-  document.getElementById('op-hora-inicio').value = localIso;
-  document.getElementById('op-hora-fin').value    = '';
-  ['op-cliente','op-obra','op-ciudad','op-obs'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('op-bono').value = '0';
-
-  if (STATE.empleado) {
-    document.getElementById('op-operador').value = STATE.empleado.id;
-    if (STATE.empleado.equipo_id) document.getElementById('op-equipo').value = STATE.empleado.equipo_id;
-  }
-
-  const { data: prev } = await sb.from('operaciones').select('cliente')
-    .eq('empresa_id', EMPRESA_ID).order('hora_inicio',{ascending:false}).limit(60);
-  const clientes = [...new Set((prev||[]).map(o=>o.cliente))];
-  document.getElementById('op-clientes-list').innerHTML = clientes.map(c=>`<option value="${c}"></option>`).join('');
-
-  openModal('modal-op-iniciar');
-}
-
-async function _poblarSelectsModalOp() {
-  await loadEmpleados();
-  document.getElementById('op-operador').innerHTML =
-    STATE.empleados.filter(e=>e.estado==='activo')
-      .map(e=>`<option value="${e.id}">${e.nombre_completo}</option>`).join('');
-
-  const { data: equipos } = await sb.from('equipos').select('*')
-    .eq('empresa_id', EMPRESA_ID).order('codigo');
-  document.getElementById('op-equipo').innerHTML =
-    '<option value="">— Sin equipo —</option>' +
-    (equipos||[]).map(eq=>`<option value="${eq.id}">${eq.codigo}${eq.descripcion?' — '+eq.descripcion:''}</option>`).join('');
-}
-
-/* ── Guardar (nueva o edición) ──────────────────── */
-async function guardarOperacion() {
-  const id          = document.getElementById('op-id').value;
-  const horaInicioV = document.getElementById('op-hora-inicio').value;
-  const horaFinV    = document.getElementById('op-hora-fin').value;
-  const cliente     = document.getElementById('op-cliente').value.trim();
-  const obra        = document.getElementById('op-obra').value.trim();
-
-  if (!cliente||!obra||!horaInicioV) {
-    toast('Cliente, obra y hora de inicio son obligatorios.','warn'); return;
-  }
-
-  const estado  = horaFinV ? 'finalizada' : 'en_curso';
-  const payload = {
-    empresa_id:    EMPRESA_ID,
-    operador_id:   document.getElementById('op-operador').value,
-    equipo_id:     document.getElementById('op-equipo').value||null,
-    cliente, obra,
-    ciudad_obra:   document.getElementById('op-ciudad').value.trim()||null,
-    hora_inicio:   new Date(horaInicioV).toISOString(),
-    hora_fin:      horaFinV ? new Date(horaFinV).toISOString() : null,
-    observaciones: document.getElementById('op-obs').value.trim()||null,
-    bono_operacion:parseFloat(document.getElementById('op-bono').value)||0,
-    estado,
-    created_by: STATE.user?.id,
-  };
-
-  const { error } = id
-    ? await sb.from('operaciones').update(payload).eq('id', id)
-    : await sb.from('operaciones').insert(payload);
-
-  if (error) { toast(error.message,'error'); return; }
-  toast(!id
-    ? (estado==='en_curso' ? '▶ Operación iniciada.' : '✅ Operación registrada.')
-    : 'Operación actualizada.','ok');
-
-  closeModal('modal-op-iniciar');
-  markDirty('dashboard');
-  await checkOpActiva();
-  await renderOpStats();
-  await renderOpList();
-}
-
-/* ── Finalizar ──────────────────────────────────── */
-async function abrirModalFinalizar(opId) {
-  if (!opId) return;
-  const { data: op } = await sb.from('operaciones')
-    .select('*, empleados(nombre_completo)').eq('id', opId).single();
-  if (!op) return;
-
-  document.getElementById('op-fin-id').value       = opId;
-  document.getElementById('op-fin-nombre').textContent = op.obra;
-  document.getElementById('op-fin-sub').textContent =
-    op.cliente + ' · Inicio: ' + fmt.datetime(op.hora_inicio);
-  document.getElementById('op-fin-bono').value  = op.bono_operacion||0;
-  document.getElementById('op-fin-obs').value   = '';
-
-  const now = new Date();
-  document.getElementById('op-fin-hora').value =
-    new Date(now - now.getTimezoneOffset()*60000).toISOString().slice(0,16);
-
-  openModal('modal-op-finalizar');
-}
-
-async function confirmarFin() {
-  const opId   = document.getElementById('op-fin-id').value;
-  const horaFin = document.getElementById('op-fin-hora').value;
-  const bono    = parseFloat(document.getElementById('op-fin-bono').value)||0;
-  const obs     = document.getElementById('op-fin-obs').value.trim();
-
-  if (!horaFin) { toast('Indica la hora de finalización.','warn'); return; }
-
-  const { data: op } = await sb.from('operaciones').select('observaciones').eq('id', opId).single();
-  const obsBase   = op?.observaciones||'';
-  const obsNueva  = obs
-    ? (obsBase + (obsBase?'\n':'') + '[Cierre ' + new Date().toLocaleString('es-CO') + '] ' + obs).trim()
-    : obsBase;
-
-  const { error } = await sb.from('operaciones').update({
-    hora_fin:       new Date(horaFin).toISOString(),
-    estado:         'finalizada',
-    bono_operacion: bono,
-    observaciones:  obsNueva||null,
-  }).eq('id', opId);
-
-  if (error) { toast(error.message,'error'); return; }
-  toast('✅ Operación finalizada.','ok');
-  closeModal('modal-op-finalizar');
-  _opActivaId = null;
-  clearInterval(_opTimerInterval);
-  markDirty('dashboard');
-  await checkOpActiva();
-  await renderOpStats();
-  await renderOpList();
-}
-
-async function cancelarOp() {
-  const opId = document.getElementById('op-fin-id').value;
-  if (!opId||!confirm('¿Cancelar esta operación?')) return;
-  const { error } = await sb.from('operaciones').update({ estado:'cancelada' }).eq('id', opId);
-  if (error) { toast(error.message, 'error'); return; }
-  toast('Operación cancelada.','warn');
-  closeModal('modal-op-finalizar');
-  _opActivaId = null;
-  clearInterval(_opTimerInterval);
-  await checkOpActiva();
-  await renderOpStats();
-  await renderOpList();
-}
-
-/* ── Editar (admin/GH) ──────────────────────────── */
-async function editarOp(id) {
-  await _poblarSelectsModalOp();
-  const { data: op } = await sb.from('operaciones').select('*').eq('id', id).single();
-  if (!op) return;
-
-  document.getElementById('op-id').value = op.id;
-  document.getElementById('modal-op-title').textContent = 'Editar Operación';
-  document.getElementById('btn-guardar-op').textContent  = '💾 Guardar cambios';
-  document.getElementById('op-operador').value  = op.operador_id;
-  document.getElementById('op-equipo').value    = op.equipo_id||'';
-  document.getElementById('op-cliente').value   = op.cliente;
-  document.getElementById('op-obra').value      = op.obra;
-  document.getElementById('op-ciudad').value    = op.ciudad_obra||'';
-  document.getElementById('op-bono').value      = op.bono_operacion||0;
-  document.getElementById('op-obs').value       = op.observaciones||'';
-
-  const toLocal = iso => iso
-    ? new Date(new Date(iso) - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16)
-    : '';
-  document.getElementById('op-hora-inicio').value = toLocal(op.hora_inicio);
-  document.getElementById('op-hora-fin').value    = toLocal(op.hora_fin);
-
-  openModal('modal-op-iniciar');
-}
-
-async function eliminarOp(id) {
-  if (!confirm('¿Eliminar esta operación?')) return;
-  const { error } = await sb.from('operaciones').delete().eq('id', id);
-  if (error) { toast(error.message,'error'); return; }
-  toast('Operación eliminada.','ok');
-  await renderOpStats();
-  await renderOpList();
-}
-
-/* ── Observación rápida en tarjeta ─────────────── */
-function opAgregarObs(opId) {
-  document.getElementById('op-obs-id').value    = opId;
-  document.getElementById('op-obs-texto').value = '';
-  openModal('modal-op-obs');
-}
-
-async function _guardarObsRapida() {
-  const opId  = document.getElementById('op-obs-id').value;
-  const texto = document.getElementById('op-obs-texto').value.trim();
-  if (!texto||!opId) { toast('Escribe una observación.','warn'); return; }
-
-  const { data: op } = await sb.from('operaciones').select('observaciones').eq('id', opId).single();
-  const anterior = op?.observaciones||'';
-  const nueva = (anterior + (anterior?'\n':'') +
-    '[' + new Date().toLocaleString('es-CO') + '] ' + texto).trim();
-
-  const { error } = await sb.from('operaciones').update({ observaciones: nueva }).eq('id', opId);
-  if (error) { toast(error.message,'error'); return; }
-  toast('Observación guardada.','ok');
-  closeModal('modal-op-obs');
-  await renderOpList();
-}
-
-initAuth();
-</script>
+
+    async function login(){
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value;
+      const err = document.getElementById("loginError");
+      err.textContent = "";
+      if(!email || !password){ err.textContent = "Ingresa correo y contraseña."; return; }
+
+      try{
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if(error || !data?.user){ err.textContent = "Credenciales inválidas."; return; }
+        await cargarContextoUsuario();
+      }catch(_e){
+        err.textContent = "Error de conexión con autenticación.";
+      }
+    }
+
+    async function cargarContextoUsuario(){
+      try{
+        const { data: au, error: ae } = await supabase.auth.getUser();
+        if(ae || !au?.user){ document.getElementById("loginError").textContent = "No se pudo validar sesión."; return; }
+        user_id = au.user.id;
+        usuario_email = au.user.email || "";
+
+        const { data: ue, error: eue } = await supabase
+          .from("usuarios_empresas")
+          .select("user_id,empresa_id,rol,empresa:empresas(nombre)")
+          .eq("user_id", user_id)
+          .maybeSingle();
+
+        if(eue || !ue?.empresa_id){
+          document.getElementById("loginError").textContent = "Usuario sin empresa asignada.";
+          await supabase.auth.signOut();
+          return;
+        }
+
+        empresa_id = ue.empresa_id;
+        rol_usuario = ue.rol || "operaciones";
+        empresa_nombre = ue.empresa?.nombre || "Empresa";
+        mostrarChat();
+      }catch(_e){
+        document.getElementById("loginError").textContent = "No se pudo cargar el contexto.";
+      }
+    }
+
+    function mostrarChat(){
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("chatScreen").classList.remove("hidden");
+      document.getElementById("ctxUser").textContent = usuario_email || user_id || "-";
+      document.getElementById("ctxEmpresa").textContent = empresa_nombre || "-";
+      document.getElementById("ctxRol").textContent = rol_usuario || "-";
+      agregarMensaje("bot","Hola. Estoy listo para operar tu empresa.");
+      agregarMensaje("bot","Comandos: crear cliente, crear cotización, crear alquiler, alquileres activos, máquinas disponibles, finanzas, resumen.");
+    }
+
+    function detectarIntencion(texto){
+      let x = normalizarTexto(texto);
+      x = x
+        .replace(/\ben marcha\b|\bvigente\b|\btrabajando\b/g,"activo")
+        .replace(/\blibre\b/g,"disponible")
+        .replace(/\baceptada\b/g,"aprobada")
+        .replace(/\brenta\b/g,"alquiler")
+        .replace(/\bequipo\b/g,"maquina")
+        .replace(/\bcrear empresa\b/g,"crear cliente")
+        .replace(/\bcoti\b/g,"cotizacion")
+        .replace(/\bn\.?\s*i\.?\s*t\b|\bn it\b|\bni\b/g,"nit");
+
+      if(/crear cliente|nuevo cliente/.test(x)) return {type:"crear_cliente"};
+      if(/crear cotizacion|nueva cotizacion/.test(x)) return {type:"crear_cotizacion"};
+      if(/crear alquiler|nuevo alquiler/.test(x)) return {type:"crear_alquiler"};
+      if(/asignar maquina/.test(x)) return {type:"asignar_maquina"};
+      if(/cambiar estado.*maquina|estado.*maquina/.test(x)) return {type:"cambiar_estado_maquina"};
+
+      if(/alquiler/.test(x)){
+        if(/por vencer|vencer/.test(x)) return {type:"consultar_alquileres",filtro:"por_vencer"};
+        if(/reservado/.test(x)) return {type:"consultar_alquileres",filtro:"reservado"};
+        if(/finalizado/.test(x)) return {type:"consultar_alquileres",filtro:"finalizado"};
+        if(/pendiente.*recogida/.test(x)) return {type:"consultar_alquileres",filtro:"pendiente_recogida"};
+        return {type:"consultar_alquileres",filtro:"activo"};
+      }
+
+      if(/cotizacion/.test(x)){
+        const es = ["borrador","en_revision","enviada","aprobada","negociacion","rechazada","perdida","vencida","reabierta","cancelada"];
+        for(const e of es){ if(x.includes(e.replace("_"," "))) return {type:"consultar_cotizaciones",filtro:e}; }
+        return {type:"consultar_cotizaciones",filtro:"aprobada"};
+      }
+
+      if(/maquina|equipos?/.test(x)){
+        if(/disponible/.test(x)) return {type:"consultar_maquinas",filtro:"disponible"};
+        if(/mantenimiento/.test(x)) return {type:"consultar_maquinas",filtro:"mantenimiento"};
+        if(/varad/.test(x)) return {type:"consultar_maquinas",filtro:"varado"};
+        if(/trabajando|activo/.test(x)) return {type:"consultar_maquinas",filtro:"trabajando"};
+        return {type:"consultar_maquinas",filtro:"disponible"};
+      }
+
+      if(/finanza|ingreso|gasto|caja|balance/.test(x)) return {type:"consultar_finanzas"};
+      if(/resumen|estado general|que tengo hoy|hoy/.test(x)) return {type:"consultar_resumen"};
+      if(/cliente/.test(x)){ const m = x.match(/cliente\s+(.+)/); return {type:"consultar_clientes",busqueda:m?m[1].trim():""}; }
+
+      return {type:"desconocida"};
+    }
+
+    function extraerDatosCliente(texto){
+      const t = texto || "";
+      const n = normalizarTexto(texto);
+      const o = {};
+      const nit = n.match(/(?:nit)\s*[:#-]?\s*(\d{5,15})/i);
+      const tel = n.match(/(?:telefono|tel|celular|movil)\s*[:#-]?\s*(\+?\d{7,15})/i);
+      const cor = t.match(/[a-zA-Z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
+      const nom = t.match(/(?:nombre|empresa|cliente)\s*[:#-]?\s*([a-zA-Z0-9ÁÉÍÓÚÑáéíóúñ .,&-]{3,})/i);
+      const con = t.match(/(?:contacto)\s*[:#-]?\s*([a-zA-ZÁÉÍÓÚÑáéíóúñ .-]{3,})/i);
+      const car = t.match(/(?:cargo)\s*[:#-]?\s*([a-zA-ZÁÉÍÓÚÑáéíóúñ .-]{3,})/i);
+      const dir = t.match(/(?:direccion|dirección)\s*[:#-]?\s*([a-zA-Z0-9ÁÉÍÓÚÑáéíóúñ #.,-]{5,})/i);
+      const ciu = t.match(/(?:ciudad)\s*[:#-]?\s*([a-zA-ZÁÉÍÓÚÑáéíóúñ .-]{3,})/i);
+      const obs = t.match(/(?:obs|observacion|observación)\s*[:#-]?\s*(.+)$/i);
+
+      if(nit) o.nit = nit[1];
+      if(tel) o.telefono = tel[1];
+      if(cor) o.correo = cor[0];
+      if(nom) o.nombre_empresa = nom[1].trim();
+      if(con) o.contacto = con[1].trim();
+      if(car) o.cargo = car[1].trim();
+      if(dir) o.direccion = dir[1].trim();
+      if(ciu) o.ciudad = ciu[1].trim();
+      if(obs) o.obs = obs[1].trim();
+      return o;
+    }
+
+    function iniciarFlujoCliente(txt=""){
+      flujoActual = { tipo:"crear_cliente", data:{ nombre_empresa:"",nit:"",telefono:"",correo:"",contacto:"",cargo:"",direccion:"",ciudad:"",obs:"" } };
+      if(txt) Object.assign(flujoActual.data, extraerDatosCliente(txt));
+      continuarFlujoCliente("");
+    }
+
+    async function continuarFlujoCliente(input){
+      if(!flujoActual || flujoActual.tipo!=="crear_cliente") return;
+      if(input){
+        const ex = extraerDatosCliente(input);
+        Object.assign(flujoActual.data, ex);
+        if(flujoActual.esperandoCampo && !ex[flujoActual.esperandoCampo]){
+          flujoActual.data[flujoActual.esperandoCampo] = input.trim();
+        }
+      }
+
+      const d = flujoActual.data;
+      const falt = [];
+      ["nombre_empresa","nit","telefono","correo","contacto","cargo","direccion","ciudad","obs"].forEach(k=>{ if(!d[k]) falt.push(k); });
+      if(falt.length){
+        const q = {
+          nombre_empresa:"Necesito el nombre de la empresa cliente.",
+          nit:"Necesito el NIT del cliente.",
+          telefono:"Necesito el teléfono del cliente.",
+          correo:"Necesito el correo del cliente.",
+          contacto:"Necesito el nombre del contacto.",
+          cargo:"Necesito el cargo del contacto.",
+          direccion:"Necesito la dirección.",
+          ciudad:"Necesito la ciudad.",
+          obs:"Agrega observación (o: sin observaciones)."
+        };
+        flujoActual.esperandoCampo = falt[0];
+        agregarMensaje("bot", q[falt[0]]);
+        return;
+      }
+
+      if(!/^\d{5,15}$/.test(d.nit)){ flujoActual.esperandoCampo="nit"; agregarMensaje("bot","NIT inválido. Escribe solo números (5 a 15 dígitos)."); return; }
+      await guardarCliente();
+    }
+
+    async function guardarCliente(){
+      const d = flujoActual.data;
+      if(/sin observaciones/i.test(d.obs)) d.obs = "";
+      try{
+        const { data, error } = await supabase
+          .from("clientes")
+          .insert([{ empresa_id, nombre_empresa:d.nombre_empresa, nit:d.nit, telefono:d.telefono, correo:d.correo, contacto:d.contacto, cargo:d.cargo, direccion:d.direccion, ciudad:d.ciudad, obs:d.obs }])
+          .select("id,nombre_empresa,nit")
+          .single();
+        if(error || !data){ agregarMensaje("system","No pude crear el cliente."); flujoActual=null; return; }
+        agregarMensaje("bot",`Cliente creado correctamente.\nID: ${data.id}\n${data.nombre_empresa} · NIT ${data.nit}`);
+        agregarMensaje("bot","¿Quieres crear cotización o crear alquiler?");
+      }catch(_e){
+        agregarMensaje("system","Error de red al crear cliente.");
+      }
+      flujoActual = null;
+    }
+
+    function iniciarFlujoCotizacion(){
+      flujoActual = { tipo:"crear_cotizacion", data:{ cliente_id:"",tipo:"",altura:"",dias:"",precio:"",modalidad:"",origen:"",destino:"",cantidad_viajes:"",valor_viaje:"" }, esperando:"cliente_busqueda" };
+      agregarMensaje("bot","Indica cliente (nombre o NIT) para la cotización.");
+    }
+
+    async function guardarCotizacion(){
+      const d = flujoActual.data;
+      try{
+        const payload = {
+          empresa_id,
+          cliente_id:d.cliente_id,
+          tipo:d.tipo,
+          altura:Number(d.altura) || null,
+          dias:Number(d.dias) || 0,
+          precio:Number(d.precio) || 0,
+          modalidad:d.modalidad || "alquiler_dia",
+          origen:d.modalidad==="transporte_viaje" ? d.origen : null,
+          destino:d.modalidad==="transporte_viaje" ? d.destino : null,
+          cantidadViajes:d.modalidad==="transporte_viaje" ? (Number(d.cantidad_viajes)||0) : 0,
+          valorViaje:d.modalidad==="transporte_viaje" ? (Number(d.valor_viaje)||0) : 0,
+          estado:"borrador",
+          created_by:user_id
+        };
+        const { data, error } = await supabase.from("cotizaciones").insert([payload]).select("id,estado").single();
+        if(error || !data){ agregarMensaje("system","No pude crear la cotización."); flujoActual=null; return; }
+        agregarMensaje("bot",`Cotización creada correctamente.\nID: ${data.id}\nEstado: ${data.estado}`);
+      }catch(_e){
+        agregarMensaje("system","Error de red al crear cotización.");
+      }
+      flujoActual = null;
+    }
+
+    function iniciarFlujoAlquiler(){
+      flujoActual = { tipo:"crear_alquiler", data:{ cliente_id:"",equipo_id:"",fecha_inicio:"",fecha_fin:"",dias:"",precio:"" }, esperando:"cliente_busqueda" };
+      agregarMensaje("bot","Indica cliente (nombre o NIT) para crear el alquiler.");
+    }
+
+    async function guardarAlquiler(){
+      const d = flujoActual.data;
+      try{
+        const payload = {
+          empresa_id,
+          cliente_id:d.cliente_id,
+          equipoId:d.equipo_id,
+          fechaInicio:d.fecha_inicio,
+          fecha_fin:d.fecha_fin || null,
+          dias:Number(d.dias) || 0,
+          precioDia:Number(d.precio) || 0,
+          estado:"activo",
+          created_by:user_id
+        };
+
+        const { data, error } = await supabase.from("alquileres_ops").insert([payload]).select("id,estado,equipoId").single();
+        if(error || !data){ agregarMensaje("system","No pude crear el alquiler."); flujoActual=null; return; }
+
+        if(d.equipo_id){
+          await supabase
+            .from("maquinas")
+            .update({ estado:"trabajando", cliente_id:d.cliente_id, fecha_inicio:d.fecha_inicio, fecha_vence:d.fecha_fin||null, alquiler_nro:data.id })
+            .eq("empresa_id", empresa_id)
+            .eq("id", d.equipo_id);
+        }
+
+        agregarMensaje("bot",`Alquiler creado correctamente.\nID: ${data.id}\nEstado: ${data.estado}`);
+      }catch(_e){
+        agregarMensaje("system","Error de red al crear alquiler.");
+      }
+      flujoActual = null;
+    }
+
+    async function consultarAlquileres(filtro="activo"){
+      try{
+        if(filtro==="por_vencer"){
+          const lim = new Date(Date.now()+3*24*60*60*1000).toISOString().slice(0,10);
+          const { data, error } = await supabase.from("alquileres_ops").select("id,estado,fechaInicio,fecha_fin,cliente_id,equipoId").eq("empresa_id",empresa_id).not("fecha_fin","is",null).lte("fecha_fin",lim).order("fecha_fin",{ascending:true}).limit(20);
+          if(error) return agregarMensaje("system","No pude consultar alquileres por vencer.");
+          return renderMini("Alquileres por vencer", data||[], ["id","estado","fechaInicio","fecha_fin","equipoId"]);
+        }
+        const { data, error } = await supabase.from("alquileres_ops").select("id,estado,fechaInicio,fecha_fin,cliente_id,equipoId").eq("empresa_id",empresa_id).eq("estado",filtro).order("id",{ascending:false}).limit(30);
+        if(error) return agregarMensaje("system","No pude consultar alquileres.");
+        renderMini(`Encontré ${(data||[]).length} alquileres ${filtro}.`, data||[], ["id","estado","fechaInicio","fecha_fin","equipoId"]);
+      }catch(_e){
+        agregarMensaje("system","Error de red en consulta de alquileres.");
+      }
+    }
+
+    async function consultarCotizaciones(filtro="aprobada"){
+      try{
+        const { data, error } = await supabase.from("cotizaciones").select("id,estado,cliente_id,dias,precio,modalidad,created_at").eq("empresa_id",empresa_id).eq("estado",filtro).order("created_at",{ascending:false}).limit(30);
+        if(error) return agregarMensaje("system","No pude consultar cotizaciones.");
+        renderMini(`Encontré ${(data||[]).length} cotizaciones ${filtro}.`, data||[], ["id","estado","cliente_id","dias","precio","modalidad"]);
+      }catch(_e){
+        agregarMensaje("system","Error de red en consulta de cotizaciones.");
+      }
+    }
+
+    async function consultarMaquinas(filtro="disponible"){
+      try{
+        const { data, error } = await supabase.from("maquinas").select("id,marca,modelo,estado,cliente_id,alquiler_nro").eq("empresa_id",empresa_id).eq("estado",filtro).order("id",{ascending:false}).limit(30);
+        if(error) return agregarMensaje("system","No pude consultar máquinas.");
+        renderMini(`Estas son las máquinas ${filtro}.`, data||[], ["id","marca","modelo","estado","alquiler_nro"]);
+      }catch(_e){
+        agregarMensaje("system","Error de red en consulta de máquinas.");
+      }
+    }
+
+    async function consultarClientes(busqueda=""){
+      try{
+        let q = supabase.from("clientes").select("id,nombre_empresa,nit,telefono,ciudad").eq("empresa_id",empresa_id).order("nombre_empresa",{ascending:true}).limit(25);
+        if(busqueda){ const b = busqueda.trim(); q = q.or(`nombre_empresa.ilike.%${b}%,nit.ilike.%${b}%`); }
+        const { data, error } = await q;
+        if(error) return agregarMensaje("system","No pude consultar clientes.");
+        renderMini(`Encontré ${(data||[]).length} clientes.`, data||[], ["id","nombre_empresa","nit","telefono","ciudad"]);
+      }catch(_e){
+        agregarMensaje("system","Error de red en consulta de clientes.");
+      }
+    }
+
+    async function consultarFinanzas(){
+      try{
+        const { data, error } = await supabase.from("caja_movimientos").select("id,tipo,monto,concepto,fecha").eq("empresa_id",empresa_id).order("fecha",{ascending:false}).limit(500);
+        if(error) return agregarMensaje("system","No pude consultar finanzas.");
+        let i=0,g=0;
+        for(const m of (data||[])){ const v = Number(m.monto)||0; if((m.tipo||"").toLowerCase().includes("ingreso")) i+=v; else g+=v; }
+        agregarMensaje("bot",`Finanzas:\nIngresos: $${fmt(i)}\nGastos: $${fmt(g)}\nBalance: $${fmt(i-g)}`);
+      }catch(_e){
+        agregarMensaje("system","Error de red en consulta financiera.");
+      }
+    }
+
+    async function consultarResumenGeneral(){
+      try{
+        const [m1,m2,a1,c1,fin] = await Promise.all([
+          supabase.from("maquinas").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","disponible"),
+          supabase.from("maquinas").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","trabajando"),
+          supabase.from("alquileres_ops").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","activo"),
+          supabase.from("cotizaciones").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).in("estado",["borrador","en_revision","enviada","negociacion"]),
+          supabase.from("caja_movimientos").select("tipo,monto").eq("empresa_id",empresa_id)
+        ]);
+        let i=0,g=0;
+        for(const x of (fin.data||[])){ const n = Number(x.monto)||0; if((x.tipo||"").toLowerCase().includes("ingreso")) i+=n; else g+=n; }
+        agregarMensaje("bot",`Resumen general:\nMáquinas disponibles: ${m1.count||0}\nMáquinas trabajando: ${m2.count||0}\nAlquileres activos: ${a1.count||0}\nCotizaciones pendientes: ${c1.count||0}\nIngresos: $${fmt(i)}\nGastos: $${fmt(g)}\nBalance: $${fmt(i-g)}`);
+      }catch(_e){
+        agregarMensaje("system","Error de red en resumen general.");
+      }
+    }
+
+    async function cambiarEstadoMaquina(){
+      if(!flujoActual || flujoActual.tipo!=="cambiar_estado_maquina"){
+        flujoActual = { tipo:"cambiar_estado_maquina", data:{ref:"",estado:""}, esperando:"ref" };
+        agregarMensaje("bot","Indica máquina (id, marca o modelo).");
+        return;
+      }
+      if(flujoActual.esperando==="ref"){
+        flujoActual.esperando="estado";
+        agregarMensaje("bot","Ahora indica el nuevo estado: disponible, trabajando, mantenimiento o varado.");
+        return;
+      }
+
+      const d = flujoActual.data;
+      const e = normalizarTexto(d.estado);
+      const ok = ["disponible","trabajando","mantenimiento","varado","baja"];
+      if(!ok.includes(e)){ agregarMensaje("bot","Estado inválido."); flujoActual=null; return; }
+
+      try{
+        const ref = d.ref;
+        const { data, error } = await supabase.from("maquinas").update({estado:e}).eq("empresa_id",empresa_id).or(`id.eq.${ref},marca.ilike.%${ref}%,modelo.ilike.%${ref}%`).select("id,marca,modelo,estado").limit(1);
+        if(error || !data || !data.length){ agregarMensaje("system","No pude cambiar estado de máquina."); flujoActual=null; return; }
+        agregarMensaje("bot",`Estado actualizado: ${data[0].id} → ${data[0].estado}`);
+      }catch(_e){
+        agregarMensaje("system","Error de red cambiando estado de máquina.");
+      }
+      flujoActual = null;
+    }
+
+    async function asignarMaquinaAlquiler(){
+      if(!flujoActual || flujoActual.tipo!=="asignar_maquina"){
+        flujoActual = { tipo:"asignar_maquina", data:{alquiler_id:"",maquina_id:""}, esperando:"alquiler_id" };
+        agregarMensaje("bot","Indica ID del alquiler.");
+        return;
+      }
+      if(flujoActual.esperando==="alquiler_id"){
+        flujoActual.esperando = "maquina_id";
+        try{
+          const { data } = await supabase.from("maquinas").select("id,marca,modelo").eq("empresa_id",empresa_id).eq("estado","disponible").limit(20);
+          renderMini("Máquinas disponibles", data||[], ["id","marca","modelo"]);
+        }catch(_e){}
+        agregarMensaje("bot","Indica ID de la máquina a asignar.");
+        return;
+      }
+
+      const d = flujoActual.data;
+      try{
+        const { error:e1 } = await supabase.from("alquileres_ops").update({equipoId:d.maquina_id,estado:"activo"}).eq("empresa_id",empresa_id).eq("id",d.alquiler_id);
+        const { error:e2 } = await supabase.from("maquinas").update({estado:"trabajando",alquiler_nro:d.alquiler_id}).eq("empresa_id",empresa_id).eq("id",d.maquina_id);
+        if(e1 || e2){ agregarMensaje("system","No pude asignar máquina."); flujoActual=null; return; }
+        agregarMensaje("bot","Máquina asignada correctamente.");
+      }catch(_e){
+        agregarMensaje("system","Error de red asignando máquina.");
+      }
+      flujoActual = null;
+    }
+
+    function renderMini(titulo,rows,cols){
+      if(!rows || !rows.length){ agregarMensaje("bot",`${titulo}\nSin resultados.`); return; }
+      const head = cols.map(c=>`<th>${c}</th>`).join("");
+      const body = rows.map(r=>`<tr>${cols.map(c=>`<td>${(r && r[c]!==undefined && r[c]!==null) ? r[c] : ""}</td>`).join("")}</tr>`).join("");
+      agregarMensaje("bot",`${titulo}<table class="mini-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`,true);
+    }
+
+    async function continuarFlujoCotizacion(input){
+      const d = flujoActual.data;
+      const x = normalizarTexto(input);
+
+      if(flujoActual.esperando==="cliente_busqueda"){
+        try{
+          const { data, error } = await supabase
+            .from("clientes")
+            .select("id,nombre_empresa,nit")
+            .eq("empresa_id",empresa_id)
+            .or(`nombre_empresa.ilike.%${input}%,nit.ilike.%${input}%`)
+            .limit(1);
+          if(error || !data || !data.length){
+            agregarMensaje("bot","No encontré cliente. Escribe 'crear cliente' para registrarlo.");
+            return;
+          }
+          d.cliente_id = data[0].id;
+          flujoActual.esperando = "tipo";
+          agregarMensaje("bot",`Cliente: ${data[0].nombre_empresa}. Indica tipo.`);
+          return;
+        }catch(_e){
+          agregarMensaje("system","Error de red buscando cliente.");
+          return;
+        }
+      }
+
+      if(flujoActual.esperando==="tipo"){ d.tipo=input; flujoActual.esperando="altura"; agregarMensaje("bot","Indica altura."); return; }
+      if(flujoActual.esperando==="altura"){ d.altura=input; flujoActual.esperando="dias"; agregarMensaje("bot","Indica días."); return; }
+      if(flujoActual.esperando==="dias"){ d.dias=input; flujoActual.esperando="precio"; agregarMensaje("bot","Indica precio."); return; }
+      if(flujoActual.esperando==="precio"){ d.precio=input; flujoActual.esperando="modalidad"; agregarMensaje("bot","Indica modalidad: alquiler_dia o transporte_viaje."); return; }
+      if(flujoActual.esperando==="modalidad"){
+        d.modalidad = x.includes("transporte") ? "transporte_viaje" : "alquiler_dia";
+        if(d.modalidad==="transporte_viaje"){ flujoActual.esperando="origen"; agregarMensaje("bot","Indica origen."); }
+        else { await guardarCotizacion(); }
+        return;
+      }
+      if(flujoActual.esperando==="origen"){ d.origen=input; flujoActual.esperando="destino"; agregarMensaje("bot","Indica destino."); return; }
+      if(flujoActual.esperando==="destino"){ d.destino=input; flujoActual.esperando="cantidad_viajes"; agregarMensaje("bot","Indica cantidad de viajes."); return; }
+      if(flujoActual.esperando==="cantidad_viajes"){ d.cantidad_viajes=input; flujoActual.esperando="valor_viaje"; agregarMensaje("bot","Indica valor por viaje."); return; }
+      if(flujoActual.esperando==="valor_viaje"){ d.valor_viaje=input; await guardarCotizacion(); return; }
+    }
+
+    async function continuarFlujoAlquiler(input){
+      const d = flujoActual.data;
+
+      if(flujoActual.esperando==="cliente_busqueda"){
+        try{
+          const { data, error } = await supabase
+            .from("clientes")
+            .select("id,nombre_empresa")
+            .eq("empresa_id",empresa_id)
+            .or(`nombre_empresa.ilike.%${input}%,nit.ilike.%${input}%`)
+            .limit(1);
+
+          if(error || !data || !data.length){
+            agregarMensaje("bot","No encontré cliente. Escribe 'crear cliente' para registrarlo.");
+            return;
+          }
+
+          d.cliente_id = data[0].id;
+          flujoActual.esperando = "equipo_id";
+
+          const mq = await supabase.from("maquinas").select("id,marca,modelo,estado").eq("empresa_id",empresa_id).eq("estado","disponible").limit(20);
+          renderMini("Máquinas disponibles", mq.data||[], ["id","marca","modelo","estado"]);
+          agregarMensaje("bot","Indica ID del equipo.");
+          return;
+        }catch(_e){
+          agregarMensaje("system","Error de red buscando cliente para alquiler.");
+          return;
+        }
+      }
+
+      if(flujoActual.esperando==="equipo_id"){
+        d.equipo_id = input.trim();
+        try{
+          const { data, error } = await supabase.from("maquinas").select("id,estado").eq("empresa_id",empresa_id).eq("id",d.equipo_id).maybeSingle();
+          if(error || !data || data.estado!=="disponible"){
+            agregarMensaje("bot","Máquina no disponible. Elige otra ID disponible.");
+            return;
+          }
+        }catch(_e){
+          agregarMensaje("system","Error validando máquina.");
+          return;
+        }
+        flujoActual.esperando = "fecha_inicio";
+        agregarMensaje("bot","Indica fecha_inicio (YYYY-MM-DD).");
+        return;
+      }
+
+      if(flujoActual.esperando==="fecha_inicio"){ d.fecha_inicio=input.trim(); flujoActual.esperando="fecha_fin"; agregarMensaje("bot","Indica fecha_fin (YYYY-MM-DD)."); return; }
+      if(flujoActual.esperando==="fecha_fin"){ d.fecha_fin=input.trim(); flujoActual.esperando="dias"; agregarMensaje("bot","Indica días."); return; }
+      if(flujoActual.esperando==="dias"){ d.dias=input.trim(); flujoActual.esperando="precio"; agregarMensaje("bot","Indica precio."); return; }
+      if(flujoActual.esperando==="precio"){ d.precio=input.trim(); await guardarAlquiler(); return; }
+    }
+
+    async function interpretarMensaje(texto){
+      const t = mostrarTyping();
+      const txt = (texto||"").trim();
+      if(!txt){ t.stop("Escribe un comando."); return; }
+      if(!empresa_id){ t.stop("Sesión sin empresa. Vuelve a iniciar sesión."); return; }
+
+      if(flujoActual){
+        try{
+          if(flujoActual.tipo==="crear_cliente"){ await continuarFlujoCliente(txt); t.stop("Listo."); return; }
+          if(flujoActual.tipo==="crear_cotizacion"){ await continuarFlujoCotizacion(txt); t.stop("Listo."); return; }
+          if(flujoActual.tipo==="crear_alquiler"){ await continuarFlujoAlquiler(txt); t.stop("Listo."); return; }
+          if(flujoActual.tipo==="cambiar_estado_maquina"){
+            if(flujoActual.esperando==="ref") flujoActual.data.ref=txt; else flujoActual.data.estado=txt;
+            await cambiarEstadoMaquina(); t.stop("Listo."); return;
+          }
+          if(flujoActual.tipo==="asignar_maquina"){
+            if(flujoActual.esperando==="alquiler_id") flujoActual.data.alquiler_id=txt; else flujoActual.data.maquina_id=txt;
+            await asignarMaquinaAlquiler(); t.stop("Listo."); return;
+          }
+        }catch(_e){
+          t.stop("Error procesando el flujo actual.");
+          return;
+        }
+      }
+
+      const it = detectarIntencion(txt);
+
+      if(["crear_cliente","crear_cotizacion","crear_alquiler","asignar_maquina","cambiar_estado_maquina"].includes(it.type)){
+        if(!puedeEjecutarAccion(it.type)){
+          t.stop("No tienes permisos para esa acción.");
+          return;
+        }
+      }
+
+      try{
+        if(it.type==="crear_cliente"){ iniciarFlujoCliente(txt); t.stop("Iniciando flujo cliente..."); return; }
+        if(it.type==="crear_cotizacion"){ iniciarFlujoCotizacion(); t.stop("Iniciando flujo cotización..."); return; }
+        if(it.type==="crear_alquiler"){ iniciarFlujoAlquiler(); t.stop("Iniciando flujo alquiler..."); return; }
+        if(it.type==="consultar_alquileres"){ await consultarAlquileres(it.filtro); t.stop(`Consulta de alquileres ${it.filtro} ejecutada.`); return; }
+        if(it.type==="consultar_cotizaciones"){ await consultarCotizaciones(it.filtro); t.stop(`Consulta de cotizaciones ${it.filtro} ejecutada.`); return; }
+        if(it.type==="consultar_maquinas"){ await consultarMaquinas(it.filtro); t.stop(`Consulta de máquinas ${it.filtro} ejecutada.`); return; }
+        if(it.type==="consultar_clientes"){ await consultarClientes(it.busqueda||""); t.stop("Consulta de clientes ejecutada."); return; }
+        if(it.type==="consultar_finanzas"){ await consultarFinanzas(); t.stop("Consulta financiera ejecutada."); return; }
+        if(it.type==="consultar_resumen"){ await consultarResumenGeneral(); t.stop("Resumen listo."); return; }
+        if(it.type==="cambiar_estado_maquina"){ await cambiarEstadoMaquina(); t.stop("Iniciando cambio de estado..."); return; }
+        if(it.type==="asignar_maquina"){ await asignarMaquinaAlquiler(); t.stop("Iniciando asignación..."); return; }
+        t.stop("No entendí. Usa: crear cliente, crear cotización, crear alquiler, alquileres activos, máquinas disponibles, finanzas, resumen.");
+      }catch(_e){
+        t.stop("Error ejecutando la solicitud.");
+      }
+    }
+
+    function bindUI(){
+      document.getElementById("btnLogin").addEventListener("click",login);
+      document.getElementById("loginPassword").addEventListener("keydown",(e)=>{ if(e.key==="Enter") login(); });
+
+      document.getElementById("btnSend").addEventListener("click",async ()=>{
+        const i=document.getElementById("chatInput");
+        const t=i.value.trim();
+        if(!t) return;
+        agregarMensaje("user",t);
+        i.value="";
+        await interpretarMensaje(t);
+      });
+
+      document.getElementById("chatInput").addEventListener("keydown",async (e)=>{
+        if(e.key==="Enter"){
+          e.preventDefault();
+          const i=document.getElementById("chatInput");
+          const t=i.value.trim();
+          if(!t) return;
+          agregarMensaje("user",t);
+          i.value="";
+          await interpretarMensaje(t);
+        }
+      });
+
+      document.querySelectorAll("#quickActions .qbtn").forEach(b=>{
+        b.addEventListener("click",async ()=>{
+          const q=b.getAttribute("data-q")||"";
+          agregarMensaje("user",q);
+          await interpretarMensaje(q);
+        });
+      });
+    }
+
+    initSupabase();
+    bindUI();
+  </script>
 </body>
 </html>
