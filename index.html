@@ -278,7 +278,7 @@
         user_id = au.user.id;
         usuario_email = au.user.email || "";
 
-        const { data: ue, error: eue } = await supabase
+        const { data: ue, error: eue } = await sb
           .from("usuarios_empresas")
           .select("user_id,empresa_id,rol,empresa:empresas(nombre)")
           .eq("user_id", user_id)
@@ -475,7 +475,7 @@
       if(/sin observaciones/i.test(d.obs)) d.obs = "";
       try{
         // Evitar duplicados por NIT dentro de la misma empresa
-        const { data: existe } = await supabase
+        const { data: existe } = await sb
           .from("clientes").select("id,nombre_empresa")
           .eq("empresa_id", empresa_id).eq("nit", d.nit).limit(1);
         if(existe && existe.length){
@@ -483,7 +483,7 @@
           flujoActual = null; return;
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await sb
           .from("clientes")
           .insert([{ empresa_id, nombre_empresa:d.nombre_empresa, nit:d.nit, telefono:d.telefono, correo:d.correo, contacto:d.contacto, cargo:d.cargo, direccion:d.direccion, ciudad:d.ciudad, obs:d.obs }])
           .select("id,nombre_empresa,nit")
@@ -518,7 +518,7 @@
         try{
           const b = escPostgrest(input);
           if(!b){ agregarMensaje("bot","Escribe nombre o NIT del cliente."); return; }
-          const { data, error } = await supabase
+          const { data, error } = await sb
             .from("clientes")
             .select("id,nombre_empresa,nit")
             .eq("empresa_id",empresa_id)
@@ -621,7 +621,7 @@
         try{
           const b = escPostgrest(input);
           if(!b){ agregarMensaje("bot","Escribe nombre o NIT del cliente."); return; }
-          const { data, error } = await supabase
+          const { data, error } = await sb
             .from("clientes")
             .select("id,nombre_empresa")
             .eq("empresa_id",empresa_id)
@@ -727,7 +727,7 @@
           created_by: user_id
         };
 
-        const { data, error } = await supabase
+        const { data, error } = await sb
           .from("alquileres_ops")
           .insert([payload])
           .select("id,estado,equipoId")
@@ -739,7 +739,7 @@
         }
 
         // Actualizar máquina a "trabajando"
-        const { error: euMaq } = await supabase
+        const { error: euMaq } = await sb
           .from("maquinas")
           .update({ estado:"trabajando", cliente_id:d.cliente_id, fecha_inicio:d.fecha_inicio, fecha_vence:d.fecha_fin||null, alquiler_nro:data.id })
           .eq("empresa_id", empresa_id)
