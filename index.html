@@ -112,13 +112,16 @@
   </div>
 
   <script>
+  (function(){
+    "use strict";
     // ============================================================
     // CONFIGURACIÓN SUPABASE
     // ============================================================
     const SUPABASE_URL = "https://oguxdohmutqgacahcwop.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ndXhkb2htdXRxZ2FjYWhjd29wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3Mjc0NzcsImV4cCI6MjA4ODMwMzQ3N30.RRruTo8B7k4R97Igq7_KV1PV58FqrpIzEu0R_MXIwR8";
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    // Renombramos para evitar colisión con el binding global 'supabase' del SDK UMD
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: true, autoRefreshToken: true }
     });
 
@@ -155,7 +158,7 @@
     // ============================================================
     async function initApp(){
       try{
-        const { data, error } = await supabase.auth.getSession();
+        const { data, error } = await sb.auth.getSession();
         if(error){ logErr("getSession", error); return; }
         if(data?.session?.user){
           await cargarContextoUsuario();
@@ -230,7 +233,7 @@
 
       btn.disabled = true;
       try{
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
         if(error){
           logErr("signInWithPassword", error);
           const msg = (error.message||"").toLowerCase();
@@ -251,7 +254,7 @@
     }
 
     async function logout(){
-      try{ await supabase.auth.signOut(); }catch(e){ logErr("signOut", e); }
+      try{ await sb.auth.signOut(); }catch(e){ logErr("signOut", e); }
       empresa_id = null; rol_usuario = null; flujoActual = null;
       user_id = null; empresa_nombre = ""; usuario_email = "";
       document.getElementById("messages").innerHTML = "";
@@ -267,7 +270,7 @@
     async function cargarContextoUsuario(){
       const errBox = document.getElementById("loginError");
       try{
-        const { data: au, error: ae } = await supabase.auth.getUser();
+        const { data: au, error: ae } = await sb.auth.getUser();
         if(ae || !au?.user){
           errBox.textContent = "No se pudo validar sesión.";
           return;
@@ -284,12 +287,12 @@
         if(eue){
           logErr("usuarios_empresas", eue);
           errBox.textContent = "Error consultando datos de empresa.";
-          await supabase.auth.signOut();
+          await sb.auth.signOut();
           return;
         }
         if(!ue || !ue.empresa_id){
           errBox.textContent = "Usuario sin empresa asignada. Contacta al administrador.";
-          await supabase.auth.signOut();
+          await sb.auth.signOut();
           return;
         }
 
@@ -589,7 +592,7 @@
           estado: "borrador",
           created_by: user_id
         };
-        const { data, error } = await supabase.from("cotizaciones").insert([payload]).select("id,estado").single();
+        const { data, error } = await sb.from("cotizaciones").insert([payload]).select("id,estado").single();
         if(error || !data){
           logErr("insert cotizaciones", error);
           agregarMensaje("system","No pude crear la cotización. Revisa los datos.");
@@ -635,7 +638,7 @@
           flujoActual.esperando = "equipo_id";
 
           try{
-            const mq = await supabase.from("maquinas")
+            const mq = await sb.from("maquinas")
               .select("id,marca,modelo,estado")
               .eq("empresa_id",empresa_id).eq("estado","disponible")
               .limit(20);
@@ -654,7 +657,7 @@
         const ref = input.trim();
         if(!ref){ agregarMensaje("bot","Indica un ID válido de máquina."); return; }
         try{
-          const { data, error } = await supabase.from("maquinas")
+          const { data, error } = await sb.from("maquinas")
             .select("id,estado").eq("empresa_id",empresa_id).eq("id",ref).maybeSingle();
           if(error){ logErr("validar maq", error); agregarMensaje("system","Error validando máquina."); return; }
           if(!data){ agregarMensaje("bot","No encontré esa máquina. Indica otro ID."); return; }
@@ -704,7 +707,7 @@
         }
 
         // Re-validar que la máquina siga disponible justo antes de insertar
-        const { data: mq, error: emq } = await supabase.from("maquinas")
+        const { data: mq, error: emq } = await sb.from("maquinas")
           .select("id,estado").eq("empresa_id",empresa_id).eq("id",d.equipo_id).maybeSingle();
         if(emq){ logErr("revalidar maq", emq); agregarMensaje("system","Error validando máquina."); flujoActual=null; return; }
         if(!mq || mq.estado !== "disponible"){
@@ -762,7 +765,7 @@
       try{
         if(filtro==="por_vencer"){
           const lim = new Date(Date.now()+3*24*60*60*1000).toISOString().slice(0,10);
-          const { data, error } = await supabase.from("alquileres_ops")
+          const { data, error } = await sb.from("alquileres_ops")
             .select("id,estado,fechaInicio,fecha_fin,cliente_id,equipoId")
             .eq("empresa_id",empresa_id)
             .not("fecha_fin","is",null)
@@ -771,7 +774,7 @@
           if(error){ logErr("alq por vencer", error); return agregarMensaje("system","No pude consultar alquileres por vencer."); }
           return renderMini("Alquileres por vencer", data||[], ["id","estado","fechaInicio","fecha_fin","equipoId"]);
         }
-        const { data, error } = await supabase.from("alquileres_ops")
+        const { data, error } = await sb.from("alquileres_ops")
           .select("id,estado,fechaInicio,fecha_fin,cliente_id,equipoId")
           .eq("empresa_id",empresa_id).eq("estado",filtro)
           .order("id",{ascending:false}).limit(30);
@@ -785,7 +788,7 @@
 
     async function consultarCotizaciones(filtro="aprobada"){
       try{
-        const { data, error } = await supabase.from("cotizaciones")
+        const { data, error } = await sb.from("cotizaciones")
           .select("id,estado,cliente_id,dias,precio,modalidad,created_at")
           .eq("empresa_id",empresa_id).eq("estado",filtro)
           .order("created_at",{ascending:false}).limit(30);
@@ -799,7 +802,7 @@
 
     async function consultarMaquinas(filtro="disponible"){
       try{
-        const { data, error } = await supabase.from("maquinas")
+        const { data, error } = await sb.from("maquinas")
           .select("id,marca,modelo,estado,cliente_id,alquiler_nro")
           .eq("empresa_id",empresa_id).eq("estado",filtro)
           .order("id",{ascending:false}).limit(30);
@@ -813,7 +816,7 @@
 
     async function consultarClientes(busqueda=""){
       try{
-        let q = supabase.from("clientes")
+        let q = sb.from("clientes")
           .select("id,nombre_empresa,nit,telefono,ciudad")
           .eq("empresa_id",empresa_id)
           .order("nombre_empresa",{ascending:true}).limit(25);
@@ -832,7 +835,7 @@
       try{
         // Últimos 90 días para mantener rendimiento
         const desde = new Date(Date.now()-90*24*60*60*1000).toISOString().slice(0,10);
-        const { data, error } = await supabase.from("caja_movimientos")
+        const { data, error } = await sb.from("caja_movimientos")
           .select("id,tipo,monto,concepto,fecha")
           .eq("empresa_id",empresa_id)
           .gte("fecha",desde)
@@ -853,11 +856,11 @@
     async function consultarResumenGeneral(){
       try{
         const [m1,m2,a1,c1,fin] = await Promise.all([
-          supabase.from("maquinas").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","disponible"),
-          supabase.from("maquinas").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","trabajando"),
-          supabase.from("alquileres_ops").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","activo"),
-          supabase.from("cotizaciones").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).in("estado",["borrador","en_revision","enviada","negociacion"]),
-          supabase.from("caja_movimientos").select("tipo,monto").eq("empresa_id",empresa_id).limit(1000)
+          sb.from("maquinas").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","disponible"),
+          sb.from("maquinas").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","trabajando"),
+          sb.from("alquileres_ops").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","activo"),
+          sb.from("cotizaciones").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).in("estado",["borrador","en_revision","enviada","negociacion"]),
+          sb.from("caja_movimientos").select("tipo,monto").eq("empresa_id",empresa_id).limit(1000)
         ]);
 
         if(m1.error) logErr("resumen m1", m1.error);
@@ -915,7 +918,7 @@
         if(!ref){ agregarMensaje("system","Referencia de máquina vacía."); flujoActual=null; return; }
 
         // Buscar por id exacto o por marca/modelo
-        const { data: found, error: eF } = await supabase.from("maquinas")
+        const { data: found, error: eF } = await sb.from("maquinas")
           .select("id,marca,modelo,estado").eq("empresa_id",empresa_id)
           .or(`id.eq.${ref},marca.ilike.%${ref}%,modelo.ilike.%${ref}%`)
           .limit(1);
@@ -928,7 +931,7 @@
         const maqId = found[0].id;
 
         // Si pasa a "trabajando" sin alquiler activo, advertir (no bloqueo)
-        const { data: upd, error: eU } = await supabase.from("maquinas")
+        const { data: upd, error: eU } = await sb.from("maquinas")
           .update({estado:e})
           .eq("empresa_id",empresa_id).eq("id", maqId)
           .select("id,marca,modelo,estado").maybeSingle();
@@ -958,7 +961,7 @@
         if(!flujoActual.data.alquiler_id){ agregarMensaje("bot","ID de alquiler vacío."); flujoActual=null; return; }
         // Validar que el alquiler exista y sea de la empresa
         try{
-          const { data: alq, error } = await supabase.from("alquileres_ops")
+          const { data: alq, error } = await sb.from("alquileres_ops")
             .select("id,estado").eq("empresa_id",empresa_id)
             .eq("id", flujoActual.data.alquiler_id).maybeSingle();
           if(error){ logErr("validar alq", error); agregarMensaje("system","Error validando alquiler."); flujoActual=null; return; }
@@ -967,7 +970,7 @@
 
         flujoActual.esperando = "maquina_id";
         try{
-          const { data } = await supabase.from("maquinas")
+          const { data } = await sb.from("maquinas")
             .select("id,marca,modelo").eq("empresa_id",empresa_id)
             .eq("estado","disponible").limit(20);
           renderMini("Máquinas disponibles", data||[], ["id","marca","modelo"]);
@@ -984,7 +987,7 @@
         }
 
         // Validar que la máquina esté disponible
-        const { data: mq, error: eMq } = await supabase.from("maquinas")
+        const { data: mq, error: eMq } = await sb.from("maquinas")
           .select("id,estado").eq("empresa_id",empresa_id).eq("id",d.maquina_id).maybeSingle();
         if(eMq){ logErr("validar maq asig", eMq); agregarMensaje("system","Error validando máquina."); flujoActual=null; return; }
         if(!mq){ agregarMensaje("bot","No encontré esa máquina."); flujoActual=null; return; }
@@ -993,7 +996,7 @@
           flujoActual=null; return;
         }
 
-        const { error:e1 } = await supabase.from("alquileres_ops")
+        const { error:e1 } = await sb.from("alquileres_ops")
           .update({equipoId:d.maquina_id,estado:"activo"})
           .eq("empresa_id",empresa_id).eq("id",d.alquiler_id);
         if(e1){
@@ -1002,7 +1005,7 @@
           flujoActual=null; return;
         }
 
-        const { error:e2 } = await supabase.from("maquinas")
+        const { error:e2 } = await sb.from("maquinas")
           .update({estado:"trabajando",alquiler_nro:d.alquiler_id})
           .eq("empresa_id",empresa_id).eq("id",d.maquina_id);
         if(e2){
@@ -1143,6 +1146,7 @@
     // ============================================================
     bindUI();
     initApp();
+  })();
   </script>
 </body>
 </html>
