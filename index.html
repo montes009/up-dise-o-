@@ -30,6 +30,9 @@
     .right{display:flex;flex-direction:column;min-width:0}
     .top{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
     .badge{font-size:11px;padding:4px 10px;border:1px solid #314a7a;border-radius:999px;background:#1a2744;color:#bcd0ff}
+    .top .actions{display:flex;gap:8px;align-items:center}
+    .top .logout{background:transparent;border:1px solid #3a4e7a;color:#bcd0ff;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer}
+    .top .logout:hover{background:#1a2744}
     .messages{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
     .msg-wrap{display:flex}
     .msg-wrap.user{justify-content:flex-end}
@@ -49,6 +52,7 @@
     .f label{font-size:12px;color:#b8c7e6}
     .f input{background:#101a2f;border:1px solid #2a3b61;color:#eaf1ff;border-radius:10px;padding:10px 11px;font-size:14px;outline:none}
     .login button{width:100%;height:42px;border:0;border-radius:10px;background:var(--pri);color:#fff;font-weight:700;cursor:pointer}
+    .login button:disabled{opacity:.6;cursor:wait}
     .err{margin-top:10px;color:#ffb4b4;font-size:12px;min-height:16px}
     .hidden{display:none!important}
     .mini-table{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px}
@@ -94,7 +98,13 @@
         </div>
       </aside>
       <section class="right">
-        <div class="top"><div>Asistente Operativo</div><div class="badge">Conectado</div></div>
+        <div class="top">
+          <div>Asistente Operativo</div>
+          <div class="actions">
+            <span class="badge">Conectado</span>
+            <button id="btnLogout" class="logout" title="Cerrar sesión">Salir</button>
+          </div>
+        </div>
         <div id="messages" class="messages"></div>
         <div class="input"><input id="chatInput" placeholder="Escribe una consulta o comando..." /><button id="btnSend">Enviar</button></div>
       </section>
@@ -102,10 +112,19 @@
   </div>
 
   <script>
+    // ============================================================
+    // CONFIGURACIÓN SUPABASE
+    // ============================================================
     const SUPABASE_URL = "https://oguxdohmutqgacahcwop.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ndXhkb2htdXRxZ2FjYWhjd29wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3Mjc0NzcsImV4cCI6MjA4ODMwMzQ3N30.RRruTo8B7k4R97Igq7_KV1PV58FqrpIzEu0R_MXIwR8";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ndXhkb2htdXRxZ2FjYWhjd29wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3Mjc0NzcsImV4cCI6MjA4ODMwMzQ3N30.RRruTo8B7k4R97Igq7_KV1PV58FqrpIzEu0R_MXIwR8";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true }
+    });
+
+    // ============================================================
+    // ESTADO GLOBAL
+    // ============================================================
     let empresa_id = null;
     let rol_usuario = null;
     let flujoActual = null;
@@ -113,15 +132,42 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let empresa_nombre = "";
     let usuario_email = "";
 
+    // ============================================================
+    // UTILIDADES
+    // ============================================================
     function fmt(n){ return (Number(n) || 0).toLocaleString("es-CO"); }
-    function normalizarTexto(t){ return (t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim(); }
 
-    function initSupabase(){
-      if(!SUPABASE_URL.includes("supabase.co") || SUPABASE_ANON_KEY === "TU-ANON-KEY"){
-        document.getElementById("loginError").textContent = "Configura SUPABASE_URL y SUPABASE_ANON_KEY.";
+    function normalizarTexto(t){
+      return (t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();
+    }
+
+    // Escapar caracteres peligrosos para .or() de PostgREST
+    function escPostgrest(s){
+      return String(s||"").replace(/[,()"']/g,"").trim();
+    }
+
+    function logErr(ctx, err){
+      try{ console.error("[ALCON]", ctx, err); }catch(_){}
+    }
+
+    // ============================================================
+    // INICIO: REHIDRATAR SESIÓN SI EXISTE
+    // ============================================================
+    async function initApp(){
+      try{
+        const { data, error } = await supabase.auth.getSession();
+        if(error){ logErr("getSession", error); return; }
+        if(data?.session?.user){
+          await cargarContextoUsuario();
+        }
+      }catch(e){
+        logErr("initApp", e);
       }
     }
 
+    // ============================================================
+    // MENSAJES UI
+    // ============================================================
     function agregarMensaje(tipo,texto,html=false){
       const box = document.getElementById("messages");
       const wrap = document.createElement("div");
@@ -141,48 +187,91 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       m.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
       return {
         stop: (t, h=false) => {
+          if(t===undefined || t===null || t===""){ w.remove(); return; }
           if(h) m.innerHTML = t; else m.textContent = t;
           const box = document.getElementById("messages");
           box.scrollTop = box.scrollHeight;
-        }
+        },
+        remove: () => { try{ w.remove(); }catch(_){} }
       };
     }
 
+    // ============================================================
+    // PERMISOS POR ROL
+    // ============================================================
     function puedeEjecutarAccion(tipo){
       if(!rol_usuario) return false;
-      if(rol_usuario === "superadmin" || rol_usuario === "admin_empresa") return true;
       const rol = normalizarTexto(rol_usuario);
+      if(rol === "superadmin" || rol === "admin_empresa" || rol === "admin") return true;
       if(rol === "operaciones"){
-        if(["crear_alquiler","asignar_maquina","cambiar_estado_maquina","consultar_alquileres","consultar_maquinas","consultar_clientes","consultar_finanzas","consultar_resumen"].includes(tipo)) return true;
-        return false;
+        return ["crear_alquiler","asignar_maquina","cambiar_estado_maquina",
+                "consultar_alquileres","consultar_maquinas","consultar_clientes",
+                "consultar_finanzas","consultar_resumen"].includes(tipo);
       }
       if(rol === "comercial"){
-        if(["crear_cliente","crear_cotizacion","consultar_cotizaciones","consultar_clientes","consultar_resumen"].includes(tipo)) return true;
-        return false;
+        return ["crear_cliente","crear_cotizacion","consultar_cotizaciones",
+                "consultar_clientes","consultar_resumen"].includes(tipo);
       }
       return false;
     }
 
+    // ============================================================
+    // LOGIN / LOGOUT
+    // ============================================================
     async function login(){
+      const btn = document.getElementById("btnLogin");
       const email = document.getElementById("loginEmail").value.trim();
       const password = document.getElementById("loginPassword").value;
       const err = document.getElementById("loginError");
       err.textContent = "";
-      if(!email || !password){ err.textContent = "Ingresa correo y contraseña."; return; }
 
+      if(!email || !password){ err.textContent = "Ingresa correo y contraseña."; return; }
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ err.textContent = "Correo inválido."; return; }
+
+      btn.disabled = true;
       try{
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if(error || !data?.user){ err.textContent = "Credenciales inválidas."; return; }
+        if(error){
+          logErr("signInWithPassword", error);
+          const msg = (error.message||"").toLowerCase();
+          if(msg.includes("invalid")) err.textContent = "Credenciales inválidas.";
+          else if(msg.includes("email not confirmed")) err.textContent = "Correo no confirmado.";
+          else if(msg.includes("network")) err.textContent = "Sin conexión. Intenta de nuevo.";
+          else err.textContent = "No se pudo iniciar sesión. Intenta de nuevo.";
+          return;
+        }
+        if(!data?.user){ err.textContent = "Respuesta inválida del servidor."; return; }
         await cargarContextoUsuario();
-      }catch(_e){
+      }catch(e){
+        logErr("login", e);
         err.textContent = "Error de conexión con autenticación.";
+      }finally{
+        btn.disabled = false;
       }
     }
 
+    async function logout(){
+      try{ await supabase.auth.signOut(); }catch(e){ logErr("signOut", e); }
+      empresa_id = null; rol_usuario = null; flujoActual = null;
+      user_id = null; empresa_nombre = ""; usuario_email = "";
+      document.getElementById("messages").innerHTML = "";
+      document.getElementById("loginPassword").value = "";
+      document.getElementById("loginError").textContent = "";
+      document.getElementById("chatScreen").classList.add("hidden");
+      document.getElementById("loginScreen").classList.remove("hidden");
+    }
+
+    // ============================================================
+    // CONTEXTO USUARIO
+    // ============================================================
     async function cargarContextoUsuario(){
+      const errBox = document.getElementById("loginError");
       try{
         const { data: au, error: ae } = await supabase.auth.getUser();
-        if(ae || !au?.user){ document.getElementById("loginError").textContent = "No se pudo validar sesión."; return; }
+        if(ae || !au?.user){
+          errBox.textContent = "No se pudo validar sesión.";
+          return;
+        }
         user_id = au.user.id;
         usuario_email = au.user.email || "";
 
@@ -192,8 +281,14 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
           .eq("user_id", user_id)
           .maybeSingle();
 
-        if(eue || !ue?.empresa_id){
-          document.getElementById("loginError").textContent = "Usuario sin empresa asignada.";
+        if(eue){
+          logErr("usuarios_empresas", eue);
+          errBox.textContent = "Error consultando datos de empresa.";
+          await supabase.auth.signOut();
+          return;
+        }
+        if(!ue || !ue.empresa_id){
+          errBox.textContent = "Usuario sin empresa asignada. Contacta al administrador.";
           await supabase.auth.signOut();
           return;
         }
@@ -202,8 +297,9 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         rol_usuario = ue.rol || "operaciones";
         empresa_nombre = ue.empresa?.nombre || "Empresa";
         mostrarChat();
-      }catch(_e){
-        document.getElementById("loginError").textContent = "No se pudo cargar el contexto.";
+      }catch(e){
+        logErr("cargarContextoUsuario", e);
+        errBox.textContent = "No se pudo cargar el contexto.";
       }
     }
 
@@ -213,63 +309,84 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       document.getElementById("ctxUser").textContent = usuario_email || user_id || "-";
       document.getElementById("ctxEmpresa").textContent = empresa_nombre || "-";
       document.getElementById("ctxRol").textContent = rol_usuario || "-";
-      agregarMensaje("bot","Hola. Estoy listo para operar tu empresa.");
-      agregarMensaje("bot","Comandos: crear cliente, crear cotización, crear alquiler, alquileres activos, máquinas disponibles, finanzas, resumen.");
+      const box = document.getElementById("messages");
+      if(!box.children.length){
+        agregarMensaje("bot",`Hola. Sesión iniciada como ${empresa_nombre} (${rol_usuario}).`);
+        agregarMensaje("bot","Comandos: crear cliente, crear cotización, crear alquiler, alquileres activos, máquinas disponibles, finanzas, resumen. Escribe 'cancelar' para abortar un flujo.");
+      }
+      document.getElementById("chatInput").focus();
     }
 
+    // ============================================================
+    // DETECCIÓN DE INTENCIÓN (chatbot sin IA)
+    // ============================================================
     function detectarIntencion(texto){
       let x = normalizarTexto(texto);
       x = x
-        .replace(/\ben marcha\b|\bvigente\b|\btrabajando\b/g,"activo")
-        .replace(/\blibre\b/g,"disponible")
-        .replace(/\baceptada\b/g,"aprobada")
-        .replace(/\brenta\b/g,"alquiler")
-        .replace(/\bequipo\b/g,"maquina")
-        .replace(/\bcrear empresa\b/g,"crear cliente")
-        .replace(/\bcoti\b/g,"cotizacion")
-        .replace(/\bn\.?\s*i\.?\s*t\b|\bn it\b|\bni\b/g,"nit");
+        .replace(/\ben marcha\b|\bvigente\b|\btrabajando\b|\bcurso\b|\ben curso\b/g,"activo")
+        .replace(/\blibre\b|\blibres\b|\bdesocupada?s?\b/g,"disponible")
+        .replace(/\baceptada\b|\baceptadas\b/g,"aprobada")
+        .replace(/\brenta\b|\brentas\b/g,"alquiler")
+        .replace(/\bequipos?\b/g,"maquina")
+        .replace(/\bmaquinas\b/g,"maquina")
+        .replace(/\bcrear empresa\b|\bregistrar cliente\b|\bagregar cliente\b/g,"crear cliente")
+        .replace(/\bcoti\b|\bcotis\b|\bcotizaciones\b/g,"cotizacion")
+        .replace(/\bn\.?\s*i\.?\s*t\b|\bn it\b|\bnit\b/g,"nit");
 
-      if(/crear cliente|nuevo cliente/.test(x)) return {type:"crear_cliente"};
-      if(/crear cotizacion|nueva cotizacion/.test(x)) return {type:"crear_cotizacion"};
-      if(/crear alquiler|nuevo alquiler/.test(x)) return {type:"crear_alquiler"};
-      if(/asignar maquina/.test(x)) return {type:"asignar_maquina"};
-      if(/cambiar estado.*maquina|estado.*maquina/.test(x)) return {type:"cambiar_estado_maquina"};
+      // Comandos de creación
+      if(/\b(crear|nuevo|nueva|registrar|agregar)\b.*\bcliente\b/.test(x)) return {type:"crear_cliente"};
+      if(/\b(crear|nueva|nuevo|hacer)\b.*\bcotizacion\b/.test(x)) return {type:"crear_cotizacion"};
+      if(/\b(crear|nuevo|nueva|iniciar)\b.*\balquiler\b/.test(x)) return {type:"crear_alquiler"};
+      if(/\basignar\b.*\bmaquina\b/.test(x)) return {type:"asignar_maquina"};
+      if(/(cambiar|actualizar|modificar).*estado.*maquina|\bestado\b.*\bmaquina\b/.test(x)) return {type:"cambiar_estado_maquina"};
 
-      if(/alquiler/.test(x)){
-        if(/por vencer|vencer/.test(x)) return {type:"consultar_alquileres",filtro:"por_vencer"};
+      // Consultas alquileres
+      if(/\balquiler(es)?\b/.test(x)){
+        if(/por vencer|vencer|proximo a vencer/.test(x)) return {type:"consultar_alquileres",filtro:"por_vencer"};
         if(/reservado/.test(x)) return {type:"consultar_alquileres",filtro:"reservado"};
-        if(/finalizado/.test(x)) return {type:"consultar_alquileres",filtro:"finalizado"};
-        if(/pendiente.*recogida/.test(x)) return {type:"consultar_alquileres",filtro:"pendiente_recogida"};
+        if(/finalizado|terminado|cerrado/.test(x)) return {type:"consultar_alquileres",filtro:"finalizado"};
+        if(/pendiente.*recogida|por recoger/.test(x)) return {type:"consultar_alquileres",filtro:"pendiente_recogida"};
         return {type:"consultar_alquileres",filtro:"activo"};
       }
 
-      if(/cotizacion/.test(x)){
-        const es = ["borrador","en_revision","enviada","aprobada","negociacion","rechazada","perdida","vencida","reabierta","cancelada"];
-        for(const e of es){ if(x.includes(e.replace("_"," "))) return {type:"consultar_cotizaciones",filtro:e}; }
+      // Consultas cotizaciones
+      if(/\bcotizacion(es)?\b/.test(x)){
+        const estados = ["borrador","en_revision","enviada","aprobada","negociacion","rechazada","perdida","vencida","reabierta","cancelada"];
+        for(const e of estados){
+          if(x.includes(e.replace("_"," ")) || x.includes(e)) return {type:"consultar_cotizaciones",filtro:e};
+        }
         return {type:"consultar_cotizaciones",filtro:"aprobada"};
       }
 
-      if(/maquina|equipos?/.test(x)){
+      // Consultas máquinas
+      if(/\bmaquina(s)?\b/.test(x)){
         if(/disponible/.test(x)) return {type:"consultar_maquinas",filtro:"disponible"};
         if(/mantenimiento/.test(x)) return {type:"consultar_maquinas",filtro:"mantenimiento"};
         if(/varad/.test(x)) return {type:"consultar_maquinas",filtro:"varado"};
-        if(/trabajando|activo/.test(x)) return {type:"consultar_maquinas",filtro:"trabajando"};
+        if(/activo|trabajando/.test(x)) return {type:"consultar_maquinas",filtro:"trabajando"};
+        if(/baja\b/.test(x)) return {type:"consultar_maquinas",filtro:"baja"};
         return {type:"consultar_maquinas",filtro:"disponible"};
       }
 
-      if(/finanza|ingreso|gasto|caja|balance/.test(x)) return {type:"consultar_finanzas"};
-      if(/resumen|estado general|que tengo hoy|hoy/.test(x)) return {type:"consultar_resumen"};
-      if(/cliente/.test(x)){ const m = x.match(/cliente\s+(.+)/); return {type:"consultar_clientes",busqueda:m?m[1].trim():""}; }
+      if(/\b(finanza|ingreso|gasto|caja|balance|dinero|plata)\b/.test(x)) return {type:"consultar_finanzas"};
+      if(/\b(resumen|estado general|que tengo hoy|hoy|dashboard|panel)\b/.test(x)) return {type:"consultar_resumen"};
+
+      if(/\bcliente(s)?\b/.test(x)){
+        const m = x.match(/cliente(?:s)?\s+(.+)/);
+        return {type:"consultar_clientes", busqueda: m ? m[1].trim() : ""};
+      }
 
       return {type:"desconocida"};
     }
 
+    // ============================================================
+    // EXTRACTOR DE DATOS DE CLIENTE
+    // ============================================================
     function extraerDatosCliente(texto){
       const t = texto || "";
-      const n = normalizarTexto(texto);
       const o = {};
-      const nit = n.match(/(?:nit)\s*[:#-]?\s*(\d{5,15})/i);
-      const tel = n.match(/(?:telefono|tel|celular|movil)\s*[:#-]?\s*(\+?\d{7,15})/i);
+      const nit = t.match(/(?:nit)\s*[:#-]?\s*([\d.\-\s]{5,18})/i);
+      const tel = t.match(/(?:telefono|teléfono|tel|celular|movil|móvil)\s*[:#-]?\s*(\+?[\d\s-]{7,18})/i);
       const cor = t.match(/[a-zA-Z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
       const nom = t.match(/(?:nombre|empresa|cliente)\s*[:#-]?\s*([a-zA-Z0-9ÁÉÍÓÚÑáéíóúñ .,&-]{3,})/i);
       const con = t.match(/(?:contacto)\s*[:#-]?\s*([a-zA-ZÁÉÍÓÚÑáéíóúñ .-]{3,})/i);
@@ -278,8 +395,8 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       const ciu = t.match(/(?:ciudad)\s*[:#-]?\s*([a-zA-ZÁÉÍÓÚÑáéíóúñ .-]{3,})/i);
       const obs = t.match(/(?:obs|observacion|observación)\s*[:#-]?\s*(.+)$/i);
 
-      if(nit) o.nit = nit[1];
-      if(tel) o.telefono = tel[1];
+      if(nit) o.nit = nit[1].replace(/[.\-\s]/g,"");
+      if(tel) o.telefono = tel[1].replace(/\s+/g,"").trim();
       if(cor) o.correo = cor[0];
       if(nom) o.nombre_empresa = nom[1].trim();
       if(con) o.contacto = con[1].trim();
@@ -290,10 +407,13 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       return o;
     }
 
-    function iniciarFlujoCliente(txt=""){
+    // ============================================================
+    // FLUJO: CREAR CLIENTE
+    // ============================================================
+    async function iniciarFlujoCliente(txt=""){
       flujoActual = { tipo:"crear_cliente", data:{ nombre_empresa:"",nit:"",telefono:"",correo:"",contacto:"",cargo:"",direccion:"",ciudad:"",obs:"" } };
       if(txt) Object.assign(flujoActual.data, extraerDatosCliente(txt));
-      continuarFlujoCliente("");
+      await continuarFlujoCliente("");
     }
 
     async function continuarFlujoCliente(input){
@@ -312,21 +432,38 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       if(falt.length){
         const q = {
           nombre_empresa:"Necesito el nombre de la empresa cliente.",
-          nit:"Necesito el NIT del cliente.",
+          nit:"Necesito el NIT del cliente (solo números).",
           telefono:"Necesito el teléfono del cliente.",
           correo:"Necesito el correo del cliente.",
           contacto:"Necesito el nombre del contacto.",
           cargo:"Necesito el cargo del contacto.",
           direccion:"Necesito la dirección.",
           ciudad:"Necesito la ciudad.",
-          obs:"Agrega observación (o: sin observaciones)."
+          obs:"Agrega observación (o escribe: sin observaciones)."
         };
         flujoActual.esperandoCampo = falt[0];
         agregarMensaje("bot", q[falt[0]]);
         return;
       }
 
-      if(!/^\d{5,15}$/.test(d.nit)){ flujoActual.esperandoCampo="nit"; agregarMensaje("bot","NIT inválido. Escribe solo números (5 a 15 dígitos)."); return; }
+      // Validación NIT Colombia: 5 a 15 dígitos (admite guion verificador en captura)
+      const nitLimpio = String(d.nit).replace(/[.\-\s]/g,"");
+      if(!/^\d{5,15}$/.test(nitLimpio)){
+        flujoActual.esperandoCampo="nit";
+        d.nit = "";
+        agregarMensaje("bot","NIT inválido. Debe contener solo números (5 a 15 dígitos). Escríbelo de nuevo.");
+        return;
+      }
+      d.nit = nitLimpio;
+
+      // Validación correo
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.correo)){
+        flujoActual.esperandoCampo="correo";
+        d.correo = "";
+        agregarMensaje("bot","Correo inválido. Escríbelo de nuevo.");
+        return;
+      }
+
       await guardarCliente();
     }
 
@@ -334,146 +471,381 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       const d = flujoActual.data;
       if(/sin observaciones/i.test(d.obs)) d.obs = "";
       try{
+        // Evitar duplicados por NIT dentro de la misma empresa
+        const { data: existe } = await supabase
+          .from("clientes").select("id,nombre_empresa")
+          .eq("empresa_id", empresa_id).eq("nit", d.nit).limit(1);
+        if(existe && existe.length){
+          agregarMensaje("system",`Ya existe un cliente con NIT ${d.nit}: ${existe[0].nombre_empresa} (ID ${existe[0].id}).`);
+          flujoActual = null; return;
+        }
+
         const { data, error } = await supabase
           .from("clientes")
           .insert([{ empresa_id, nombre_empresa:d.nombre_empresa, nit:d.nit, telefono:d.telefono, correo:d.correo, contacto:d.contacto, cargo:d.cargo, direccion:d.direccion, ciudad:d.ciudad, obs:d.obs }])
           .select("id,nombre_empresa,nit")
           .single();
-        if(error || !data){ agregarMensaje("system","No pude crear el cliente."); flujoActual=null; return; }
+        if(error || !data){
+          logErr("insert clientes", error);
+          agregarMensaje("system","No pude crear el cliente. Revisa los datos.");
+          flujoActual=null; return;
+        }
         agregarMensaje("bot",`Cliente creado correctamente.\nID: ${data.id}\n${data.nombre_empresa} · NIT ${data.nit}`);
         agregarMensaje("bot","¿Quieres crear cotización o crear alquiler?");
-      }catch(_e){
+      }catch(e){
+        logErr("guardarCliente", e);
         agregarMensaje("system","Error de red al crear cliente.");
       }
       flujoActual = null;
     }
 
+    // ============================================================
+    // FLUJO: CREAR COTIZACIÓN
+    // ============================================================
     function iniciarFlujoCotizacion(){
       flujoActual = { tipo:"crear_cotizacion", data:{ cliente_id:"",tipo:"",altura:"",dias:"",precio:"",modalidad:"",origen:"",destino:"",cantidad_viajes:"",valor_viaje:"" }, esperando:"cliente_busqueda" };
       agregarMensaje("bot","Indica cliente (nombre o NIT) para la cotización.");
     }
 
+    async function continuarFlujoCotizacion(input){
+      const d = flujoActual.data;
+      const x = normalizarTexto(input);
+
+      if(flujoActual.esperando==="cliente_busqueda"){
+        try{
+          const b = escPostgrest(input);
+          if(!b){ agregarMensaje("bot","Escribe nombre o NIT del cliente."); return; }
+          const { data, error } = await supabase
+            .from("clientes")
+            .select("id,nombre_empresa,nit")
+            .eq("empresa_id",empresa_id)
+            .or(`nombre_empresa.ilike.%${b}%,nit.ilike.%${b}%`)
+            .limit(1);
+          if(error){ logErr("buscar cliente cot", error); agregarMensaje("system","Error consultando clientes."); return; }
+          if(!data || !data.length){
+            agregarMensaje("bot","No encontré cliente. Escribe 'crear cliente' para registrarlo o 'cancelar' para salir.");
+            return;
+          }
+          d.cliente_id = data[0].id;
+          flujoActual.esperando = "tipo";
+          agregarMensaje("bot",`Cliente: ${data[0].nombre_empresa}. Indica tipo (ej: elevador tijera, articulado).`);
+          return;
+        }catch(e){
+          logErr("continuarFlujoCotizacion cliente", e);
+          agregarMensaje("system","Error de red buscando cliente.");
+          return;
+        }
+      }
+
+      if(flujoActual.esperando==="tipo"){ d.tipo=input.trim(); flujoActual.esperando="altura"; agregarMensaje("bot","Indica altura (en metros o pies)."); return; }
+      if(flujoActual.esperando==="altura"){ d.altura=input.trim(); flujoActual.esperando="dias"; agregarMensaje("bot","Indica días."); return; }
+      if(flujoActual.esperando==="dias"){
+        const n = Number(input); if(!n || n<=0){ agregarMensaje("bot","Días inválido. Escribe un número mayor a 0."); return; }
+        d.dias=String(n); flujoActual.esperando="precio"; agregarMensaje("bot","Indica precio por día."); return;
+      }
+      if(flujoActual.esperando==="precio"){
+        const n = Number(String(input).replace(/[^\d.]/g,""));
+        if(!n || n<=0){ agregarMensaje("bot","Precio inválido. Escribe un número mayor a 0."); return; }
+        d.precio=String(n); flujoActual.esperando="modalidad"; agregarMensaje("bot","Indica modalidad: alquiler_dia o transporte_viaje."); return;
+      }
+      if(flujoActual.esperando==="modalidad"){
+        d.modalidad = x.includes("transporte") ? "transporte_viaje" : "alquiler_dia";
+        if(d.modalidad==="transporte_viaje"){ flujoActual.esperando="origen"; agregarMensaje("bot","Indica origen."); }
+        else { await guardarCotizacion(); }
+        return;
+      }
+      if(flujoActual.esperando==="origen"){ d.origen=input.trim(); flujoActual.esperando="destino"; agregarMensaje("bot","Indica destino."); return; }
+      if(flujoActual.esperando==="destino"){ d.destino=input.trim(); flujoActual.esperando="cantidad_viajes"; agregarMensaje("bot","Indica cantidad de viajes."); return; }
+      if(flujoActual.esperando==="cantidad_viajes"){
+        const n = Number(input); if(!n || n<=0){ agregarMensaje("bot","Cantidad inválida."); return; }
+        d.cantidad_viajes=String(n); flujoActual.esperando="valor_viaje"; agregarMensaje("bot","Indica valor por viaje."); return;
+      }
+      if(flujoActual.esperando==="valor_viaje"){
+        const n = Number(String(input).replace(/[^\d.]/g,""));
+        if(!n || n<=0){ agregarMensaje("bot","Valor inválido."); return; }
+        d.valor_viaje=String(n); await guardarCotizacion(); return;
+      }
+    }
+
     async function guardarCotizacion(){
       const d = flujoActual.data;
       try{
+        if(!d.cliente_id || !d.tipo || !d.dias || !d.precio){
+          agregarMensaje("system","Datos incompletos para la cotización.");
+          flujoActual = null; return;
+        }
         const payload = {
           empresa_id,
-          cliente_id:d.cliente_id,
-          tipo:d.tipo,
-          altura:Number(d.altura) || null,
-          dias:Number(d.dias) || 0,
-          precio:Number(d.precio) || 0,
-          modalidad:d.modalidad || "alquiler_dia",
-          origen:d.modalidad==="transporte_viaje" ? d.origen : null,
-          destino:d.modalidad==="transporte_viaje" ? d.destino : null,
-          cantidadViajes:d.modalidad==="transporte_viaje" ? (Number(d.cantidad_viajes)||0) : 0,
-          valorViaje:d.modalidad==="transporte_viaje" ? (Number(d.valor_viaje)||0) : 0,
-          estado:"borrador",
-          created_by:user_id
+          cliente_id: d.cliente_id,
+          tipo: d.tipo,
+          altura: Number(d.altura) || null,
+          dias: Number(d.dias) || 0,
+          precio: Number(d.precio) || 0,
+          modalidad: d.modalidad || "alquiler_dia",
+          origen: d.modalidad==="transporte_viaje" ? d.origen : null,
+          destino: d.modalidad==="transporte_viaje" ? d.destino : null,
+          cantidadViajes: d.modalidad==="transporte_viaje" ? (Number(d.cantidad_viajes)||0) : 0,
+          valorViaje: d.modalidad==="transporte_viaje" ? (Number(d.valor_viaje)||0) : 0,
+          estado: "borrador",
+          created_by: user_id
         };
         const { data, error } = await supabase.from("cotizaciones").insert([payload]).select("id,estado").single();
-        if(error || !data){ agregarMensaje("system","No pude crear la cotización."); flujoActual=null; return; }
+        if(error || !data){
+          logErr("insert cotizaciones", error);
+          agregarMensaje("system","No pude crear la cotización. Revisa los datos.");
+          flujoActual=null; return;
+        }
         agregarMensaje("bot",`Cotización creada correctamente.\nID: ${data.id}\nEstado: ${data.estado}`);
-      }catch(_e){
+      }catch(e){
+        logErr("guardarCotizacion", e);
         agregarMensaje("system","Error de red al crear cotización.");
       }
       flujoActual = null;
     }
 
+    // ============================================================
+    // FLUJO: CREAR ALQUILER
+    // ============================================================
     function iniciarFlujoAlquiler(){
       flujoActual = { tipo:"crear_alquiler", data:{ cliente_id:"",equipo_id:"",fecha_inicio:"",fecha_fin:"",dias:"",precio:"" }, esperando:"cliente_busqueda" };
       agregarMensaje("bot","Indica cliente (nombre o NIT) para crear el alquiler.");
     }
 
+    async function continuarFlujoAlquiler(input){
+      const d = flujoActual.data;
+
+      if(flujoActual.esperando==="cliente_busqueda"){
+        try{
+          const b = escPostgrest(input);
+          if(!b){ agregarMensaje("bot","Escribe nombre o NIT del cliente."); return; }
+          const { data, error } = await supabase
+            .from("clientes")
+            .select("id,nombre_empresa")
+            .eq("empresa_id",empresa_id)
+            .or(`nombre_empresa.ilike.%${b}%,nit.ilike.%${b}%`)
+            .limit(1);
+
+          if(error){ logErr("buscar cliente alq", error); agregarMensaje("system","Error consultando clientes."); return; }
+          if(!data || !data.length){
+            agregarMensaje("bot","No encontré cliente. Escribe 'crear cliente' para registrarlo o 'cancelar' para salir.");
+            return;
+          }
+
+          d.cliente_id = data[0].id;
+          flujoActual.esperando = "equipo_id";
+
+          try{
+            const mq = await supabase.from("maquinas")
+              .select("id,marca,modelo,estado")
+              .eq("empresa_id",empresa_id).eq("estado","disponible")
+              .limit(20);
+            renderMini("Máquinas disponibles", mq.data||[], ["id","marca","modelo","estado"]);
+          }catch(e){ logErr("listar maq disp", e); }
+          agregarMensaje("bot","Indica ID del equipo (copia exactamente el ID de la tabla).");
+          return;
+        }catch(e){
+          logErr("continuarFlujoAlquiler cliente", e);
+          agregarMensaje("system","Error de red buscando cliente para alquiler.");
+          return;
+        }
+      }
+
+      if(flujoActual.esperando==="equipo_id"){
+        const ref = input.trim();
+        if(!ref){ agregarMensaje("bot","Indica un ID válido de máquina."); return; }
+        try{
+          const { data, error } = await supabase.from("maquinas")
+            .select("id,estado").eq("empresa_id",empresa_id).eq("id",ref).maybeSingle();
+          if(error){ logErr("validar maq", error); agregarMensaje("system","Error validando máquina."); return; }
+          if(!data){ agregarMensaje("bot","No encontré esa máquina. Indica otro ID."); return; }
+          if(data.estado !== "disponible"){
+            agregarMensaje("bot",`Máquina no disponible (estado: ${data.estado}). Elige otra ID disponible.`);
+            return;
+          }
+          d.equipo_id = ref;
+        }catch(e){
+          logErr("validar maq net", e);
+          agregarMensaje("system","Error de red validando máquina.");
+          return;
+        }
+        flujoActual.esperando = "fecha_inicio";
+        agregarMensaje("bot","Indica fecha_inicio (YYYY-MM-DD).");
+        return;
+      }
+
+      if(flujoActual.esperando==="fecha_inicio"){
+        const v = input.trim();
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){ agregarMensaje("bot","Formato inválido. Usa YYYY-MM-DD."); return; }
+        d.fecha_inicio=v; flujoActual.esperando="fecha_fin"; agregarMensaje("bot","Indica fecha_fin (YYYY-MM-DD)."); return;
+      }
+      if(flujoActual.esperando==="fecha_fin"){
+        const v = input.trim();
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){ agregarMensaje("bot","Formato inválido. Usa YYYY-MM-DD."); return; }
+        if(v < d.fecha_inicio){ agregarMensaje("bot","fecha_fin no puede ser menor que fecha_inicio."); return; }
+        d.fecha_fin=v; flujoActual.esperando="dias"; agregarMensaje("bot","Indica días."); return;
+      }
+      if(flujoActual.esperando==="dias"){
+        const n = Number(input); if(!n || n<=0){ agregarMensaje("bot","Días inválido."); return; }
+        d.dias=String(n); flujoActual.esperando="precio"; agregarMensaje("bot","Indica precio por día."); return;
+      }
+      if(flujoActual.esperando==="precio"){
+        const n = Number(String(input).replace(/[^\d.]/g,""));
+        if(!n || n<=0){ agregarMensaje("bot","Precio inválido."); return; }
+        d.precio=String(n); await guardarAlquiler(); return;
+      }
+    }
+
     async function guardarAlquiler(){
       const d = flujoActual.data;
       try{
-        const payload = {
-          empresa_id,
-          cliente_id:d.cliente_id,
-          equipoId:d.equipo_id,
-          fechaInicio:d.fecha_inicio,
-          fecha_fin:d.fecha_fin || null,
-          dias:Number(d.dias) || 0,
-          precioDia:Number(d.precio) || 0,
-          estado:"activo",
-          created_by:user_id
-        };
-
-        const { data, error } = await supabase.from("alquileres_ops").insert([payload]).select("id,estado,equipoId").single();
-        if(error || !data){ agregarMensaje("system","No pude crear el alquiler."); flujoActual=null; return; }
-
-        if(d.equipo_id){
-          await supabase
-            .from("maquinas")
-            .update({ estado:"trabajando", cliente_id:d.cliente_id, fecha_inicio:d.fecha_inicio, fecha_vence:d.fecha_fin||null, alquiler_nro:data.id })
-            .eq("empresa_id", empresa_id)
-            .eq("id", d.equipo_id);
+        if(!d.cliente_id || !d.equipo_id || !d.fecha_inicio){
+          agregarMensaje("system","Datos incompletos para el alquiler.");
+          flujoActual = null; return;
         }
 
-        agregarMensaje("bot",`Alquiler creado correctamente.\nID: ${data.id}\nEstado: ${data.estado}`);
-      }catch(_e){
+        // Re-validar que la máquina siga disponible justo antes de insertar
+        const { data: mq, error: emq } = await supabase.from("maquinas")
+          .select("id,estado").eq("empresa_id",empresa_id).eq("id",d.equipo_id).maybeSingle();
+        if(emq){ logErr("revalidar maq", emq); agregarMensaje("system","Error validando máquina."); flujoActual=null; return; }
+        if(!mq || mq.estado !== "disponible"){
+          agregarMensaje("bot","La máquina ya no está disponible. Intenta con otra.");
+          flujoActual = null; return;
+        }
+
+        const payload = {
+          empresa_id,
+          cliente_id: d.cliente_id,
+          equipoId: d.equipo_id,
+          fechaInicio: d.fecha_inicio,
+          fecha_fin: d.fecha_fin || null,
+          dias: Number(d.dias) || 0,
+          precioDia: Number(d.precio) || 0,
+          estado: "activo",
+          created_by: user_id
+        };
+
+        const { data, error } = await supabase
+          .from("alquileres_ops")
+          .insert([payload])
+          .select("id,estado,equipoId")
+          .single();
+        if(error || !data){
+          logErr("insert alquileres_ops", error);
+          agregarMensaje("system","No pude crear el alquiler. Revisa los datos.");
+          flujoActual=null; return;
+        }
+
+        // Actualizar máquina a "trabajando"
+        const { error: euMaq } = await supabase
+          .from("maquinas")
+          .update({ estado:"trabajando", cliente_id:d.cliente_id, fecha_inicio:d.fecha_inicio, fecha_vence:d.fecha_fin||null, alquiler_nro:data.id })
+          .eq("empresa_id", empresa_id)
+          .eq("id", d.equipo_id);
+
+        if(euMaq){
+          logErr("update maquina tras alquiler", euMaq);
+          agregarMensaje("system",`Alquiler ${data.id} creado, pero no pude actualizar la máquina. Revísala manualmente.`);
+        }else{
+          agregarMensaje("bot",`Alquiler creado correctamente.\nID: ${data.id}\nEstado: ${data.estado}\nMáquina ${d.equipo_id} marcada como trabajando.`);
+        }
+      }catch(e){
+        logErr("guardarAlquiler", e);
         agregarMensaje("system","Error de red al crear alquiler.");
       }
       flujoActual = null;
     }
 
+    // ============================================================
+    // CONSULTAS
+    // ============================================================
     async function consultarAlquileres(filtro="activo"){
       try{
         if(filtro==="por_vencer"){
           const lim = new Date(Date.now()+3*24*60*60*1000).toISOString().slice(0,10);
-          const { data, error } = await supabase.from("alquileres_ops").select("id,estado,fechaInicio,fecha_fin,cliente_id,equipoId").eq("empresa_id",empresa_id).not("fecha_fin","is",null).lte("fecha_fin",lim).order("fecha_fin",{ascending:true}).limit(20);
-          if(error) return agregarMensaje("system","No pude consultar alquileres por vencer.");
+          const { data, error } = await supabase.from("alquileres_ops")
+            .select("id,estado,fechaInicio,fecha_fin,cliente_id,equipoId")
+            .eq("empresa_id",empresa_id)
+            .not("fecha_fin","is",null)
+            .lte("fecha_fin",lim)
+            .order("fecha_fin",{ascending:true}).limit(20);
+          if(error){ logErr("alq por vencer", error); return agregarMensaje("system","No pude consultar alquileres por vencer."); }
           return renderMini("Alquileres por vencer", data||[], ["id","estado","fechaInicio","fecha_fin","equipoId"]);
         }
-        const { data, error } = await supabase.from("alquileres_ops").select("id,estado,fechaInicio,fecha_fin,cliente_id,equipoId").eq("empresa_id",empresa_id).eq("estado",filtro).order("id",{ascending:false}).limit(30);
-        if(error) return agregarMensaje("system","No pude consultar alquileres.");
+        const { data, error } = await supabase.from("alquileres_ops")
+          .select("id,estado,fechaInicio,fecha_fin,cliente_id,equipoId")
+          .eq("empresa_id",empresa_id).eq("estado",filtro)
+          .order("id",{ascending:false}).limit(30);
+        if(error){ logErr("alq list", error); return agregarMensaje("system","No pude consultar alquileres."); }
         renderMini(`Encontré ${(data||[]).length} alquileres ${filtro}.`, data||[], ["id","estado","fechaInicio","fecha_fin","equipoId"]);
-      }catch(_e){
+      }catch(e){
+        logErr("consultarAlquileres", e);
         agregarMensaje("system","Error de red en consulta de alquileres.");
       }
     }
 
     async function consultarCotizaciones(filtro="aprobada"){
       try{
-        const { data, error } = await supabase.from("cotizaciones").select("id,estado,cliente_id,dias,precio,modalidad,created_at").eq("empresa_id",empresa_id).eq("estado",filtro).order("created_at",{ascending:false}).limit(30);
-        if(error) return agregarMensaje("system","No pude consultar cotizaciones.");
+        const { data, error } = await supabase.from("cotizaciones")
+          .select("id,estado,cliente_id,dias,precio,modalidad,created_at")
+          .eq("empresa_id",empresa_id).eq("estado",filtro)
+          .order("created_at",{ascending:false}).limit(30);
+        if(error){ logErr("cot list", error); return agregarMensaje("system","No pude consultar cotizaciones."); }
         renderMini(`Encontré ${(data||[]).length} cotizaciones ${filtro}.`, data||[], ["id","estado","cliente_id","dias","precio","modalidad"]);
-      }catch(_e){
+      }catch(e){
+        logErr("consultarCotizaciones", e);
         agregarMensaje("system","Error de red en consulta de cotizaciones.");
       }
     }
 
     async function consultarMaquinas(filtro="disponible"){
       try{
-        const { data, error } = await supabase.from("maquinas").select("id,marca,modelo,estado,cliente_id,alquiler_nro").eq("empresa_id",empresa_id).eq("estado",filtro).order("id",{ascending:false}).limit(30);
-        if(error) return agregarMensaje("system","No pude consultar máquinas.");
-        renderMini(`Estas son las máquinas ${filtro}.`, data||[], ["id","marca","modelo","estado","alquiler_nro"]);
-      }catch(_e){
+        const { data, error } = await supabase.from("maquinas")
+          .select("id,marca,modelo,estado,cliente_id,alquiler_nro")
+          .eq("empresa_id",empresa_id).eq("estado",filtro)
+          .order("id",{ascending:false}).limit(30);
+        if(error){ logErr("maq list", error); return agregarMensaje("system","No pude consultar máquinas."); }
+        renderMini(`Máquinas ${filtro}: ${(data||[]).length}`, data||[], ["id","marca","modelo","estado","alquiler_nro"]);
+      }catch(e){
+        logErr("consultarMaquinas", e);
         agregarMensaje("system","Error de red en consulta de máquinas.");
       }
     }
 
     async function consultarClientes(busqueda=""){
       try{
-        let q = supabase.from("clientes").select("id,nombre_empresa,nit,telefono,ciudad").eq("empresa_id",empresa_id).order("nombre_empresa",{ascending:true}).limit(25);
-        if(busqueda){ const b = busqueda.trim(); q = q.or(`nombre_empresa.ilike.%${b}%,nit.ilike.%${b}%`); }
+        let q = supabase.from("clientes")
+          .select("id,nombre_empresa,nit,telefono,ciudad")
+          .eq("empresa_id",empresa_id)
+          .order("nombre_empresa",{ascending:true}).limit(25);
+        const b = escPostgrest(busqueda);
+        if(b){ q = q.or(`nombre_empresa.ilike.%${b}%,nit.ilike.%${b}%`); }
         const { data, error } = await q;
-        if(error) return agregarMensaje("system","No pude consultar clientes.");
+        if(error){ logErr("cli list", error); return agregarMensaje("system","No pude consultar clientes."); }
         renderMini(`Encontré ${(data||[]).length} clientes.`, data||[], ["id","nombre_empresa","nit","telefono","ciudad"]);
-      }catch(_e){
+      }catch(e){
+        logErr("consultarClientes", e);
         agregarMensaje("system","Error de red en consulta de clientes.");
       }
     }
 
     async function consultarFinanzas(){
       try{
-        const { data, error } = await supabase.from("caja_movimientos").select("id,tipo,monto,concepto,fecha").eq("empresa_id",empresa_id).order("fecha",{ascending:false}).limit(500);
-        if(error) return agregarMensaje("system","No pude consultar finanzas.");
+        // Últimos 90 días para mantener rendimiento
+        const desde = new Date(Date.now()-90*24*60*60*1000).toISOString().slice(0,10);
+        const { data, error } = await supabase.from("caja_movimientos")
+          .select("id,tipo,monto,concepto,fecha")
+          .eq("empresa_id",empresa_id)
+          .gte("fecha",desde)
+          .order("fecha",{ascending:false}).limit(500);
+        if(error){ logErr("finanzas", error); return agregarMensaje("system","No pude consultar finanzas."); }
         let i=0,g=0;
-        for(const m of (data||[])){ const v = Number(m.monto)||0; if((m.tipo||"").toLowerCase().includes("ingreso")) i+=v; else g+=v; }
-        agregarMensaje("bot",`Finanzas:\nIngresos: $${fmt(i)}\nGastos: $${fmt(g)}\nBalance: $${fmt(i-g)}`);
-      }catch(_e){
+        for(const m of (data||[])){
+          const v = Number(m.monto)||0;
+          if((m.tipo||"").toLowerCase().includes("ingreso")) i+=v; else g+=v;
+        }
+        agregarMensaje("bot",`Finanzas (últimos 90 días):\nIngresos: $${fmt(i)}\nGastos: $${fmt(g)}\nBalance: $${fmt(i-g)}\nMovimientos: ${(data||[]).length}`);
+      }catch(e){
+        logErr("consultarFinanzas", e);
         agregarMensaje("system","Error de red en consulta financiera.");
       }
     }
@@ -485,16 +857,39 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
           supabase.from("maquinas").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","trabajando"),
           supabase.from("alquileres_ops").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","activo"),
           supabase.from("cotizaciones").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).in("estado",["borrador","en_revision","enviada","negociacion"]),
-          supabase.from("caja_movimientos").select("tipo,monto").eq("empresa_id",empresa_id)
+          supabase.from("caja_movimientos").select("tipo,monto").eq("empresa_id",empresa_id).limit(1000)
         ]);
+
+        if(m1.error) logErr("resumen m1", m1.error);
+        if(m2.error) logErr("resumen m2", m2.error);
+        if(a1.error) logErr("resumen a1", a1.error);
+        if(c1.error) logErr("resumen c1", c1.error);
+        if(fin.error) logErr("resumen fin", fin.error);
+
         let i=0,g=0;
-        for(const x of (fin.data||[])){ const n = Number(x.monto)||0; if((x.tipo||"").toLowerCase().includes("ingreso")) i+=n; else g+=n; }
-        agregarMensaje("bot",`Resumen general:\nMáquinas disponibles: ${m1.count||0}\nMáquinas trabajando: ${m2.count||0}\nAlquileres activos: ${a1.count||0}\nCotizaciones pendientes: ${c1.count||0}\nIngresos: $${fmt(i)}\nGastos: $${fmt(g)}\nBalance: $${fmt(i-g)}`);
-      }catch(_e){
+        for(const x of (fin.data||[])){
+          const n = Number(x.monto)||0;
+          if((x.tipo||"").toLowerCase().includes("ingreso")) i+=n; else g+=n;
+        }
+        agregarMensaje("bot",
+          `Resumen general:\n`+
+          `Máquinas disponibles: ${m1.count||0}\n`+
+          `Máquinas trabajando: ${m2.count||0}\n`+
+          `Alquileres activos: ${a1.count||0}\n`+
+          `Cotizaciones pendientes: ${c1.count||0}\n`+
+          `Ingresos: $${fmt(i)}\n`+
+          `Gastos: $${fmt(g)}\n`+
+          `Balance: $${fmt(i-g)}`
+        );
+      }catch(e){
+        logErr("consultarResumenGeneral", e);
         agregarMensaje("system","Error de red en resumen general.");
       }
     }
 
+    // ============================================================
+    // CAMBIAR ESTADO MÁQUINA
+    // ============================================================
     async function cambiarEstadoMaquina(){
       if(!flujoActual || flujoActual.tipo!=="cambiar_estado_maquina"){
         flujoActual = { tipo:"cambiar_estado_maquina", data:{ref:"",estado:""}, esperando:"ref" };
@@ -503,26 +898,56 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       }
       if(flujoActual.esperando==="ref"){
         flujoActual.esperando="estado";
-        agregarMensaje("bot","Ahora indica el nuevo estado: disponible, trabajando, mantenimiento o varado.");
+        agregarMensaje("bot","Ahora indica el nuevo estado: disponible, trabajando, mantenimiento, varado o baja.");
         return;
       }
 
       const d = flujoActual.data;
       const e = normalizarTexto(d.estado);
       const ok = ["disponible","trabajando","mantenimiento","varado","baja"];
-      if(!ok.includes(e)){ agregarMensaje("bot","Estado inválido."); flujoActual=null; return; }
+      if(!ok.includes(e)){
+        agregarMensaje("bot",`Estado inválido. Usa: ${ok.join(", ")}.`);
+        flujoActual=null; return;
+      }
 
       try{
-        const ref = d.ref;
-        const { data, error } = await supabase.from("maquinas").update({estado:e}).eq("empresa_id",empresa_id).or(`id.eq.${ref},marca.ilike.%${ref}%,modelo.ilike.%${ref}%`).select("id,marca,modelo,estado").limit(1);
-        if(error || !data || !data.length){ agregarMensaje("system","No pude cambiar estado de máquina."); flujoActual=null; return; }
-        agregarMensaje("bot",`Estado actualizado: ${data[0].id} → ${data[0].estado}`);
-      }catch(_e){
+        const ref = escPostgrest(d.ref);
+        if(!ref){ agregarMensaje("system","Referencia de máquina vacía."); flujoActual=null; return; }
+
+        // Buscar por id exacto o por marca/modelo
+        const { data: found, error: eF } = await supabase.from("maquinas")
+          .select("id,marca,modelo,estado").eq("empresa_id",empresa_id)
+          .or(`id.eq.${ref},marca.ilike.%${ref}%,modelo.ilike.%${ref}%`)
+          .limit(1);
+        if(eF){ logErr("buscar maq estado", eF); agregarMensaje("system","No pude buscar la máquina."); flujoActual=null; return; }
+        if(!found || !found.length){
+          agregarMensaje("bot","No encontré ninguna máquina con esa referencia.");
+          flujoActual=null; return;
+        }
+
+        const maqId = found[0].id;
+
+        // Si pasa a "trabajando" sin alquiler activo, advertir (no bloqueo)
+        const { data: upd, error: eU } = await supabase.from("maquinas")
+          .update({estado:e})
+          .eq("empresa_id",empresa_id).eq("id", maqId)
+          .select("id,marca,modelo,estado").maybeSingle();
+        if(eU || !upd){
+          logErr("update estado maq", eU);
+          agregarMensaje("system","No pude cambiar el estado de la máquina.");
+          flujoActual=null; return;
+        }
+        agregarMensaje("bot",`Estado actualizado: ${upd.id} (${upd.marca||""} ${upd.modelo||""}) → ${upd.estado}`);
+      }catch(e){
+        logErr("cambiarEstadoMaquina", e);
         agregarMensaje("system","Error de red cambiando estado de máquina.");
       }
       flujoActual = null;
     }
 
+    // ============================================================
+    // ASIGNAR MÁQUINA A ALQUILER
+    // ============================================================
     async function asignarMaquinaAlquiler(){
       if(!flujoActual || flujoActual.tipo!=="asignar_maquina"){
         flujoActual = { tipo:"asignar_maquina", data:{alquiler_id:"",maquina_id:""}, esperando:"alquiler_id" };
@@ -530,154 +955,126 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         return;
       }
       if(flujoActual.esperando==="alquiler_id"){
+        if(!flujoActual.data.alquiler_id){ agregarMensaje("bot","ID de alquiler vacío."); flujoActual=null; return; }
+        // Validar que el alquiler exista y sea de la empresa
+        try{
+          const { data: alq, error } = await supabase.from("alquileres_ops")
+            .select("id,estado").eq("empresa_id",empresa_id)
+            .eq("id", flujoActual.data.alquiler_id).maybeSingle();
+          if(error){ logErr("validar alq", error); agregarMensaje("system","Error validando alquiler."); flujoActual=null; return; }
+          if(!alq){ agregarMensaje("bot","No encontré ese alquiler."); flujoActual=null; return; }
+        }catch(e){ logErr("validar alq net", e); agregarMensaje("system","Error de red."); flujoActual=null; return; }
+
         flujoActual.esperando = "maquina_id";
         try{
-          const { data } = await supabase.from("maquinas").select("id,marca,modelo").eq("empresa_id",empresa_id).eq("estado","disponible").limit(20);
+          const { data } = await supabase.from("maquinas")
+            .select("id,marca,modelo").eq("empresa_id",empresa_id)
+            .eq("estado","disponible").limit(20);
           renderMini("Máquinas disponibles", data||[], ["id","marca","modelo"]);
-        }catch(_e){}
+        }catch(e){ logErr("listar maq disp2", e); }
         agregarMensaje("bot","Indica ID de la máquina a asignar.");
         return;
       }
 
       const d = flujoActual.data;
       try{
-        const { error:e1 } = await supabase.from("alquileres_ops").update({equipoId:d.maquina_id,estado:"activo"}).eq("empresa_id",empresa_id).eq("id",d.alquiler_id);
-        const { error:e2 } = await supabase.from("maquinas").update({estado:"trabajando",alquiler_nro:d.alquiler_id}).eq("empresa_id",empresa_id).eq("id",d.maquina_id);
-        if(e1 || e2){ agregarMensaje("system","No pude asignar máquina."); flujoActual=null; return; }
-        agregarMensaje("bot","Máquina asignada correctamente.");
-      }catch(_e){
+        if(!d.alquiler_id || !d.maquina_id){
+          agregarMensaje("system","Datos incompletos.");
+          flujoActual=null; return;
+        }
+
+        // Validar que la máquina esté disponible
+        const { data: mq, error: eMq } = await supabase.from("maquinas")
+          .select("id,estado").eq("empresa_id",empresa_id).eq("id",d.maquina_id).maybeSingle();
+        if(eMq){ logErr("validar maq asig", eMq); agregarMensaje("system","Error validando máquina."); flujoActual=null; return; }
+        if(!mq){ agregarMensaje("bot","No encontré esa máquina."); flujoActual=null; return; }
+        if(mq.estado !== "disponible"){
+          agregarMensaje("bot",`Máquina no disponible (estado: ${mq.estado}). No se puede asignar.`);
+          flujoActual=null; return;
+        }
+
+        const { error:e1 } = await supabase.from("alquileres_ops")
+          .update({equipoId:d.maquina_id,estado:"activo"})
+          .eq("empresa_id",empresa_id).eq("id",d.alquiler_id);
+        if(e1){
+          logErr("asignar update alq", e1);
+          agregarMensaje("system","No pude asignar máquina al alquiler.");
+          flujoActual=null; return;
+        }
+
+        const { error:e2 } = await supabase.from("maquinas")
+          .update({estado:"trabajando",alquiler_nro:d.alquiler_id})
+          .eq("empresa_id",empresa_id).eq("id",d.maquina_id);
+        if(e2){
+          logErr("asignar update maq", e2);
+          agregarMensaje("system",`Alquiler actualizado pero la máquina no. Revísala manualmente.`);
+          flujoActual=null; return;
+        }
+
+        agregarMensaje("bot",`Máquina ${d.maquina_id} asignada al alquiler ${d.alquiler_id}.`);
+      }catch(e){
+        logErr("asignarMaquinaAlquiler", e);
         agregarMensaje("system","Error de red asignando máquina.");
       }
       flujoActual = null;
     }
 
+    // ============================================================
+    // RENDER DE TABLA
+    // ============================================================
+    function esc(s){
+      return String(s==null?"":s)
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+    }
     function renderMini(titulo,rows,cols){
-      if(!rows || !rows.length){ agregarMensaje("bot",`${titulo}\nSin resultados.`); return; }
-      const head = cols.map(c=>`<th>${c}</th>`).join("");
-      const body = rows.map(r=>`<tr>${cols.map(c=>`<td>${(r && r[c]!==undefined && r[c]!==null) ? r[c] : ""}</td>`).join("")}</tr>`).join("");
-      agregarMensaje("bot",`${titulo}<table class="mini-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`,true);
+      if(!rows || !rows.length){ agregarMensaje("bot",`${esc(titulo)}\nSin resultados.`,true); return; }
+      const head = cols.map(c=>`<th>${esc(c)}</th>`).join("");
+      const body = rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r && r[c]!==undefined && r[c]!==null ? r[c] : "")}</td>`).join("")}</tr>`).join("");
+      agregarMensaje("bot",`${esc(titulo)}<table class="mini-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`,true);
     }
 
-    async function continuarFlujoCotizacion(input){
-      const d = flujoActual.data;
-      const x = normalizarTexto(input);
-
-      if(flujoActual.esperando==="cliente_busqueda"){
-        try{
-          const { data, error } = await supabase
-            .from("clientes")
-            .select("id,nombre_empresa,nit")
-            .eq("empresa_id",empresa_id)
-            .or(`nombre_empresa.ilike.%${input}%,nit.ilike.%${input}%`)
-            .limit(1);
-          if(error || !data || !data.length){
-            agregarMensaje("bot","No encontré cliente. Escribe 'crear cliente' para registrarlo.");
-            return;
-          }
-          d.cliente_id = data[0].id;
-          flujoActual.esperando = "tipo";
-          agregarMensaje("bot",`Cliente: ${data[0].nombre_empresa}. Indica tipo.`);
-          return;
-        }catch(_e){
-          agregarMensaje("system","Error de red buscando cliente.");
-          return;
-        }
-      }
-
-      if(flujoActual.esperando==="tipo"){ d.tipo=input; flujoActual.esperando="altura"; agregarMensaje("bot","Indica altura."); return; }
-      if(flujoActual.esperando==="altura"){ d.altura=input; flujoActual.esperando="dias"; agregarMensaje("bot","Indica días."); return; }
-      if(flujoActual.esperando==="dias"){ d.dias=input; flujoActual.esperando="precio"; agregarMensaje("bot","Indica precio."); return; }
-      if(flujoActual.esperando==="precio"){ d.precio=input; flujoActual.esperando="modalidad"; agregarMensaje("bot","Indica modalidad: alquiler_dia o transporte_viaje."); return; }
-      if(flujoActual.esperando==="modalidad"){
-        d.modalidad = x.includes("transporte") ? "transporte_viaje" : "alquiler_dia";
-        if(d.modalidad==="transporte_viaje"){ flujoActual.esperando="origen"; agregarMensaje("bot","Indica origen."); }
-        else { await guardarCotizacion(); }
-        return;
-      }
-      if(flujoActual.esperando==="origen"){ d.origen=input; flujoActual.esperando="destino"; agregarMensaje("bot","Indica destino."); return; }
-      if(flujoActual.esperando==="destino"){ d.destino=input; flujoActual.esperando="cantidad_viajes"; agregarMensaje("bot","Indica cantidad de viajes."); return; }
-      if(flujoActual.esperando==="cantidad_viajes"){ d.cantidad_viajes=input; flujoActual.esperando="valor_viaje"; agregarMensaje("bot","Indica valor por viaje."); return; }
-      if(flujoActual.esperando==="valor_viaje"){ d.valor_viaje=input; await guardarCotizacion(); return; }
-    }
-
-    async function continuarFlujoAlquiler(input){
-      const d = flujoActual.data;
-
-      if(flujoActual.esperando==="cliente_busqueda"){
-        try{
-          const { data, error } = await supabase
-            .from("clientes")
-            .select("id,nombre_empresa")
-            .eq("empresa_id",empresa_id)
-            .or(`nombre_empresa.ilike.%${input}%,nit.ilike.%${input}%`)
-            .limit(1);
-
-          if(error || !data || !data.length){
-            agregarMensaje("bot","No encontré cliente. Escribe 'crear cliente' para registrarlo.");
-            return;
-          }
-
-          d.cliente_id = data[0].id;
-          flujoActual.esperando = "equipo_id";
-
-          const mq = await supabase.from("maquinas").select("id,marca,modelo,estado").eq("empresa_id",empresa_id).eq("estado","disponible").limit(20);
-          renderMini("Máquinas disponibles", mq.data||[], ["id","marca","modelo","estado"]);
-          agregarMensaje("bot","Indica ID del equipo.");
-          return;
-        }catch(_e){
-          agregarMensaje("system","Error de red buscando cliente para alquiler.");
-          return;
-        }
-      }
-
-      if(flujoActual.esperando==="equipo_id"){
-        d.equipo_id = input.trim();
-        try{
-          const { data, error } = await supabase.from("maquinas").select("id,estado").eq("empresa_id",empresa_id).eq("id",d.equipo_id).maybeSingle();
-          if(error || !data || data.estado!=="disponible"){
-            agregarMensaje("bot","Máquina no disponible. Elige otra ID disponible.");
-            return;
-          }
-        }catch(_e){
-          agregarMensaje("system","Error validando máquina.");
-          return;
-        }
-        flujoActual.esperando = "fecha_inicio";
-        agregarMensaje("bot","Indica fecha_inicio (YYYY-MM-DD).");
-        return;
-      }
-
-      if(flujoActual.esperando==="fecha_inicio"){ d.fecha_inicio=input.trim(); flujoActual.esperando="fecha_fin"; agregarMensaje("bot","Indica fecha_fin (YYYY-MM-DD)."); return; }
-      if(flujoActual.esperando==="fecha_fin"){ d.fecha_fin=input.trim(); flujoActual.esperando="dias"; agregarMensaje("bot","Indica días."); return; }
-      if(flujoActual.esperando==="dias"){ d.dias=input.trim(); flujoActual.esperando="precio"; agregarMensaje("bot","Indica precio."); return; }
-      if(flujoActual.esperando==="precio"){ d.precio=input.trim(); await guardarAlquiler(); return; }
-    }
-
+    // ============================================================
+    // INTÉRPRETE CENTRAL
+    // ============================================================
     async function interpretarMensaje(texto){
-      const t = mostrarTyping();
       const txt = (texto||"").trim();
-      if(!txt){ t.stop("Escribe un comando."); return; }
-      if(!empresa_id){ t.stop("Sesión sin empresa. Vuelve a iniciar sesión."); return; }
+      if(!txt){ agregarMensaje("bot","Escribe un comando."); return; }
+      if(!empresa_id){ agregarMensaje("system","Sesión sin empresa. Vuelve a iniciar sesión."); return; }
 
+      // Cancelar flujo activo
+      if(flujoActual && /^(cancelar|salir|abortar|cancel)$/i.test(txt)){
+        flujoActual = null;
+        agregarMensaje("bot","Flujo cancelado.");
+        return;
+      }
+
+      // Flujo activo: procesar input sin typing (evita mensaje fantasma)
       if(flujoActual){
         try{
-          if(flujoActual.tipo==="crear_cliente"){ await continuarFlujoCliente(txt); t.stop("Listo."); return; }
-          if(flujoActual.tipo==="crear_cotizacion"){ await continuarFlujoCotizacion(txt); t.stop("Listo."); return; }
-          if(flujoActual.tipo==="crear_alquiler"){ await continuarFlujoAlquiler(txt); t.stop("Listo."); return; }
+          if(flujoActual.tipo==="crear_cliente"){ await continuarFlujoCliente(txt); return; }
+          if(flujoActual.tipo==="crear_cotizacion"){ await continuarFlujoCotizacion(txt); return; }
+          if(flujoActual.tipo==="crear_alquiler"){ await continuarFlujoAlquiler(txt); return; }
           if(flujoActual.tipo==="cambiar_estado_maquina"){
-            if(flujoActual.esperando==="ref") flujoActual.data.ref=txt; else flujoActual.data.estado=txt;
-            await cambiarEstadoMaquina(); t.stop("Listo."); return;
+            if(flujoActual.esperando==="ref") flujoActual.data.ref=txt;
+            else flujoActual.data.estado=txt;
+            await cambiarEstadoMaquina(); return;
           }
           if(flujoActual.tipo==="asignar_maquina"){
-            if(flujoActual.esperando==="alquiler_id") flujoActual.data.alquiler_id=txt; else flujoActual.data.maquina_id=txt;
-            await asignarMaquinaAlquiler(); t.stop("Listo."); return;
+            if(flujoActual.esperando==="alquiler_id") flujoActual.data.alquiler_id=txt;
+            else flujoActual.data.maquina_id=txt;
+            await asignarMaquinaAlquiler(); return;
           }
-        }catch(_e){
-          t.stop("Error procesando el flujo actual.");
+        }catch(e){
+          logErr("flujo activo", e);
+          flujoActual = null;
+          agregarMensaje("system","Error procesando el flujo. Flujo cancelado.");
           return;
         }
       }
 
+      // Detección de intención con typing indicator
+      const t = mostrarTyping();
       const it = detectarIntencion(txt);
 
       if(["crear_cliente","crear_cotizacion","crear_alquiler","asignar_maquina","cambiar_estado_maquina"].includes(it.type)){
@@ -686,61 +1083,66 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
           return;
         }
       }
+      if(it.type.startsWith("consultar_") && !puedeEjecutarAccion(it.type)){
+        t.stop("No tienes permisos para esa consulta.");
+        return;
+      }
 
       try{
-        if(it.type==="crear_cliente"){ iniciarFlujoCliente(txt); t.stop("Iniciando flujo cliente..."); return; }
-        if(it.type==="crear_cotizacion"){ iniciarFlujoCotizacion(); t.stop("Iniciando flujo cotización..."); return; }
-        if(it.type==="crear_alquiler"){ iniciarFlujoAlquiler(); t.stop("Iniciando flujo alquiler..."); return; }
-        if(it.type==="consultar_alquileres"){ await consultarAlquileres(it.filtro); t.stop(`Consulta de alquileres ${it.filtro} ejecutada.`); return; }
-        if(it.type==="consultar_cotizaciones"){ await consultarCotizaciones(it.filtro); t.stop(`Consulta de cotizaciones ${it.filtro} ejecutada.`); return; }
-        if(it.type==="consultar_maquinas"){ await consultarMaquinas(it.filtro); t.stop(`Consulta de máquinas ${it.filtro} ejecutada.`); return; }
-        if(it.type==="consultar_clientes"){ await consultarClientes(it.busqueda||""); t.stop("Consulta de clientes ejecutada."); return; }
-        if(it.type==="consultar_finanzas"){ await consultarFinanzas(); t.stop("Consulta financiera ejecutada."); return; }
-        if(it.type==="consultar_resumen"){ await consultarResumenGeneral(); t.stop("Resumen listo."); return; }
-        if(it.type==="cambiar_estado_maquina"){ await cambiarEstadoMaquina(); t.stop("Iniciando cambio de estado..."); return; }
-        if(it.type==="asignar_maquina"){ await asignarMaquinaAlquiler(); t.stop("Iniciando asignación..."); return; }
-        t.stop("No entendí. Usa: crear cliente, crear cotización, crear alquiler, alquileres activos, máquinas disponibles, finanzas, resumen.");
-      }catch(_e){
-        t.stop("Error ejecutando la solicitud.");
+        t.remove();
+        if(it.type==="crear_cliente"){ await iniciarFlujoCliente(txt); return; }
+        if(it.type==="crear_cotizacion"){ iniciarFlujoCotizacion(); return; }
+        if(it.type==="crear_alquiler"){ iniciarFlujoAlquiler(); return; }
+        if(it.type==="consultar_alquileres"){ await consultarAlquileres(it.filtro); return; }
+        if(it.type==="consultar_cotizaciones"){ await consultarCotizaciones(it.filtro); return; }
+        if(it.type==="consultar_maquinas"){ await consultarMaquinas(it.filtro); return; }
+        if(it.type==="consultar_clientes"){ await consultarClientes(it.busqueda||""); return; }
+        if(it.type==="consultar_finanzas"){ await consultarFinanzas(); return; }
+        if(it.type==="consultar_resumen"){ await consultarResumenGeneral(); return; }
+        if(it.type==="cambiar_estado_maquina"){ await cambiarEstadoMaquina(); return; }
+        if(it.type==="asignar_maquina"){ await asignarMaquinaAlquiler(); return; }
+        agregarMensaje("bot","No entendí. Usa: crear cliente, crear cotización, crear alquiler, alquileres activos, cotizaciones aprobadas, máquinas disponibles, finanzas, resumen.");
+      }catch(e){
+        logErr("interpretarMensaje", e);
+        agregarMensaje("system","Error ejecutando la solicitud.");
       }
     }
 
+    // ============================================================
+    // BIND UI
+    // ============================================================
+    async function handleSend(){
+      const i = document.getElementById("chatInput");
+      const t = i.value.trim();
+      if(!t) return;
+      agregarMensaje("user",t);
+      i.value="";
+      await interpretarMensaje(t);
+    }
+
     function bindUI(){
-      document.getElementById("btnLogin").addEventListener("click",login);
+      document.getElementById("btnLogin").addEventListener("click", login);
       document.getElementById("loginPassword").addEventListener("keydown",(e)=>{ if(e.key==="Enter") login(); });
-
-      document.getElementById("btnSend").addEventListener("click",async ()=>{
-        const i=document.getElementById("chatInput");
-        const t=i.value.trim();
-        if(!t) return;
-        agregarMensaje("user",t);
-        i.value="";
-        await interpretarMensaje(t);
+      document.getElementById("loginEmail").addEventListener("keydown",(e)=>{ if(e.key==="Enter") document.getElementById("loginPassword").focus(); });
+      document.getElementById("btnLogout").addEventListener("click", logout);
+      document.getElementById("btnSend").addEventListener("click", handleSend);
+      document.getElementById("chatInput").addEventListener("keydown",(e)=>{
+        if(e.key==="Enter"){ e.preventDefault(); handleSend(); }
       });
-
-      document.getElementById("chatInput").addEventListener("keydown",async (e)=>{
-        if(e.key==="Enter"){
-          e.preventDefault();
-          const i=document.getElementById("chatInput");
-          const t=i.value.trim();
-          if(!t) return;
-          agregarMensaje("user",t);
-          i.value="";
-          await interpretarMensaje(t);
-        }
-      });
-
       document.querySelectorAll("#quickActions .qbtn").forEach(b=>{
-        b.addEventListener("click",async ()=>{
-          const q=b.getAttribute("data-q")||"";
+        b.addEventListener("click", async ()=>{
+          const q = b.getAttribute("data-q")||"";
           agregarMensaje("user",q);
           await interpretarMensaje(q);
         });
       });
     }
 
-    initSupabase();
+    // ============================================================
+    // ARRANQUE
+    // ============================================================
     bindUI();
+    initApp();
   </script>
 </body>
 </html>
