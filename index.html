@@ -158,8 +158,8 @@
     // ============================================================
     const SUPABASE_URL  = "https://oguxdohmutqgacahcwop.supabase.co";
     const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ndXhkb2htdXRxZ2FjYWhjd29wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3Mjc0NzcsImV4cCI6MjA4ODMwMzQ3N30.RRruTo8B7k4R97Igq7_KV1PV58FqrpIzEu0R_MXIwR8";
-    // ⚠️ Coloca tu API key de Anthropic aquí:
-    const ANTHROPIC_KEY = "sk-ant-api03-93h...LgAA";
+
+
 
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
       auth: { persistSession: true, autoRefreshToken: true }
@@ -391,7 +391,11 @@
       const box = document.getElementById("messages");
       if(!box.children.length){
         agregarMensaje("bot",
-          `Hola, estoy en línea.\n\nSoy el asistente operativo de ${empresa_nombre}. Puedo consultar el estado de la flota, alquileres, cotizaciones, finanzas y crear registros si tienes los permisos.\n\nHázme cualquier pregunta en lenguaje natural — no necesitas seguir un menú.`
+          `Hola, estoy en línea.
+
+Soy el asistente operativo de ${empresa_nombre}. Puedo consultar el estado de la flota, alquileres, cotizaciones, finanzas y crear registros si tienes los permisos.
+
+Házme cualquier pregunta en lenguaje natural — no necesitas seguir un menú.`
         );
       }
       document.getElementById("chatInput").focus();
@@ -504,14 +508,9 @@ Si el usuario pide datos detallados o listas → usa la acción para traer desde
         { role:"user", content: userMessage }
       ];
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": ANTHROPIC_KEY,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1024,
@@ -523,7 +522,6 @@ Si el usuario pide datos detallados o listas → usa la acción para traer desde
       if(!response.ok){
         const txt = await response.text().catch(()=>"");
         logErr("callClaude HTTP " + response.status, txt);
-        if(response.status === 401) throw new Error("API key inválida o no configurada.");
         throw new Error("Error API " + response.status);
       }
 
@@ -636,7 +634,10 @@ Si el usuario pide datos detallados o listas → usa la acción para traer desde
           .insert([{ empresa_id, nombre_empresa:d.nombre_empresa, nit:d.nit, telefono:d.telefono, correo:d.correo, contacto:d.contacto, cargo:d.cargo, direccion:d.direccion, ciudad:d.ciudad, obs:d.obs }])
           .select("id,nombre_empresa,nit").single();
         if(error || !data){ logErr("insert clientes", error); agregarMensaje("system","No pude crear el cliente. Revisa los datos."); flujoActual=null; return; }
-        agregarMensaje("bot",`✅ Cliente creado correctamente.\nID: ${data.id} · ${data.nombre_empresa} · NIT ${data.nit}\n\n¿Quieres crear una cotización o un alquiler para este cliente?`);
+        agregarMensaje("bot",`✅ Cliente creado correctamente.
+ID: ${data.id} · ${data.nombre_empresa} · NIT ${data.nit}
+
+¿Quieres crear una cotización o un alquiler para este cliente?`);
       }catch(e){
         logErr("guardarCliente", e);
         agregarMensaje("system","Error de red al crear cliente.");
@@ -665,7 +666,9 @@ Si el usuario pide datos detallados o listas → usa la acción para traer desde
           if(!data || !data.length){ agregarMensaje("bot","No encontré ese cliente. Escribe 'crear cliente' para registrarlo o 'cancelar' para salir."); return; }
           d.cliente_id = data[0].id;
           flujoActual.esperando = "tipo";
-          agregarMensaje("bot",`Cliente: ${data[0].nombre_empresa} ✓\n\n¿Qué tipo de equipo cotizamos? (ej: elevador tijera, articulado 18m, telescópico)`);
+          agregarMensaje("bot",`Cliente: ${data[0].nombre_empresa} ✓
+
+¿Qué tipo de equipo cotizamos? (ej: elevador tijera, articulado 18m, telescópico)`);
           return;
         }catch(e){ logErr("cot cliente", e); agregarMensaje("system","Error de red."); return; }
       }
@@ -714,7 +717,10 @@ Si el usuario pide datos detallados o listas → usa la acción para traer desde
         };
         const { data, error } = await sb.from("cotizaciones").insert([payload]).select("id,estado").single();
         if(error||!data){ logErr("insert cotizaciones", error); agregarMensaje("system","No pude crear la cotización."); flujoActual=null; return; }
-        agregarMensaje("bot",`✅ Cotización creada.\nID: ${data.id} · Estado: ${data.estado}\n\nTotal estimado: $${fmt(Number(d.precio)*Number(d.dias))}`);
+        agregarMensaje("bot",`✅ Cotización creada.
+ID: ${data.id} · Estado: ${data.estado}
+
+Total estimado: $${fmt(Number(d.precio)*Number(d.dias))}`);
       }catch(e){ logErr("guardarCotizacion", e); agregarMensaje("system","Error de red al crear cotización."); }
       flujoActual=null;
     }
@@ -743,7 +749,9 @@ Si el usuario pide datos detallados o listas → usa la acción para traer desde
             const mq = await sb.from("maquinas").select("id,marca,modelo,estado").eq("empresa_id",empresa_id).eq("estado","disponible").limit(20);
             renderMini("Equipos disponibles", mq.data||[], ["id","marca","modelo","estado"]);
           }catch(e){ logErr("listar maq", e); }
-          agregarMensaje("bot",`Cliente: ${data[0].nombre_empresa} ✓\n\nIndica el ID del equipo a asignar.`);
+          agregarMensaje("bot",`Cliente: ${data[0].nombre_empresa} ✓
+
+Indica el ID del equipo a asignar.`);
           return;
         }catch(e){ logErr("alq cliente", e); agregarMensaje("system","Error de red."); return; }
       }
@@ -809,7 +817,10 @@ Si el usuario pide datos detallados o listas → usa la acción para traer desde
           logErr("update maquina tras alquiler", euMaq);
           agregarMensaje("system",`Alquiler ${data.id} creado, pero no pude actualizar el estado del equipo. Revísalo manualmente.`);
         }else{
-          agregarMensaje("bot",`✅ Alquiler creado.\nID: ${data.id} · Estado: ${data.estado}\nEquipo ${d.equipo_id} marcado como trabajando.\nTotal: $${fmt(Number(d.precio)*Number(d.dias))}`);
+          agregarMensaje("bot",`✅ Alquiler creado.
+ID: ${data.id} · Estado: ${data.estado}
+Equipo ${d.equipo_id} marcado como trabajando.
+Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
         }
       }catch(e){ logErr("guardarAlquiler", e); agregarMensaje("system","Error de red al crear alquiler."); }
       flujoActual=null;
@@ -866,7 +877,12 @@ Si el usuario pide datos detallados o listas → usa la acción para traer desde
         if(error){ logErr("finanzas", error); return agregarMensaje("system","No pude consultar finanzas."); }
         let i=0,g=0;
         for(const m of (data||[])){ const v=Number(m.monto)||0; if((m.tipo||"").toLowerCase().includes("ingreso")) i+=v; else g+=v; }
-        agregarMensaje("bot",`💰 Finanzas — últimos 90 días\n\nIngresos:  $${fmt(i)}\nGastos:    $${fmt(g)}\nBalance:   $${fmt(i-g)}\nMovimientos: ${(data||[]).length}`);
+        agregarMensaje("bot",`💰 Finanzas — últimos 90 días
+
+Ingresos:  $${fmt(i)}
+Gastos:    $${fmt(g)}
+Balance:   $${fmt(i-g)}
+Movimientos: ${(data||[]).length}`);
       }catch(e){ logErr("consultarFinanzas", e); agregarMensaje("system","Error de red en finanzas."); }
     }
 
@@ -883,10 +899,20 @@ Si el usuario pide datos detallados o listas → usa la acción para traer desde
         let i=0,g=0;
         for(const x of (fin.data||[])){ const n=Number(x.monto)||0; if((x.tipo||"").toLowerCase().includes("ingreso")) i+=n; else g+=n; }
         agregarMensaje("bot",
-          `📊 Resumen operativo — ${new Date().toLocaleDateString("es-CO")}\n\n` +
-          `🏗️ Flota\n   Disponibles: ${m1.count||0} | Trabajando: ${m2.count||0} | Varadas: ${m3.count||0}\n\n` +
-          `📦 Operaciones\n   Alquileres activos: ${a1.count||0}\n   Cotizaciones en proceso: ${c1.count||0}\n\n` +
-          `💰 Finanzas (30 días)\n   Ingresos: $${fmt(i)} | Gastos: $${fmt(g)} | Balance: $${fmt(i-g)}`
+          `📊 Resumen operativo — ${new Date().toLocaleDateString("es-CO")}
+
+` +
+          `🏗️ Flota
+   Disponibles: ${m1.count||0} | Trabajando: ${m2.count||0} | Varadas: ${m3.count||0}
+
+` +
+          `📦 Operaciones
+   Alquileres activos: ${a1.count||0}
+   Cotizaciones en proceso: ${c1.count||0}
+
+` +
+          `💰 Finanzas (30 días)
+   Ingresos: $${fmt(i)} | Gastos: $${fmt(g)} | Balance: $${fmt(i-g)}`
         );
       }catch(e){ logErr("consultarResumen", e); agregarMensaje("system","Error de red en resumen."); }
     }
@@ -902,7 +928,7 @@ Si el usuario pide datos detallados o listas → usa la acción para traer desde
       }
       if(flujoActual.esperando==="ref"){
         flujoActual.esperando="estado";
-        agregarMensaje("bot","¿Cuál es el nuevo estado?\nOpciones: disponible, trabajando, varada, alistamiento, devolucion");
+        agregarMensaje("bot","\u00bfCu\u00e1l es el nuevo estado?\nOpciones: disponible, trabajando, varada, alistamiento, devolucion");
         return;
       }
 
@@ -977,7 +1003,8 @@ Si el usuario pide datos detallados o listas → usa la acción para traer desde
     }
 
     function renderMini(titulo, rows, cols){
-      if(!rows||!rows.length){ agregarMensaje("bot",`${esc(titulo)}\nSin resultados.`,true); return; }
+      if(!rows||!rows.length){ agregarMensaje("bot",`${esc(titulo)}
+Sin resultados.`,true); return; }
       const head = cols.map(c=>`<th>${esc(c)}</th>`).join("");
       const body = rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r&&r[c]!==undefined&&r[c]!==null?r[c]:"")}</td>`).join("")}</tr>`).join("");
       agregarMensaje("bot",`<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:#7eb3ff">${esc(titulo)}</div><table class="mini-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`,true);
@@ -1043,12 +1070,6 @@ Si el usuario pide datos detallados o listas → usa la acción para traer desde
         }
       }
 
-      // Sin API key configurada: modo degradado
-      if(!ANTHROPIC_KEY || ANTHROPIC_KEY.startsWith("sk-ant-XXXXX")){
-        agregarMensaje("system","⚠️ API key de Anthropic no configurada. Edita la constante ANTHROPIC_KEY en el código.\n\nMientras tanto puedes usar los accesos rápidos del panel izquierdo.");
-        return;
-      }
-
       // IA activa
       const typing = mostrarTyping();
       setBtnState(true);
@@ -1078,7 +1099,8 @@ Si el usuario pide datos detallados o listas → usa la acción para traer desde
       }catch(e){
         typing.remove();
         logErr("interpretarMensaje IA", e);
-        agregarMensaje("system",`Error conectando con la IA: ${e.message||"Error desconocido"}.\nVerifica la API key o la conexión.`);
+        agregarMensaje("system",`Error conectando con la IA: ${e.message||"Error desconocido"}.
+Verifica la API key o la conexión.`);
       }finally{
         setBtnState(false);
       }
