@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ALCON OPS Chatbot</title>
+  <title>ALCON OPS · Asistente</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11,57 +11,81 @@
     :root{
       --bg:#0b1220; --line:#21304d; --txt:#e8eefc; --muted:#98a8c7;
       --pri:#2f7cff; --pri2:#1f5fd1; --bot:#16233b; --usr:#2f7cff;
-      --warn:#f59e0b; --ok:#10b981; --err:#ef4444;
+      --warn:#f59e0b; --ok:#10b981; --err:#ef4444; --red:#c0392b;
     }
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0b1220;color:var(--txt)}
     .app{height:100%;display:flex;align-items:center;justify-content:center;padding:16px}
-    .panel{width:min(1100px,100%);height:min(92vh,900px);display:grid;grid-template-columns:320px 1fr;background:#0f1728;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+    .panel{width:min(1100px,100%);height:min(92vh,900px);display:grid;grid-template-columns:300px 1fr;background:#0f1728;border:1px solid var(--line);border-radius:16px;overflow:hidden}
     .left{border-right:1px solid var(--line);display:flex;flex-direction:column}
     .brand{padding:18px;border-bottom:1px solid var(--line)}
-    .brand h1{margin:0;font-size:18px}
-    .brand p{margin:6px 0 0;color:var(--muted);font-size:12px}
-    .ctx{padding:14px 18px;border-bottom:1px solid var(--line);display:grid;gap:6px}
-    .ctx .kv{font-size:12px;color:var(--muted)}
+    .brand h1{margin:0;font-size:17px;font-weight:800;letter-spacing:-.3px}
+    .brand p{margin:5px 0 0;color:var(--muted);font-size:11px}
+    .ai-badge{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:3px 9px;background:#0d1f3c;border:1px solid #2a4a8a;border-radius:999px;font-size:10px;color:#7eb3ff;font-weight:600}
+    .ai-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:#2f7cff;box-shadow:0 0 6px #2f7cff;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .ctx{padding:14px 18px;border-bottom:1px solid var(--line);display:grid;gap:5px}
+    .ctx .kv{font-size:11px;color:var(--muted)}
     .ctx .kv b{color:var(--txt)}
-    .quick{padding:14px;display:grid;gap:8px;overflow:auto}
-    .qbtn{border:1px solid #2a3b60;background:#13203a;color:#dbe7ff;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;text-align:left}
-    .qbtn:hover{background:#1a2b4a}
+    .quick-label{padding:12px 18px 6px;font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.6px;text-transform:uppercase}
+    .quick{padding:0 12px 12px;display:grid;gap:6px;overflow:auto}
+    .qbtn{border:1px solid #2a3b60;background:#13203a;color:#dbe7ff;border-radius:9px;padding:9px 12px;font-size:12px;font-weight:600;cursor:pointer;text-align:left;transition:background .15s}
+    .qbtn:hover{background:#1a2b4a;border-color:#3a5090}
     .right{display:flex;flex-direction:column;min-width:0}
     .top{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
-    .badge{font-size:11px;padding:4px 10px;border:1px solid #314a7a;border-radius:999px;background:#1a2744;color:#bcd0ff}
+    .top-title{font-size:14px;font-weight:700}
+    .top-sub{font-size:11px;color:var(--muted);margin-top:1px}
+    .badge{font-size:10px;padding:3px 9px;border:1px solid #314a7a;border-radius:999px;background:#1a2744;color:#bcd0ff}
+    .badge.ai{border-color:#2f5cb0;background:#0d1f3c;color:#7eb3ff}
     .top .actions{display:flex;gap:8px;align-items:center}
-    .top .logout{background:transparent;border:1px solid #3a4e7a;color:#bcd0ff;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer}
+    .top .logout{background:transparent;border:1px solid #3a4e7a;color:#bcd0ff;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer}
     .top .logout:hover{background:#1a2744}
     .messages{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
-    .msg-wrap{display:flex}
+    .msg-wrap{display:flex;gap:8px;align-items:flex-end}
     .msg-wrap.user{justify-content:flex-end}
-    .msg{max-width:min(82%,700px);padding:10px 12px;border-radius:12px;font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word;border:1px solid transparent}
-    .msg.bot{background:var(--bot);border-color:#263b62}
-    .msg.user{background:var(--usr);color:#fff}
-    .msg.system{background:#2a1f10;border-color:#5f4215;color:#ffd9a1}
-    .input{border-top:1px solid var(--line);padding:10px;display:flex;gap:10px}
-    .input input{flex:1;background:#111d34;border:1px solid #2a3f69;color:#e5eeff;border-radius:10px;padding:11px 12px;font-size:14px;outline:none}
-    .input button{background:var(--pri);border:0;color:#fff;border-radius:10px;padding:0 16px;font-weight:700;cursor:pointer}
-    .input button:hover{background:var(--pri2)}
+    .avatar{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+    .avatar.bot{background:linear-gradient(135deg,#1a3060,#2f7cff);border:1px solid #3a6abf;color:#a0c4ff}
+    .avatar.usr{background:#2f7cff;color:#fff}
+    .msg{max-width:min(80%,680px);padding:10px 13px;border-radius:12px;font-size:13.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;border:1px solid transparent}
+    .msg.bot{background:var(--bot);border-color:#263b62;border-bottom-left-radius:4px}
+    .msg.user{background:var(--usr);color:#fff;border-bottom-right-radius:4px}
+    .msg.system{background:#2a1f10;border-color:#5f4215;color:#ffd9a1;font-size:12px}
+    .msg-time{font-size:10px;color:var(--muted);margin-top:3px;padding:0 2px}
+    .input{border-top:1px solid var(--line);padding:10px;display:flex;gap:8px;align-items:center}
+    .input input{flex:1;background:#111d34;border:1px solid #2a3f69;color:#e5eeff;border-radius:10px;padding:11px 13px;font-size:13.5px;outline:none;transition:border .15s}
+    .input input:focus{border-color:#4a7adf}
+    .input input::placeholder{color:#4a6090}
+    .send-btn{background:var(--pri);border:0;color:#fff;border-radius:10px;padding:0 16px;height:42px;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap;flex-shrink:0;transition:background .15s}
+    .send-btn:hover{background:var(--pri2)}
+    .send-btn:disabled{opacity:.5;cursor:not-allowed}
     .login-wrap{height:100%;display:flex;align-items:center;justify-content:center;padding:20px}
-    .login{width:min(420px,100%);background:#0f1728;border:1px solid var(--line);border-radius:14px;padding:20px}
-    .login h2{margin:0 0 8px}
-    .login p{margin:0 0 14px;color:var(--muted);font-size:13px}
-    .f{display:grid;gap:8px;margin-bottom:12px}
-    .f label{font-size:12px;color:#b8c7e6}
-    .f input{background:#101a2f;border:1px solid #2a3b61;color:#eaf1ff;border-radius:10px;padding:10px 11px;font-size:14px;outline:none}
-    .login button{width:100%;height:42px;border:0;border-radius:10px;background:var(--pri);color:#fff;font-weight:700;cursor:pointer}
+    .login{width:min(420px,100%);background:#0f1728;border:1px solid var(--line);border-radius:14px;padding:24px}
+    .login h2{margin:0 0 4px;font-size:22px;font-weight:800}
+    .login .login-sub{margin:0 0 20px;color:var(--muted);font-size:13px}
+    .f{display:grid;gap:6px;margin-bottom:12px}
+    .f label{font-size:11px;color:#b8c7e6;font-weight:600;letter-spacing:.3px}
+    .f input{background:#101a2f;border:1px solid #2a3b61;color:#eaf1ff;border-radius:10px;padding:11px 12px;font-size:14px;outline:none;transition:border .15s}
+    .f input:focus{border-color:#4a7adf}
+    .login button{width:100%;height:44px;border:0;border-radius:10px;background:var(--pri);color:#fff;font-weight:700;cursor:pointer;font-size:14px;margin-top:4px}
     .login button:disabled{opacity:.6;cursor:wait}
     .err{margin-top:10px;color:#ffb4b4;font-size:12px;min-height:16px}
     .hidden{display:none!important}
-    .mini-table{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px}
-    .mini-table th,.mini-table td{border-bottom:1px solid #2a3f67;padding:6px 4px;text-align:left}
-    .mini-table th{color:#a8bee8;font-weight:600}
-    .typing{display:inline-flex;gap:5px;align-items:center}
-    .typing i{width:7px;height:7px;border-radius:50%;background:#9db7f3;display:inline-block;animation:blink 1.1s infinite}
+    .mini-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11.5px}
+    .mini-table th,.mini-table td{border-bottom:1px solid #1e3055;padding:6px 5px;text-align:left}
+    .mini-table th{color:#7eb3ff;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+    .mini-table tr:last-child td{border-bottom:none}
+    .mini-table tr:hover td{background:#1a2744}
+    .typing{display:inline-flex;gap:5px;align-items:center;padding:2px 0}
+    .typing i{width:7px;height:7px;border-radius:50%;background:#5a90e0;display:inline-block;animation:blink 1.1s infinite}
     .typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
-    @keyframes blink{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}
+    @keyframes blink{0%,80%,100%{opacity:.2;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+    .thinking-label{font-size:11px;color:#5a90e0;margin-left:6px;font-style:italic}
+    .stat-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+    .stat-pill{padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid}
+    .stat-pill.ok{background:#0d2a1c;border-color:#0f5132;color:#34c77b}
+    .stat-pill.warn{background:#2a1f0a;border-color:#6b4f10;color:#f59e0b}
+    .stat-pill.err{background:#2a0d0d;border-color:#7a1f1f;color:#f87171}
+    .stat-pill.info{background:#0d1f3c;border-color:#2a4a8a;color:#7eb3ff}
     @media(max-width:920px){.panel{grid-template-columns:1fr}.left{display:none}}
   </style>
 </head>
@@ -70,9 +94,9 @@
     <div id="loginScreen" class="login-wrap">
       <div class="login">
         <h2>ALCON OPS</h2>
-        <p>Acceso al asistente operativo</p>
-        <div class="f"><label>Correo</label><input id="loginEmail" type="email" autocomplete="username" /></div>
-        <div class="f"><label>Contraseña</label><input id="loginPassword" type="password" autocomplete="current-password" /></div>
+        <p class="login-sub">Asistente operativo inteligente</p>
+        <div class="f"><label>CORREO</label><input id="loginEmail" type="email" autocomplete="username" placeholder="usuario@empresa.com" /></div>
+        <div class="f"><label>CONTRASEÑA</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••" /></div>
         <button id="btnLogin">Ingresar</button>
         <div id="loginError" class="err"></div>
       </div>
@@ -80,33 +104,47 @@
 
     <div id="chatScreen" class="panel hidden">
       <aside class="left">
-        <div class="brand"><h1>ALCON OPS · Chatbot</h1><p>Asistente operativo de empresa</p></div>
+        <div class="brand">
+          <h1>ALCON OPS</h1>
+          <p>Plataforma de gestión de alquileres</p>
+          <div class="ai-badge">IA activa · Claude</div>
+        </div>
         <div class="ctx">
           <div class="kv">Usuario: <b id="ctxUser">-</b></div>
           <div class="kv">Empresa: <b id="ctxEmpresa">-</b></div>
           <div class="kv">Rol: <b id="ctxRol">-</b></div>
         </div>
+        <div class="quick-label">Accesos rápidos</div>
         <div class="quick" id="quickActions">
-          <button class="qbtn" data-q="crear cliente">Crear cliente</button>
-          <button class="qbtn" data-q="crear cotización">Crear cotización</button>
-          <button class="qbtn" data-q="crear alquiler">Crear alquiler</button>
-          <button class="qbtn" data-q="alquileres activos">Alquileres activos</button>
-          <button class="qbtn" data-q="cotizaciones aprobadas">Cotizaciones aprobadas</button>
-          <button class="qbtn" data-q="máquinas disponibles">Máquinas disponibles</button>
-          <button class="qbtn" data-q="resumen del día">Resumen</button>
-          <button class="qbtn" data-q="finanzas">Finanzas</button>
+          <button class="qbtn" data-q="crear cliente nuevo">➕ Crear cliente</button>
+          <button class="qbtn" data-q="crear cotización">📋 Crear cotización</button>
+          <button class="qbtn" data-q="crear alquiler">🔧 Crear alquiler</button>
+          <button class="qbtn" data-q="alquileres activos">📦 Alquileres activos</button>
+          <button class="qbtn" data-q="cotizaciones aprobadas">✅ Cotizaciones aprobadas</button>
+          <button class="qbtn" data-q="máquinas disponibles">🏗️ Máquinas disponibles</button>
+          <button class="qbtn" data-q="dame el resumen general de hoy">📊 Resumen del día</button>
+          <button class="qbtn" data-q="cómo están las finanzas">💰 Finanzas</button>
+          <button class="qbtn" data-q="máquinas varadas">⚠️ Máquinas varadas</button>
+          <button class="qbtn" data-q="alquileres por vencer esta semana">🕐 Por vencer</button>
         </div>
       </aside>
       <section class="right">
         <div class="top">
-          <div>Asistente Operativo</div>
+          <div>
+            <div class="top-title">Asistente ALCON OPS</div>
+            <div class="top-sub">Powered by Claude · Datos en tiempo real</div>
+          </div>
           <div class="actions">
-            <span class="badge">Conectado</span>
+            <span class="badge ai">IA conectada</span>
+            <button id="btnClear" class="logout" title="Limpiar chat">Limpiar</button>
             <button id="btnLogout" class="logout" title="Cerrar sesión">Salir</button>
           </div>
         </div>
         <div id="messages" class="messages"></div>
-        <div class="input"><input id="chatInput" placeholder="Escribe una consulta o comando..." /><button id="btnSend">Enviar</button></div>
+        <div class="input">
+          <input id="chatInput" placeholder="Pregunta algo o da una instrucción..." autocomplete="off" />
+          <button id="btnSend" class="send-btn">Enviar</button>
+        </div>
       </section>
     </div>
   </div>
@@ -114,37 +152,40 @@
   <script>
   (function(){
     "use strict";
-    // ============================================================
-    // CONFIGURACIÓN SUPABASE
-    // ============================================================
-    const SUPABASE_URL = "https://oguxdohmutqgacahcwop.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ndXhkb2htdXRxZ2FjYWhjd29wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3Mjc0NzcsImV4cCI6MjA4ODMwMzQ3N30.RRruTo8B7k4R97Igq7_KV1PV58FqrpIzEu0R_MXIwR8";
 
-    // Renombramos para evitar colisión con el binding global 'supabase' del SDK UMD
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    // ============================================================
+    // CONFIGURACIÓN
+    // ============================================================
+    const SUPABASE_URL  = "https://oguxdohmutqgacahcwop.supabase.co";
+    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ndXhkb2htdXRxZ2FjYWhjd29wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3Mjc0NzcsImV4cCI6MjA4ODMwMzQ3N30.RRruTo8B7k4R97Igq7_KV1PV58FqrpIzEu0R_MXIwR8";
+    // ⚠️ Coloca tu API key de Anthropic aquí:
+    const ANTHROPIC_KEY = "sk-ant-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
       auth: { persistSession: true, autoRefreshToken: true }
     });
 
     // ============================================================
     // ESTADO GLOBAL
     // ============================================================
-    let empresa_id = null;
-    let rol_usuario = null;
-    let flujoActual = null;
-    let user_id = null;
+    let empresa_id     = null;
+    let rol_usuario    = null;
+    let flujoActual    = null;
+    let user_id        = null;
     let empresa_nombre = "";
-    let usuario_email = "";
+    let usuario_email  = "";
+    let conversationHistory = [];   // historial para la IA
+    let enviando = false;
 
     // ============================================================
     // UTILIDADES
     // ============================================================
-    function fmt(n){ return (Number(n) || 0).toLocaleString("es-CO"); }
+    function fmt(n){ return (Number(n)||0).toLocaleString("es-CO"); }
 
     function normalizarTexto(t){
       return (t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();
     }
 
-    // Escapar caracteres peligrosos para .or() de PostgREST
     function escPostgrest(s){
       return String(s||"").replace(/[,()"']/g,"").trim();
     }
@@ -153,65 +194,111 @@
       try{ console.error("[ALCON]", ctx, err); }catch(_){}
     }
 
+    function horaActual(){
+      return new Date().toLocaleTimeString("es-CO", {hour:"2-digit", minute:"2-digit"});
+    }
+
     // ============================================================
-    // INICIO: REHIDRATAR SESIÓN SI EXISTE
+    // INIT
     // ============================================================
     async function initApp(){
       try{
         const { data, error } = await sb.auth.getSession();
         if(error){ logErr("getSession", error); return; }
-        if(data?.session?.user){
-          await cargarContextoUsuario();
-        }
-      }catch(e){
-        logErr("initApp", e);
-      }
+        if(data?.session?.user) await cargarContextoUsuario();
+      }catch(e){ logErr("initApp", e); }
     }
 
     // ============================================================
     // MENSAJES UI
     // ============================================================
-    function agregarMensaje(tipo,texto,html=false){
+    function agregarMensaje(tipo, texto, html=false){
       const box = document.getElementById("messages");
       const wrap = document.createElement("div");
-      const msg = document.createElement("div");
       wrap.className = "msg-wrap " + (tipo==="user" ? "user" : "");
+
+      if(tipo !== "user" && tipo !== "system"){
+        const av = document.createElement("div");
+        av.className = "avatar bot";
+        av.textContent = "AI";
+        wrap.appendChild(av);
+      }
+
+      const col = document.createElement("div");
+      col.style.display = "flex";
+      col.style.flexDirection = "column";
+      col.style.alignItems = tipo==="user" ? "flex-end" : "flex-start";
+
+      const msg = document.createElement("div");
       msg.className = "msg " + (tipo==="user" ? "user" : (tipo==="system" ? "system" : "bot"));
       if(html) msg.innerHTML = texto; else msg.textContent = texto;
-      wrap.appendChild(msg);
+
+      const time = document.createElement("div");
+      time.className = "msg-time";
+      time.textContent = horaActual();
+
+      col.appendChild(msg);
+      col.appendChild(time);
+      wrap.appendChild(col);
+
+      if(tipo === "user"){
+        const av = document.createElement("div");
+        av.className = "avatar usr";
+        av.textContent = (usuario_email||"U")[0].toUpperCase();
+        wrap.appendChild(av);
+      }
+
       box.appendChild(wrap);
       box.scrollTop = box.scrollHeight;
       return wrap;
     }
 
     function mostrarTyping(){
-      const w = agregarMensaje("bot","");
-      const m = w.querySelector(".msg");
-      m.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+      const box = document.getElementById("messages");
+      const wrap = document.createElement("div");
+      wrap.className = "msg-wrap";
+
+      const av = document.createElement("div");
+      av.className = "avatar bot";
+      av.textContent = "AI";
+
+      const msg = document.createElement("div");
+      msg.className = "msg bot";
+      msg.innerHTML = '<span class="typing"><i></i><i></i><i></i></span><span class="thinking-label">pensando...</span>';
+
+      wrap.appendChild(av);
+      wrap.appendChild(msg);
+      box.appendChild(wrap);
+      box.scrollTop = box.scrollHeight;
+
       return {
         stop: (t, h=false) => {
-          if(t===undefined || t===null || t===""){ w.remove(); return; }
-          if(h) m.innerHTML = t; else m.textContent = t;
-          const box = document.getElementById("messages");
+          if(t===undefined || t===null || t===""){ wrap.remove(); return; }
+          msg.innerHTML = "";
+          if(h) msg.innerHTML = t; else msg.textContent = t;
+          const time = document.createElement("div");
+          time.className = "msg-time";
+          time.textContent = horaActual();
+          msg.after(time);
           box.scrollTop = box.scrollHeight;
         },
-        remove: () => { try{ w.remove(); }catch(_){} }
+        remove: () => { try{ wrap.remove(); }catch(_){} }
       };
     }
 
     // ============================================================
-    // PERMISOS POR ROL
+    // PERMISOS
     // ============================================================
     function puedeEjecutarAccion(tipo){
       if(!rol_usuario) return false;
       const rol = normalizarTexto(rol_usuario);
-      if(rol === "superadmin" || rol === "admin_empresa" || rol === "admin") return true;
-      if(rol === "operaciones"){
+      if(rol==="superadmin" || rol==="admin_empresa" || rol==="admin") return true;
+      if(rol==="operaciones"){
         return ["crear_alquiler","asignar_maquina","cambiar_estado_maquina",
                 "consultar_alquileres","consultar_maquinas","consultar_clientes",
                 "consultar_finanzas","consultar_resumen"].includes(tipo);
       }
-      if(rol === "comercial"){
+      if(rol==="comercial"){
         return ["crear_cliente","crear_cotizacion","consultar_cotizaciones",
                 "consultar_clientes","consultar_resumen"].includes(tipo);
       }
@@ -223,9 +310,9 @@
     // ============================================================
     async function login(){
       const btn = document.getElementById("btnLogin");
-      const email = document.getElementById("loginEmail").value.trim();
+      const email    = document.getElementById("loginEmail").value.trim();
       const password = document.getElementById("loginPassword").value;
-      const err = document.getElementById("loginError");
+      const err      = document.getElementById("loginError");
       err.textContent = "";
 
       if(!email || !password){ err.textContent = "Ingresa correo y contraseña."; return; }
@@ -235,7 +322,7 @@
       try{
         const { data, error } = await sb.auth.signInWithPassword({ email, password });
         if(error){
-          logErr("signInWithPassword", error);
+          logErr("signIn", error);
           const msg = (error.message||"").toLowerCase();
           if(msg.includes("invalid")) err.textContent = "Credenciales inválidas.";
           else if(msg.includes("email not confirmed")) err.textContent = "Correo no confirmado.";
@@ -247,7 +334,7 @@
         await cargarContextoUsuario();
       }catch(e){
         logErr("login", e);
-        err.textContent = "Error de conexión con autenticación.";
+        err.textContent = "Error de conexión.";
       }finally{
         btn.disabled = false;
       }
@@ -257,6 +344,7 @@
       try{ await sb.auth.signOut(); }catch(e){ logErr("signOut", e); }
       empresa_id = null; rol_usuario = null; flujoActual = null;
       user_id = null; empresa_nombre = ""; usuario_email = "";
+      conversationHistory = [];
       document.getElementById("messages").innerHTML = "";
       document.getElementById("loginPassword").value = "";
       document.getElementById("loginError").textContent = "";
@@ -271,10 +359,7 @@
       const errBox = document.getElementById("loginError");
       try{
         const { data: au, error: ae } = await sb.auth.getUser();
-        if(ae || !au?.user){
-          errBox.textContent = "No se pudo validar sesión.";
-          return;
-        }
+        if(ae || !au?.user){ errBox.textContent = "No se pudo validar sesión."; return; }
         user_id = au.user.id;
         usuario_email = au.user.email || "";
 
@@ -284,20 +369,11 @@
           .eq("user_id", user_id)
           .maybeSingle();
 
-        if(eue){
-          logErr("usuarios_empresas", eue);
-          errBox.textContent = "Error consultando datos de empresa.";
-          await sb.auth.signOut();
-          return;
-        }
-        if(!ue || !ue.empresa_id){
-          errBox.textContent = "Usuario sin empresa asignada. Contacta al administrador.";
-          await sb.auth.signOut();
-          return;
-        }
+        if(eue){ logErr("usuarios_empresas", eue); errBox.textContent = "Error consultando datos de empresa."; await sb.auth.signOut(); return; }
+        if(!ue || !ue.empresa_id){ errBox.textContent = "Usuario sin empresa asignada. Contacta al administrador."; await sb.auth.signOut(); return; }
 
-        empresa_id = ue.empresa_id;
-        rol_usuario = ue.rol || "operaciones";
+        empresa_id     = ue.empresa_id;
+        rol_usuario    = ue.rol || "operaciones";
         empresa_nombre = ue.empresa?.nombre || "Empresa";
         mostrarChat();
       }catch(e){
@@ -314,72 +390,153 @@
       document.getElementById("ctxRol").textContent = rol_usuario || "-";
       const box = document.getElementById("messages");
       if(!box.children.length){
-        agregarMensaje("bot",`Hola. Sesión iniciada como ${empresa_nombre} (${rol_usuario}).`);
-        agregarMensaje("bot","Comandos: crear cliente, crear cotización, crear alquiler, alquileres activos, máquinas disponibles, finanzas, resumen. Escribe 'cancelar' para abortar un flujo.");
+        agregarMensaje("bot",
+          `Hola, estoy en línea.\n\nSoy el asistente operativo de ${empresa_nombre}. Puedo consultar el estado de la flota, alquileres, cotizaciones, finanzas y crear registros si tienes los permisos.\n\nHázme cualquier pregunta en lenguaje natural — no necesitas seguir un menú.`
+        );
       }
       document.getElementById("chatInput").focus();
     }
 
     // ============================================================
-    // DETECCIÓN DE INTENCIÓN (chatbot sin IA)
+    // CONTEXTO VIVO DE LA BASE DE DATOS PARA LA IA
     // ============================================================
-    function detectarIntencion(texto){
-      let x = normalizarTexto(texto);
-      x = x
-        .replace(/\ben marcha\b|\bvigente\b|\btrabajando\b|\bcurso\b|\ben curso\b/g,"activo")
-        .replace(/\blibre\b|\blibres\b|\bdesocupada?s?\b/g,"disponible")
-        .replace(/\baceptada\b|\baceptadas\b/g,"aprobada")
-        .replace(/\brenta\b|\brentas\b/g,"alquiler")
-        .replace(/\bequipos?\b/g,"maquina")
-        .replace(/\bmaquinas\b/g,"maquina")
-        .replace(/\bcrear empresa\b|\bregistrar cliente\b|\bagregar cliente\b/g,"crear cliente")
-        .replace(/\bcoti\b|\bcotis\b|\bcotizaciones\b/g,"cotizacion")
-        .replace(/\bn\.?\s*i\.?\s*t\b|\bn it\b|\bnit\b/g,"nit");
+    async function fetchContextoDB(){
+      try{
+        const desde30 = new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+        const [maq, alqA, alqV, cot, caj, cli] = await Promise.all([
+          sb.from("maquinas").select("id,marca,modelo,estado,alquiler_nro").eq("empresa_id", empresa_id).limit(100),
+          sb.from("alquileres_ops").select("id,estado,equipoId,fechaInicio,fecha_fin,precioDia,dias").eq("empresa_id", empresa_id).eq("estado","activo").order("id",{ascending:false}).limit(15),
+          sb.from("alquileres_ops").select("id,fecha_fin").eq("empresa_id", empresa_id).eq("estado","activo").not("fecha_fin","is",null).lte("fecha_fin", new Date(Date.now()+7*86400000).toISOString().slice(0,10)).limit(10),
+          sb.from("cotizaciones").select("id,estado,dias,precio,modalidad").eq("empresa_id", empresa_id).in("estado",["borrador","en_revision","enviada","aprobada","negociacion"]).order("id",{ascending:false}).limit(15),
+          sb.from("caja_movimientos").select("tipo,monto,fecha").eq("empresa_id", empresa_id).gte("fecha", desde30).limit(500),
+          sb.from("clientes").select("id,nombre_empresa,ciudad").eq("empresa_id", empresa_id).order("nombre_empresa").limit(20)
+        ]);
 
-      // Comandos de creación
-      if(/\b(crear|nuevo|nueva|registrar|agregar)\b.*\bcliente\b/.test(x)) return {type:"crear_cliente"};
-      if(/\b(crear|nueva|nuevo|hacer)\b.*\bcotizacion\b/.test(x)) return {type:"crear_cotizacion"};
-      if(/\b(crear|nuevo|nueva|iniciar)\b.*\balquiler\b/.test(x)) return {type:"crear_alquiler"};
-      if(/\basignar\b.*\bmaquina\b/.test(x)) return {type:"asignar_maquina"};
-      if(/(cambiar|actualizar|modificar).*estado.*maquina|\bestado\b.*\bmaquina\b/.test(x)) return {type:"cambiar_estado_maquina"};
-
-      // Consultas alquileres
-      if(/\balquiler(es)?\b/.test(x)){
-        if(/por vencer|vencer|proximo a vencer/.test(x)) return {type:"consultar_alquileres",filtro:"por_vencer"};
-        if(/reservado/.test(x)) return {type:"consultar_alquileres",filtro:"reservado"};
-        if(/finalizado|terminado|cerrado/.test(x)) return {type:"consultar_alquileres",filtro:"finalizado"};
-        if(/pendiente.*recogida|por recoger/.test(x)) return {type:"consultar_alquileres",filtro:"pendiente_recogida"};
-        return {type:"consultar_alquileres",filtro:"activo"};
-      }
-
-      // Consultas cotizaciones
-      if(/\bcotizacion(es)?\b/.test(x)){
-        const estados = ["borrador","en_revision","enviada","aprobada","negociacion","rechazada","perdida","vencida","reabierta","cancelada"];
-        for(const e of estados){
-          if(x.includes(e.replace("_"," ")) || x.includes(e)) return {type:"consultar_cotizaciones",filtro:e};
+        // Flota por estado
+        const flota = {};
+        for(const m of (maq.data||[])){
+          flota[m.estado] = (flota[m.estado]||0)+1;
         }
-        return {type:"consultar_cotizaciones",filtro:"aprobada"};
+
+        // Finanzas 30d
+        let ingresos=0, gastos=0;
+        for(const x of (caj.data||[])){
+          const v = Number(x.monto)||0;
+          if((x.tipo||"").toLowerCase().includes("ingreso")) ingresos+=v; else gastos+=v;
+        }
+
+        return {
+          fecha_consulta: new Date().toLocaleDateString("es-CO"),
+          flota_por_estado: flota,
+          alquileres_activos: (alqA.data||[]).map(a=>({id:a.id,equipo:a.equipoId,inicio:a.fechaInicio,fin:a.fecha_fin,precio_dia:a.precioDia,dias:a.dias})),
+          alquileres_por_vencer_7_dias: (alqV.data||[]).map(a=>({id:a.id,vence:a.fecha_fin})),
+          cotizaciones_abiertas: (cot.data||[]).map(c=>({id:c.id,estado:c.estado,dias:c.dias,precio:c.precio,modalidad:c.modalidad})),
+          finanzas_30d: { ingresos, gastos, balance: ingresos-gastos },
+          clientes_recientes: (cli.data||[]).slice(0,8).map(c=>({id:c.id,nombre:c.nombre_empresa,ciudad:c.ciudad}))
+        };
+      }catch(e){
+        logErr("fetchContextoDB", e);
+        return { error: "No se pudo consultar la BD en este momento" };
+      }
+    }
+
+    // ============================================================
+    // LLAMADA A CLAUDE API
+    // ============================================================
+    async function callClaude(userMessage){
+      const ctx = await fetchContextoDB();
+
+      const systemPrompt = `Eres el asistente operativo inteligente de ALCON OPS — sistema de gestión de alquileres de maquinaria pesada (plataformas elevadoras articuladas, tijeras, telescópicas, etc.).
+
+SESIÓN ACTIVA:
+- Empresa: ${empresa_nombre}
+- Usuario: ${usuario_email}
+- Rol: ${rol_usuario}
+- Fecha: ${new Date().toLocaleDateString("es-CO", {weekday:"long",year:"numeric",month:"long",day:"numeric"})}
+
+DATOS EN TIEMPO REAL DE LA BASE DE DATOS:
+${JSON.stringify(ctx, null, 2)}
+
+PERSONALIDAD Y COMPORTAMIENTO:
+- Eres profesional, directo y con criterio operativo real
+- Hablas en español colombiano natural — no robótico, no excesivamente formal
+- Entiendes lenguaje informal: "qué hay de nuevo", "cómo vamos hoy", "muéstrame lo de las máquinas"
+- Puedes razonar sobre los datos: si hay 5 máquinas varadas eso es una alerta real, dilo
+- Eres proactivo: si ves algo importante en los datos (vencimientos, máquinas sin usar, etc.), lo mencionas
+- Si no entiendes algo, preguntas de forma natural sin pedir que reformulen con palabras clave
+- Respondes con contexto: si te piden el resumen, das análisis, no solo números
+- NUNCA inventas datos que no estén en el contexto — si no tienes info, lo dices
+
+REGLAS DE NEGOCIO CRÍTICAS:
+- maquinas.estado válidos SOLO: disponible, trabajando, varada, alistamiento, devolucion (NUNCA 'reservado')
+- cotizaciones NO tiene columna transporte
+- empresa_id es obligatorio en todos los registros
+- Los flujos de creación (cliente, cotización, alquiler) los maneja la interfaz paso a paso — tú los disparas
+
+FORMATO DE RESPUESTA — OBLIGATORIO:
+Responde ÚNICAMENTE con JSON válido. Sin texto fuera del JSON. Sin markdown. Sin backticks.
+
+Si solo respondes texto:
+{"reply":"tu respuesta natural aquí","action":null,"params":{}}
+
+Si debes ejecutar una acción:
+{"reply":"texto natural explicando lo que harás o complementando la acción","action":"nombre_accion","params":{}}
+
+ACCIONES DISPONIBLES (verifica permisos del rol antes de usar):
+- "crear_cliente"         → params: {}
+- "crear_cotizacion"      → params: {}
+- "crear_alquiler"        → params: {}
+- "consultar_alquileres"  → params: {"filtro":"activo|finalizado|por_vencer|pendiente_recogida"}
+- "consultar_cotizaciones"→ params: {"filtro":"borrador|en_revision|enviada|aprobada|negociacion|rechazada|perdida|vencida|cancelada"}
+- "consultar_maquinas"    → params: {"filtro":"disponible|trabajando|varada|alistamiento|devolucion"}
+- "consultar_clientes"    → params: {"busqueda":"texto o vacío"}
+- "consultar_finanzas"    → params: {}
+- "consultar_resumen"     → params: {}
+- "asignar_maquina"       → params: {}
+- "cambiar_estado_maquina"→ params: {}
+
+Si el usuario saluda, pregunta algo general, o quiere análisis → responde con reply y action:null.
+Si el usuario pide datos que YA tienes en el contexto → respóndelos directamente con reply (sin action) para ser más rápido.
+Si el usuario pide datos detallados o listas → usa la acción para traer desde la BD.`;
+
+      const messages = [
+        ...conversationHistory,
+        { role:"user", content: userMessage }
+      ];
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_KEY,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true"
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1024,
+          system: systemPrompt,
+          messages
+        })
+      });
+
+      if(!response.ok){
+        const txt = await response.text().catch(()=>"");
+        logErr("callClaude HTTP " + response.status, txt);
+        if(response.status === 401) throw new Error("API key inválida o no configurada.");
+        throw new Error("Error API " + response.status);
       }
 
-      // Consultas máquinas
-      if(/\bmaquina(s)?\b/.test(x)){
-        if(/disponible/.test(x)) return {type:"consultar_maquinas",filtro:"disponible"};
-        if(/mantenimiento/.test(x)) return {type:"consultar_maquinas",filtro:"mantenimiento"};
-        if(/varad/.test(x)) return {type:"consultar_maquinas",filtro:"varado"};
-        if(/activo|trabajando/.test(x)) return {type:"consultar_maquinas",filtro:"trabajando"};
-        if(/baja\b/.test(x)) return {type:"consultar_maquinas",filtro:"baja"};
-        return {type:"consultar_maquinas",filtro:"disponible"};
+      const data = await response.json();
+      const raw = data.content?.find(b=>b.type==="text")?.text || '{"reply":"No pude procesar tu mensaje.","action":null,"params":{}}';
+
+      try{
+        const clean = raw.trim().replace(/^```json?\s*/i,"").replace(/```$/,"").trim();
+        return JSON.parse(clean);
+      }catch(e){
+        logErr("parse AI response", e);
+        return { reply: raw.replace(/^\{[\s\S]*"reply"\s*:\s*"?/,"").replace(/"?\s*,[\s\S]*$/,"") || raw, action: null, params:{} };
       }
-
-      if(/\b(finanza|ingreso|gasto|caja|balance|dinero|plata)\b/.test(x)) return {type:"consultar_finanzas"};
-      if(/\b(resumen|estado general|que tengo hoy|hoy|dashboard|panel)\b/.test(x)) return {type:"consultar_resumen"};
-
-      if(/\bcliente(s)?\b/.test(x)){
-        const m = x.match(/cliente(?:s)?\s+(.+)/);
-        return {type:"consultar_clientes", busqueda: m ? m[1].trim() : ""};
-      }
-
-      return {type:"desconocida"};
     }
 
     // ============================================================
@@ -434,36 +591,32 @@
       ["nombre_empresa","nit","telefono","correo","contacto","cargo","direccion","ciudad","obs"].forEach(k=>{ if(!d[k]) falt.push(k); });
       if(falt.length){
         const q = {
-          nombre_empresa:"Necesito el nombre de la empresa cliente.",
-          nit:"Necesito el NIT del cliente (solo números).",
-          telefono:"Necesito el teléfono del cliente.",
-          correo:"Necesito el correo del cliente.",
-          contacto:"Necesito el nombre del contacto.",
-          cargo:"Necesito el cargo del contacto.",
-          direccion:"Necesito la dirección.",
-          ciudad:"Necesito la ciudad.",
-          obs:"Agrega observación (o escribe: sin observaciones)."
+          nombre_empresa:"¿Cuál es el nombre de la empresa cliente?",
+          nit:"¿Cuál es el NIT del cliente? (solo números)",
+          telefono:"¿Cuál es el teléfono de contacto?",
+          correo:"¿Cuál es el correo electrónico?",
+          contacto:"¿Nombre del contacto principal?",
+          cargo:"¿Cuál es el cargo del contacto?",
+          direccion:"¿Cuál es la dirección?",
+          ciudad:"¿En qué ciudad?",
+          obs:"Alguna observación adicional (o escribe: sin observaciones)"
         };
         flujoActual.esperandoCampo = falt[0];
         agregarMensaje("bot", q[falt[0]]);
         return;
       }
 
-      // Validación NIT Colombia: 5 a 15 dígitos (admite guion verificador en captura)
       const nitLimpio = String(d.nit).replace(/[.\-\s]/g,"");
       if(!/^\d{5,15}$/.test(nitLimpio)){
-        flujoActual.esperandoCampo="nit";
-        d.nit = "";
-        agregarMensaje("bot","NIT inválido. Debe contener solo números (5 a 15 dígitos). Escríbelo de nuevo.");
+        flujoActual.esperandoCampo="nit"; d.nit="";
+        agregarMensaje("bot","NIT inválido. Debe tener entre 5 y 15 dígitos. Escríbelo de nuevo.");
         return;
       }
       d.nit = nitLimpio;
 
-      // Validación correo
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.correo)){
-        flujoActual.esperandoCampo="correo";
-        d.correo = "";
-        agregarMensaje("bot","Correo inválido. Escríbelo de nuevo.");
+        flujoActual.esperandoCampo="correo"; d.correo="";
+        agregarMensaje("bot","El correo no tiene un formato válido. Escríbelo de nuevo.");
         return;
       }
 
@@ -472,34 +625,23 @@
 
     async function guardarCliente(){
       const d = flujoActual.data;
-      if(/sin observaciones/i.test(d.obs)) d.obs = "";
+      if(/sin observaciones/i.test(d.obs)) d.obs="";
       try{
-        // Evitar duplicados por NIT dentro de la misma empresa
-        const { data: existe } = await sb
-          .from("clientes").select("id,nombre_empresa")
-          .eq("empresa_id", empresa_id).eq("nit", d.nit).limit(1);
+        const { data: existe } = await sb.from("clientes").select("id,nombre_empresa").eq("empresa_id",empresa_id).eq("nit",d.nit).limit(1);
         if(existe && existe.length){
           agregarMensaje("system",`Ya existe un cliente con NIT ${d.nit}: ${existe[0].nombre_empresa} (ID ${existe[0].id}).`);
-          flujoActual = null; return;
-        }
-
-        const { data, error } = await sb
-          .from("clientes")
-          .insert([{ empresa_id, nombre_empresa:d.nombre_empresa, nit:d.nit, telefono:d.telefono, correo:d.correo, contacto:d.contacto, cargo:d.cargo, direccion:d.direccion, ciudad:d.ciudad, obs:d.obs }])
-          .select("id,nombre_empresa,nit")
-          .single();
-        if(error || !data){
-          logErr("insert clientes", error);
-          agregarMensaje("system","No pude crear el cliente. Revisa los datos.");
           flujoActual=null; return;
         }
-        agregarMensaje("bot",`Cliente creado correctamente.\nID: ${data.id}\n${data.nombre_empresa} · NIT ${data.nit}`);
-        agregarMensaje("bot","¿Quieres crear cotización o crear alquiler?");
+        const { data, error } = await sb.from("clientes")
+          .insert([{ empresa_id, nombre_empresa:d.nombre_empresa, nit:d.nit, telefono:d.telefono, correo:d.correo, contacto:d.contacto, cargo:d.cargo, direccion:d.direccion, ciudad:d.ciudad, obs:d.obs }])
+          .select("id,nombre_empresa,nit").single();
+        if(error || !data){ logErr("insert clientes", error); agregarMensaje("system","No pude crear el cliente. Revisa los datos."); flujoActual=null; return; }
+        agregarMensaje("bot",`✅ Cliente creado correctamente.\nID: ${data.id} · ${data.nombre_empresa} · NIT ${data.nit}\n\n¿Quieres crear una cotización o un alquiler para este cliente?`);
       }catch(e){
         logErr("guardarCliente", e);
         agregarMensaje("system","Error de red al crear cliente.");
       }
-      flujoActual = null;
+      flujoActual=null;
     }
 
     // ============================================================
@@ -507,7 +649,7 @@
     // ============================================================
     function iniciarFlujoCotizacion(){
       flujoActual = { tipo:"crear_cotizacion", data:{ cliente_id:"",tipo:"",altura:"",dias:"",precio:"",modalidad:"",origen:"",destino:"",cantidad_viajes:"",valor_viaje:"" }, esperando:"cliente_busqueda" };
-      agregarMensaje("bot","Indica cliente (nombre o NIT) para la cotización.");
+      agregarMensaje("bot","Para la cotización, ¿a qué cliente va dirigida? (escribe nombre o NIT)");
     }
 
     async function continuarFlujoCotizacion(input){
@@ -517,55 +659,42 @@
       if(flujoActual.esperando==="cliente_busqueda"){
         try{
           const b = escPostgrest(input);
-          if(!b){ agregarMensaje("bot","Escribe nombre o NIT del cliente."); return; }
-          const { data, error } = await sb
-            .from("clientes")
-            .select("id,nombre_empresa,nit")
-            .eq("empresa_id",empresa_id)
-            .or(`nombre_empresa.ilike.%${b}%,nit.ilike.%${b}%`)
-            .limit(1);
+          if(!b){ agregarMensaje("bot","Escribe el nombre o NIT del cliente."); return; }
+          const { data, error } = await sb.from("clientes").select("id,nombre_empresa,nit").eq("empresa_id",empresa_id).or(`nombre_empresa.ilike.%${b}%,nit.ilike.%${b}%`).limit(1);
           if(error){ logErr("buscar cliente cot", error); agregarMensaje("system","Error consultando clientes."); return; }
-          if(!data || !data.length){
-            agregarMensaje("bot","No encontré cliente. Escribe 'crear cliente' para registrarlo o 'cancelar' para salir.");
-            return;
-          }
+          if(!data || !data.length){ agregarMensaje("bot","No encontré ese cliente. Escribe 'crear cliente' para registrarlo o 'cancelar' para salir."); return; }
           d.cliente_id = data[0].id;
           flujoActual.esperando = "tipo";
-          agregarMensaje("bot",`Cliente: ${data[0].nombre_empresa}. Indica tipo (ej: elevador tijera, articulado).`);
+          agregarMensaje("bot",`Cliente: ${data[0].nombre_empresa} ✓\n\n¿Qué tipo de equipo cotizamos? (ej: elevador tijera, articulado 18m, telescópico)`);
           return;
-        }catch(e){
-          logErr("continuarFlujoCotizacion cliente", e);
-          agregarMensaje("system","Error de red buscando cliente.");
-          return;
-        }
+        }catch(e){ logErr("cot cliente", e); agregarMensaje("system","Error de red."); return; }
       }
-
-      if(flujoActual.esperando==="tipo"){ d.tipo=input.trim(); flujoActual.esperando="altura"; agregarMensaje("bot","Indica altura (en metros o pies)."); return; }
-      if(flujoActual.esperando==="altura"){ d.altura=input.trim(); flujoActual.esperando="dias"; agregarMensaje("bot","Indica días."); return; }
+      if(flujoActual.esperando==="tipo"){ d.tipo=input.trim(); flujoActual.esperando="altura"; agregarMensaje("bot","¿Altura requerida? (en metros o pies)"); return; }
+      if(flujoActual.esperando==="altura"){ d.altura=input.trim(); flujoActual.esperando="dias"; agregarMensaje("bot","¿Por cuántos días?"); return; }
       if(flujoActual.esperando==="dias"){
-        const n = Number(input); if(!n || n<=0){ agregarMensaje("bot","Días inválido. Escribe un número mayor a 0."); return; }
-        d.dias=String(n); flujoActual.esperando="precio"; agregarMensaje("bot","Indica precio por día."); return;
+        const n=Number(input); if(!n||n<=0){ agregarMensaje("bot","Ingresa un número de días válido."); return; }
+        d.dias=String(n); flujoActual.esperando="precio"; agregarMensaje("bot","¿Precio por día?"); return;
       }
       if(flujoActual.esperando==="precio"){
-        const n = Number(String(input).replace(/[^\d.]/g,""));
-        if(!n || n<=0){ agregarMensaje("bot","Precio inválido. Escribe un número mayor a 0."); return; }
-        d.precio=String(n); flujoActual.esperando="modalidad"; agregarMensaje("bot","Indica modalidad: alquiler_dia o transporte_viaje."); return;
+        const n=Number(String(input).replace(/[^\d.]/g,""));
+        if(!n||n<=0){ agregarMensaje("bot","Ingresa un precio válido."); return; }
+        d.precio=String(n); flujoActual.esperando="modalidad"; agregarMensaje("bot","¿Modalidad? (alquiler_dia o transporte_viaje)"); return;
       }
       if(flujoActual.esperando==="modalidad"){
         d.modalidad = x.includes("transporte") ? "transporte_viaje" : "alquiler_dia";
-        if(d.modalidad==="transporte_viaje"){ flujoActual.esperando="origen"; agregarMensaje("bot","Indica origen."); }
+        if(d.modalidad==="transporte_viaje"){ flujoActual.esperando="origen"; agregarMensaje("bot","¿Ciudad de origen?"); }
         else { await guardarCotizacion(); }
         return;
       }
-      if(flujoActual.esperando==="origen"){ d.origen=input.trim(); flujoActual.esperando="destino"; agregarMensaje("bot","Indica destino."); return; }
-      if(flujoActual.esperando==="destino"){ d.destino=input.trim(); flujoActual.esperando="cantidad_viajes"; agregarMensaje("bot","Indica cantidad de viajes."); return; }
+      if(flujoActual.esperando==="origen"){ d.origen=input.trim(); flujoActual.esperando="destino"; agregarMensaje("bot","¿Ciudad destino?"); return; }
+      if(flujoActual.esperando==="destino"){ d.destino=input.trim(); flujoActual.esperando="cantidad_viajes"; agregarMensaje("bot","¿Cantidad de viajes?"); return; }
       if(flujoActual.esperando==="cantidad_viajes"){
-        const n = Number(input); if(!n || n<=0){ agregarMensaje("bot","Cantidad inválida."); return; }
-        d.cantidad_viajes=String(n); flujoActual.esperando="valor_viaje"; agregarMensaje("bot","Indica valor por viaje."); return;
+        const n=Number(input); if(!n||n<=0){ agregarMensaje("bot","Cantidad inválida."); return; }
+        d.cantidad_viajes=String(n); flujoActual.esperando="valor_viaje"; agregarMensaje("bot","¿Valor por viaje?"); return;
       }
       if(flujoActual.esperando==="valor_viaje"){
-        const n = Number(String(input).replace(/[^\d.]/g,""));
-        if(!n || n<=0){ agregarMensaje("bot","Valor inválido."); return; }
+        const n=Number(String(input).replace(/[^\d.]/g,""));
+        if(!n||n<=0){ agregarMensaje("bot","Valor inválido."); return; }
         d.valor_viaje=String(n); await guardarCotizacion(); return;
       }
     }
@@ -573,37 +702,21 @@
     async function guardarCotizacion(){
       const d = flujoActual.data;
       try{
-        if(!d.cliente_id || !d.tipo || !d.dias || !d.precio){
-          agregarMensaje("system","Datos incompletos para la cotización.");
-          flujoActual = null; return;
-        }
+        if(!d.cliente_id || !d.tipo || !d.dias || !d.precio){ agregarMensaje("system","Datos incompletos."); flujoActual=null; return; }
         const payload = {
-          empresa_id,
-          cliente_id: d.cliente_id,
-          tipo: d.tipo,
-          altura: Number(d.altura) || null,
-          dias: Number(d.dias) || 0,
-          precio: Number(d.precio) || 0,
-          modalidad: d.modalidad || "alquiler_dia",
-          origen: d.modalidad==="transporte_viaje" ? d.origen : null,
-          destino: d.modalidad==="transporte_viaje" ? d.destino : null,
-          cantidadViajes: d.modalidad==="transporte_viaje" ? (Number(d.cantidad_viajes)||0) : 0,
-          valorViaje: d.modalidad==="transporte_viaje" ? (Number(d.valor_viaje)||0) : 0,
-          estado: "borrador",
-          created_by: user_id
+          empresa_id, cliente_id:d.cliente_id, tipo:d.tipo, altura:Number(d.altura)||null,
+          dias:Number(d.dias)||0, precio:Number(d.precio)||0, modalidad:d.modalidad||"alquiler_dia",
+          origen:d.modalidad==="transporte_viaje"?d.origen:null,
+          destino:d.modalidad==="transporte_viaje"?d.destino:null,
+          cantidadViajes:d.modalidad==="transporte_viaje"?(Number(d.cantidad_viajes)||0):0,
+          valorViaje:d.modalidad==="transporte_viaje"?(Number(d.valor_viaje)||0):0,
+          estado:"borrador", created_by:user_id
         };
         const { data, error } = await sb.from("cotizaciones").insert([payload]).select("id,estado").single();
-        if(error || !data){
-          logErr("insert cotizaciones", error);
-          agregarMensaje("system","No pude crear la cotización. Revisa los datos.");
-          flujoActual=null; return;
-        }
-        agregarMensaje("bot",`Cotización creada correctamente.\nID: ${data.id}\nEstado: ${data.estado}`);
-      }catch(e){
-        logErr("guardarCotizacion", e);
-        agregarMensaje("system","Error de red al crear cotización.");
-      }
-      flujoActual = null;
+        if(error||!data){ logErr("insert cotizaciones", error); agregarMensaje("system","No pude crear la cotización."); flujoActual=null; return; }
+        agregarMensaje("bot",`✅ Cotización creada.\nID: ${data.id} · Estado: ${data.estado}\n\nTotal estimado: $${fmt(Number(d.precio)*Number(d.dias))}`);
+      }catch(e){ logErr("guardarCotizacion", e); agregarMensaje("system","Error de red al crear cotización."); }
+      flujoActual=null;
     }
 
     // ============================================================
@@ -611,7 +724,7 @@
     // ============================================================
     function iniciarFlujoAlquiler(){
       flujoActual = { tipo:"crear_alquiler", data:{ cliente_id:"",equipo_id:"",fecha_inicio:"",fecha_fin:"",dias:"",precio:"" }, esperando:"cliente_busqueda" };
-      agregarMensaje("bot","Indica cliente (nombre o NIT) para crear el alquiler.");
+      agregarMensaje("bot","Para el alquiler, ¿a qué cliente le asignamos? (nombre o NIT)");
     }
 
     async function continuarFlujoAlquiler(input){
@@ -620,80 +733,53 @@
       if(flujoActual.esperando==="cliente_busqueda"){
         try{
           const b = escPostgrest(input);
-          if(!b){ agregarMensaje("bot","Escribe nombre o NIT del cliente."); return; }
-          const { data, error } = await sb
-            .from("clientes")
-            .select("id,nombre_empresa")
-            .eq("empresa_id",empresa_id)
-            .or(`nombre_empresa.ilike.%${b}%,nit.ilike.%${b}%`)
-            .limit(1);
-
+          if(!b){ agregarMensaje("bot","Escribe el nombre o NIT del cliente."); return; }
+          const { data, error } = await sb.from("clientes").select("id,nombre_empresa").eq("empresa_id",empresa_id).or(`nombre_empresa.ilike.%${b}%,nit.ilike.%${b}%`).limit(1);
           if(error){ logErr("buscar cliente alq", error); agregarMensaje("system","Error consultando clientes."); return; }
-          if(!data || !data.length){
-            agregarMensaje("bot","No encontré cliente. Escribe 'crear cliente' para registrarlo o 'cancelar' para salir.");
-            return;
-          }
-
+          if(!data||!data.length){ agregarMensaje("bot","No encontré ese cliente. Escribe 'crear cliente' para registrarlo o 'cancelar'."); return; }
           d.cliente_id = data[0].id;
           flujoActual.esperando = "equipo_id";
-
           try{
-            const mq = await sb.from("maquinas")
-              .select("id,marca,modelo,estado")
-              .eq("empresa_id",empresa_id).eq("estado","disponible")
-              .limit(20);
-            renderMini("Máquinas disponibles", mq.data||[], ["id","marca","modelo","estado"]);
-          }catch(e){ logErr("listar maq disp", e); }
-          agregarMensaje("bot","Indica ID del equipo (copia exactamente el ID de la tabla).");
+            const mq = await sb.from("maquinas").select("id,marca,modelo,estado").eq("empresa_id",empresa_id).eq("estado","disponible").limit(20);
+            renderMini("Equipos disponibles", mq.data||[], ["id","marca","modelo","estado"]);
+          }catch(e){ logErr("listar maq", e); }
+          agregarMensaje("bot",`Cliente: ${data[0].nombre_empresa} ✓\n\nIndica el ID del equipo a asignar.`);
           return;
-        }catch(e){
-          logErr("continuarFlujoAlquiler cliente", e);
-          agregarMensaje("system","Error de red buscando cliente para alquiler.");
-          return;
-        }
+        }catch(e){ logErr("alq cliente", e); agregarMensaje("system","Error de red."); return; }
       }
 
       if(flujoActual.esperando==="equipo_id"){
         const ref = input.trim();
-        if(!ref){ agregarMensaje("bot","Indica un ID válido de máquina."); return; }
+        if(!ref){ agregarMensaje("bot","Indica un ID válido de equipo."); return; }
         try{
-          const { data, error } = await sb.from("maquinas")
-            .select("id,estado").eq("empresa_id",empresa_id).eq("id",ref).maybeSingle();
-          if(error){ logErr("validar maq", error); agregarMensaje("system","Error validando máquina."); return; }
-          if(!data){ agregarMensaje("bot","No encontré esa máquina. Indica otro ID."); return; }
-          if(data.estado !== "disponible"){
-            agregarMensaje("bot",`Máquina no disponible (estado: ${data.estado}). Elige otra ID disponible.`);
-            return;
-          }
+          const { data, error } = await sb.from("maquinas").select("id,estado").eq("empresa_id",empresa_id).eq("id",ref).maybeSingle();
+          if(error){ logErr("validar maq", error); agregarMensaje("system","Error validando equipo."); return; }
+          if(!data){ agregarMensaje("bot","No encontré ese equipo. Revisa el ID."); return; }
+          if(data.estado!=="disponible"){ agregarMensaje("bot",`El equipo no está disponible (estado: ${data.estado}). Elige otro.`); return; }
           d.equipo_id = ref;
-        }catch(e){
-          logErr("validar maq net", e);
-          agregarMensaje("system","Error de red validando máquina.");
-          return;
-        }
+        }catch(e){ logErr("validar maq net", e); agregarMensaje("system","Error de red."); return; }
         flujoActual.esperando = "fecha_inicio";
-        agregarMensaje("bot","Indica fecha_inicio (YYYY-MM-DD).");
-        return;
+        agregarMensaje("bot","¿Fecha de inicio? (formato: YYYY-MM-DD)"); return;
       }
 
       if(flujoActual.esperando==="fecha_inicio"){
-        const v = input.trim();
-        if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){ agregarMensaje("bot","Formato inválido. Usa YYYY-MM-DD."); return; }
-        d.fecha_inicio=v; flujoActual.esperando="fecha_fin"; agregarMensaje("bot","Indica fecha_fin (YYYY-MM-DD)."); return;
+        const v=input.trim();
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){ agregarMensaje("bot","Formato inválido. Usa YYYY-MM-DD (ej: 2025-06-01)."); return; }
+        d.fecha_inicio=v; flujoActual.esperando="fecha_fin"; agregarMensaje("bot","¿Fecha de fin? (YYYY-MM-DD)"); return;
       }
       if(flujoActual.esperando==="fecha_fin"){
-        const v = input.trim();
+        const v=input.trim();
         if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){ agregarMensaje("bot","Formato inválido. Usa YYYY-MM-DD."); return; }
-        if(v < d.fecha_inicio){ agregarMensaje("bot","fecha_fin no puede ser menor que fecha_inicio."); return; }
-        d.fecha_fin=v; flujoActual.esperando="dias"; agregarMensaje("bot","Indica días."); return;
+        if(v<d.fecha_inicio){ agregarMensaje("bot","La fecha fin no puede ser anterior a la fecha inicio."); return; }
+        d.fecha_fin=v; flujoActual.esperando="dias"; agregarMensaje("bot","¿Cuántos días de contrato?"); return;
       }
       if(flujoActual.esperando==="dias"){
-        const n = Number(input); if(!n || n<=0){ agregarMensaje("bot","Días inválido."); return; }
-        d.dias=String(n); flujoActual.esperando="precio"; agregarMensaje("bot","Indica precio por día."); return;
+        const n=Number(input); if(!n||n<=0){ agregarMensaje("bot","Indica un número de días válido."); return; }
+        d.dias=String(n); flujoActual.esperando="precio"; agregarMensaje("bot","¿Precio por día?"); return;
       }
       if(flujoActual.esperando==="precio"){
-        const n = Number(String(input).replace(/[^\d.]/g,""));
-        if(!n || n<=0){ agregarMensaje("bot","Precio inválido."); return; }
+        const n=Number(String(input).replace(/[^\d.]/g,""));
+        if(!n||n<=0){ agregarMensaje("bot","Precio inválido."); return; }
         d.precio=String(n); await guardarAlquiler(); return;
       }
     }
@@ -701,61 +787,32 @@
     async function guardarAlquiler(){
       const d = flujoActual.data;
       try{
-        if(!d.cliente_id || !d.equipo_id || !d.fecha_inicio){
-          agregarMensaje("system","Datos incompletos para el alquiler.");
-          flujoActual = null; return;
-        }
-
-        // Re-validar que la máquina siga disponible justo antes de insertar
-        const { data: mq, error: emq } = await sb.from("maquinas")
-          .select("id,estado").eq("empresa_id",empresa_id).eq("id",d.equipo_id).maybeSingle();
-        if(emq){ logErr("revalidar maq", emq); agregarMensaje("system","Error validando máquina."); flujoActual=null; return; }
-        if(!mq || mq.estado !== "disponible"){
-          agregarMensaje("bot","La máquina ya no está disponible. Intenta con otra.");
-          flujoActual = null; return;
-        }
+        if(!d.cliente_id||!d.equipo_id||!d.fecha_inicio){ agregarMensaje("system","Datos incompletos."); flujoActual=null; return; }
+        const { data:mq, error:emq } = await sb.from("maquinas").select("id,estado").eq("empresa_id",empresa_id).eq("id",d.equipo_id).maybeSingle();
+        if(emq){ logErr("revalidar maq", emq); agregarMensaje("system","Error validando equipo."); flujoActual=null; return; }
+        if(!mq||mq.estado!=="disponible"){ agregarMensaje("bot","El equipo ya no está disponible. Intenta con otro."); flujoActual=null; return; }
 
         const payload = {
-          empresa_id,
-          cliente_id: d.cliente_id,
-          equipoId: d.equipo_id,
-          fechaInicio: d.fecha_inicio,
-          fecha_fin: d.fecha_fin || null,
-          dias: Number(d.dias) || 0,
-          precioDia: Number(d.precio) || 0,
-          estado: "activo",
-          created_by: user_id
+          empresa_id, cliente_id:d.cliente_id, equipoId:d.equipo_id,
+          fechaInicio:d.fecha_inicio, fecha_fin:d.fecha_fin||null,
+          dias:Number(d.dias)||0, precioDia:Number(d.precio)||0,
+          estado:"activo", created_by:user_id
         };
+        const { data, error } = await sb.from("alquileres_ops").insert([payload]).select("id,estado,equipoId").single();
+        if(error||!data){ logErr("insert alquileres_ops", error); agregarMensaje("system","No pude crear el alquiler."); flujoActual=null; return; }
 
-        const { data, error } = await sb
-          .from("alquileres_ops")
-          .insert([payload])
-          .select("id,estado,equipoId")
-          .single();
-        if(error || !data){
-          logErr("insert alquileres_ops", error);
-          agregarMensaje("system","No pude crear el alquiler. Revisa los datos.");
-          flujoActual=null; return;
-        }
-
-        // Actualizar máquina a "trabajando"
-        const { error: euMaq } = await sb
-          .from("maquinas")
+        const { error:euMaq } = await sb.from("maquinas")
           .update({ estado:"trabajando", cliente_id:d.cliente_id, fecha_inicio:d.fecha_inicio, fecha_vence:d.fecha_fin||null, alquiler_nro:data.id })
-          .eq("empresa_id", empresa_id)
-          .eq("id", d.equipo_id);
+          .eq("empresa_id",empresa_id).eq("id",d.equipo_id);
 
         if(euMaq){
           logErr("update maquina tras alquiler", euMaq);
-          agregarMensaje("system",`Alquiler ${data.id} creado, pero no pude actualizar la máquina. Revísala manualmente.`);
+          agregarMensaje("system",`Alquiler ${data.id} creado, pero no pude actualizar el estado del equipo. Revísalo manualmente.`);
         }else{
-          agregarMensaje("bot",`Alquiler creado correctamente.\nID: ${data.id}\nEstado: ${data.estado}\nMáquina ${d.equipo_id} marcada como trabajando.`);
+          agregarMensaje("bot",`✅ Alquiler creado.\nID: ${data.id} · Estado: ${data.estado}\nEquipo ${d.equipo_id} marcado como trabajando.\nTotal: $${fmt(Number(d.precio)*Number(d.dias))}`);
         }
-      }catch(e){
-        logErr("guardarAlquiler", e);
-        agregarMensaje("system","Error de red al crear alquiler.");
-      }
-      flujoActual = null;
+      }catch(e){ logErr("guardarAlquiler", e); agregarMensaje("system","Error de red al crear alquiler."); }
+      flujoActual=null;
     }
 
     // ============================================================
@@ -764,130 +821,74 @@
     async function consultarAlquileres(filtro="activo"){
       try{
         if(filtro==="por_vencer"){
-          const lim = new Date(Date.now()+3*24*60*60*1000).toISOString().slice(0,10);
-          const { data, error } = await sb.from("alquileres_ops")
-            .select("id,estado,fechaInicio,fecha_fin,cliente_id,equipoId")
-            .eq("empresa_id",empresa_id)
-            .not("fecha_fin","is",null)
-            .lte("fecha_fin",lim)
-            .order("fecha_fin",{ascending:true}).limit(20);
-          if(error){ logErr("alq por vencer", error); return agregarMensaje("system","No pude consultar alquileres por vencer."); }
-          return renderMini("Alquileres por vencer", data||[], ["id","estado","fechaInicio","fecha_fin","equipoId"]);
+          const lim=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+          const { data, error } = await sb.from("alquileres_ops").select("id,estado,fechaInicio,fecha_fin,cliente_id,equipoId").eq("empresa_id",empresa_id).not("fecha_fin","is",null).lte("fecha_fin",lim).order("fecha_fin",{ascending:true}).limit(20);
+          if(error){ logErr("alq vencer", error); return agregarMensaje("system","No pude consultar alquileres."); }
+          return renderMini(`Alquileres por vencer (próximos 7 días): ${(data||[]).length}`, data||[], ["id","estado","fechaInicio","fecha_fin","equipoId"]);
         }
-        const { data, error } = await sb.from("alquileres_ops")
-          .select("id,estado,fechaInicio,fecha_fin,cliente_id,equipoId")
-          .eq("empresa_id",empresa_id).eq("estado",filtro)
-          .order("id",{ascending:false}).limit(30);
+        const { data, error } = await sb.from("alquileres_ops").select("id,estado,fechaInicio,fecha_fin,cliente_id,equipoId,precioDia,dias").eq("empresa_id",empresa_id).eq("estado",filtro).order("id",{ascending:false}).limit(30);
         if(error){ logErr("alq list", error); return agregarMensaje("system","No pude consultar alquileres."); }
-        renderMini(`Encontré ${(data||[]).length} alquileres ${filtro}.`, data||[], ["id","estado","fechaInicio","fecha_fin","equipoId"]);
-      }catch(e){
-        logErr("consultarAlquileres", e);
-        agregarMensaje("system","Error de red en consulta de alquileres.");
-      }
+        renderMini(`Alquileres ${filtro}: ${(data||[]).length}`, data||[], ["id","estado","fechaInicio","fecha_fin","equipoId","precioDia","dias"]);
+      }catch(e){ logErr("consultarAlquileres", e); agregarMensaje("system","Error de red en alquileres."); }
     }
 
     async function consultarCotizaciones(filtro="aprobada"){
       try{
-        const { data, error } = await sb.from("cotizaciones")
-          .select("id,estado,cliente_id,dias,precio,modalidad,created_at")
-          .eq("empresa_id",empresa_id).eq("estado",filtro)
-          .order("created_at",{ascending:false}).limit(30);
+        const { data, error } = await sb.from("cotizaciones").select("id,estado,cliente_id,dias,precio,modalidad,created_at").eq("empresa_id",empresa_id).eq("estado",filtro).order("created_at",{ascending:false}).limit(30);
         if(error){ logErr("cot list", error); return agregarMensaje("system","No pude consultar cotizaciones."); }
-        renderMini(`Encontré ${(data||[]).length} cotizaciones ${filtro}.`, data||[], ["id","estado","cliente_id","dias","precio","modalidad"]);
-      }catch(e){
-        logErr("consultarCotizaciones", e);
-        agregarMensaje("system","Error de red en consulta de cotizaciones.");
-      }
+        renderMini(`Cotizaciones ${filtro}: ${(data||[]).length}`, data||[], ["id","estado","cliente_id","dias","precio","modalidad"]);
+      }catch(e){ logErr("consultarCotizaciones", e); agregarMensaje("system","Error de red en cotizaciones."); }
     }
 
     async function consultarMaquinas(filtro="disponible"){
       try{
-        const { data, error } = await sb.from("maquinas")
-          .select("id,marca,modelo,estado,cliente_id,alquiler_nro")
-          .eq("empresa_id",empresa_id).eq("estado",filtro)
-          .order("id",{ascending:false}).limit(30);
-        if(error){ logErr("maq list", error); return agregarMensaje("system","No pude consultar máquinas."); }
-        renderMini(`Máquinas ${filtro}: ${(data||[]).length}`, data||[], ["id","marca","modelo","estado","alquiler_nro"]);
-      }catch(e){
-        logErr("consultarMaquinas", e);
-        agregarMensaje("system","Error de red en consulta de máquinas.");
-      }
+        const { data, error } = await sb.from("maquinas").select("id,marca,modelo,estado,cliente_id,alquiler_nro").eq("empresa_id",empresa_id).eq("estado",filtro).order("id",{ascending:false}).limit(30);
+        if(error){ logErr("maq list", error); return agregarMensaje("system","No pude consultar equipos."); }
+        renderMini(`Equipos ${filtro}: ${(data||[]).length}`, data||[], ["id","marca","modelo","estado","alquiler_nro"]);
+      }catch(e){ logErr("consultarMaquinas", e); agregarMensaje("system","Error de red en equipos."); }
     }
 
     async function consultarClientes(busqueda=""){
       try{
-        let q = sb.from("clientes")
-          .select("id,nombre_empresa,nit,telefono,ciudad")
-          .eq("empresa_id",empresa_id)
-          .order("nombre_empresa",{ascending:true}).limit(25);
+        let q = sb.from("clientes").select("id,nombre_empresa,nit,telefono,ciudad").eq("empresa_id",empresa_id).order("nombre_empresa",{ascending:true}).limit(25);
         const b = escPostgrest(busqueda);
-        if(b){ q = q.or(`nombre_empresa.ilike.%${b}%,nit.ilike.%${b}%`); }
+        if(b) q = q.or(`nombre_empresa.ilike.%${b}%,nit.ilike.%${b}%`);
         const { data, error } = await q;
         if(error){ logErr("cli list", error); return agregarMensaje("system","No pude consultar clientes."); }
-        renderMini(`Encontré ${(data||[]).length} clientes.`, data||[], ["id","nombre_empresa","nit","telefono","ciudad"]);
-      }catch(e){
-        logErr("consultarClientes", e);
-        agregarMensaje("system","Error de red en consulta de clientes.");
-      }
+        renderMini(`Clientes: ${(data||[]).length}`, data||[], ["id","nombre_empresa","nit","telefono","ciudad"]);
+      }catch(e){ logErr("consultarClientes", e); agregarMensaje("system","Error de red en clientes."); }
     }
 
     async function consultarFinanzas(){
       try{
-        // Últimos 90 días para mantener rendimiento
-        const desde = new Date(Date.now()-90*24*60*60*1000).toISOString().slice(0,10);
-        const { data, error } = await sb.from("caja_movimientos")
-          .select("id,tipo,monto,concepto,fecha")
-          .eq("empresa_id",empresa_id)
-          .gte("fecha",desde)
-          .order("fecha",{ascending:false}).limit(500);
+        const desde = new Date(Date.now()-90*86400000).toISOString().slice(0,10);
+        const { data, error } = await sb.from("caja_movimientos").select("id,tipo,monto,concepto,fecha").eq("empresa_id",empresa_id).gte("fecha",desde).order("fecha",{ascending:false}).limit(500);
         if(error){ logErr("finanzas", error); return agregarMensaje("system","No pude consultar finanzas."); }
         let i=0,g=0;
-        for(const m of (data||[])){
-          const v = Number(m.monto)||0;
-          if((m.tipo||"").toLowerCase().includes("ingreso")) i+=v; else g+=v;
-        }
-        agregarMensaje("bot",`Finanzas (últimos 90 días):\nIngresos: $${fmt(i)}\nGastos: $${fmt(g)}\nBalance: $${fmt(i-g)}\nMovimientos: ${(data||[]).length}`);
-      }catch(e){
-        logErr("consultarFinanzas", e);
-        agregarMensaje("system","Error de red en consulta financiera.");
-      }
+        for(const m of (data||[])){ const v=Number(m.monto)||0; if((m.tipo||"").toLowerCase().includes("ingreso")) i+=v; else g+=v; }
+        agregarMensaje("bot",`💰 Finanzas — últimos 90 días\n\nIngresos:  $${fmt(i)}\nGastos:    $${fmt(g)}\nBalance:   $${fmt(i-g)}\nMovimientos: ${(data||[]).length}`);
+      }catch(e){ logErr("consultarFinanzas", e); agregarMensaje("system","Error de red en finanzas."); }
     }
 
     async function consultarResumenGeneral(){
       try{
-        const [m1,m2,a1,c1,fin] = await Promise.all([
+        const [m1,m2,m3,a1,c1,fin] = await Promise.all([
           sb.from("maquinas").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","disponible"),
           sb.from("maquinas").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","trabajando"),
+          sb.from("maquinas").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","varada"),
           sb.from("alquileres_ops").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).eq("estado","activo"),
           sb.from("cotizaciones").select("id",{count:"exact",head:true}).eq("empresa_id",empresa_id).in("estado",["borrador","en_revision","enviada","negociacion"]),
-          sb.from("caja_movimientos").select("tipo,monto").eq("empresa_id",empresa_id).limit(1000)
+          sb.from("caja_movimientos").select("tipo,monto").eq("empresa_id",empresa_id).gte("fecha",new Date(Date.now()-30*86400000).toISOString().slice(0,10)).limit(500)
         ]);
-
-        if(m1.error) logErr("resumen m1", m1.error);
-        if(m2.error) logErr("resumen m2", m2.error);
-        if(a1.error) logErr("resumen a1", a1.error);
-        if(c1.error) logErr("resumen c1", c1.error);
-        if(fin.error) logErr("resumen fin", fin.error);
-
         let i=0,g=0;
-        for(const x of (fin.data||[])){
-          const n = Number(x.monto)||0;
-          if((x.tipo||"").toLowerCase().includes("ingreso")) i+=n; else g+=n;
-        }
+        for(const x of (fin.data||[])){ const n=Number(x.monto)||0; if((x.tipo||"").toLowerCase().includes("ingreso")) i+=n; else g+=n; }
         agregarMensaje("bot",
-          `Resumen general:\n`+
-          `Máquinas disponibles: ${m1.count||0}\n`+
-          `Máquinas trabajando: ${m2.count||0}\n`+
-          `Alquileres activos: ${a1.count||0}\n`+
-          `Cotizaciones pendientes: ${c1.count||0}\n`+
-          `Ingresos: $${fmt(i)}\n`+
-          `Gastos: $${fmt(g)}\n`+
-          `Balance: $${fmt(i-g)}`
+          `📊 Resumen operativo — ${new Date().toLocaleDateString("es-CO")}\n\n` +
+          `🏗️ Flota\n   Disponibles: ${m1.count||0} | Trabajando: ${m2.count||0} | Varadas: ${m3.count||0}\n\n` +
+          `📦 Operaciones\n   Alquileres activos: ${a1.count||0}\n   Cotizaciones en proceso: ${c1.count||0}\n\n` +
+          `💰 Finanzas (30 días)\n   Ingresos: $${fmt(i)} | Gastos: $${fmt(g)} | Balance: $${fmt(i-g)}`
         );
-      }catch(e){
-        logErr("consultarResumenGeneral", e);
-        agregarMensaje("system","Error de red en resumen general.");
-      }
+      }catch(e){ logErr("consultarResumen", e); agregarMensaje("system","Error de red en resumen."); }
     }
 
     // ============================================================
@@ -896,56 +897,35 @@
     async function cambiarEstadoMaquina(){
       if(!flujoActual || flujoActual.tipo!=="cambiar_estado_maquina"){
         flujoActual = { tipo:"cambiar_estado_maquina", data:{ref:"",estado:""}, esperando:"ref" };
-        agregarMensaje("bot","Indica máquina (id, marca o modelo).");
+        agregarMensaje("bot","¿Qué equipo quieres actualizar? (ID, marca o modelo)");
         return;
       }
       if(flujoActual.esperando==="ref"){
         flujoActual.esperando="estado";
-        agregarMensaje("bot","Ahora indica el nuevo estado: disponible, trabajando, mantenimiento, varado o baja.");
+        agregarMensaje("bot","¿Cuál es el nuevo estado?\nOpciones: disponible, trabajando, varada, alistamiento, devolucion");
         return;
       }
 
       const d = flujoActual.data;
       const e = normalizarTexto(d.estado);
-      const ok = ["disponible","trabajando","mantenimiento","varado","baja"];
+      const ok = ["disponible","trabajando","varada","alistamiento","devolucion"];
       if(!ok.includes(e)){
-        agregarMensaje("bot",`Estado inválido. Usa: ${ok.join(", ")}.`);
+        agregarMensaje("bot",`Estado no válido. Usa: ${ok.join(", ")}.`);
         flujoActual=null; return;
       }
 
       try{
         const ref = escPostgrest(d.ref);
-        if(!ref){ agregarMensaje("system","Referencia de máquina vacía."); flujoActual=null; return; }
-
-        // Buscar por id exacto o por marca/modelo
-        const { data: found, error: eF } = await sb.from("maquinas")
-          .select("id,marca,modelo,estado").eq("empresa_id",empresa_id)
-          .or(`id.eq.${ref},marca.ilike.%${ref}%,modelo.ilike.%${ref}%`)
-          .limit(1);
-        if(eF){ logErr("buscar maq estado", eF); agregarMensaje("system","No pude buscar la máquina."); flujoActual=null; return; }
-        if(!found || !found.length){
-          agregarMensaje("bot","No encontré ninguna máquina con esa referencia.");
-          flujoActual=null; return;
-        }
-
+        if(!ref){ agregarMensaje("system","Referencia vacía."); flujoActual=null; return; }
+        const { data:found, error:eF } = await sb.from("maquinas").select("id,marca,modelo,estado").eq("empresa_id",empresa_id).or(`id.eq.${ref},marca.ilike.%${ref}%,modelo.ilike.%${ref}%`).limit(1);
+        if(eF){ logErr("buscar maq estado", eF); agregarMensaje("system","Error buscando equipo."); flujoActual=null; return; }
+        if(!found||!found.length){ agregarMensaje("bot","No encontré ese equipo."); flujoActual=null; return; }
         const maqId = found[0].id;
-
-        // Si pasa a "trabajando" sin alquiler activo, advertir (no bloqueo)
-        const { data: upd, error: eU } = await sb.from("maquinas")
-          .update({estado:e})
-          .eq("empresa_id",empresa_id).eq("id", maqId)
-          .select("id,marca,modelo,estado").maybeSingle();
-        if(eU || !upd){
-          logErr("update estado maq", eU);
-          agregarMensaje("system","No pude cambiar el estado de la máquina.");
-          flujoActual=null; return;
-        }
-        agregarMensaje("bot",`Estado actualizado: ${upd.id} (${upd.marca||""} ${upd.modelo||""}) → ${upd.estado}`);
-      }catch(e){
-        logErr("cambiarEstadoMaquina", e);
-        agregarMensaje("system","Error de red cambiando estado de máquina.");
-      }
-      flujoActual = null;
+        const { data:upd, error:eU } = await sb.from("maquinas").update({estado:e}).eq("empresa_id",empresa_id).eq("id",maqId).select("id,marca,modelo,estado").maybeSingle();
+        if(eU||!upd){ logErr("update estado maq", eU); agregarMensaje("system","No pude cambiar el estado."); flujoActual=null; return; }
+        agregarMensaje("bot",`✅ Estado actualizado: ${upd.marca||""} ${upd.modelo||""} (ID ${upd.id}) → ${upd.estado}`);
+      }catch(e){ logErr("cambiarEstado", e); agregarMensaje("system","Error de red."); }
+      flujoActual=null;
     }
 
     // ============================================================
@@ -954,172 +934,172 @@
     async function asignarMaquinaAlquiler(){
       if(!flujoActual || flujoActual.tipo!=="asignar_maquina"){
         flujoActual = { tipo:"asignar_maquina", data:{alquiler_id:"",maquina_id:""}, esperando:"alquiler_id" };
-        agregarMensaje("bot","Indica ID del alquiler.");
+        agregarMensaje("bot","¿Cuál es el ID del alquiler?");
         return;
       }
       if(flujoActual.esperando==="alquiler_id"){
         if(!flujoActual.data.alquiler_id){ agregarMensaje("bot","ID de alquiler vacío."); flujoActual=null; return; }
-        // Validar que el alquiler exista y sea de la empresa
         try{
-          const { data: alq, error } = await sb.from("alquileres_ops")
-            .select("id,estado").eq("empresa_id",empresa_id)
-            .eq("id", flujoActual.data.alquiler_id).maybeSingle();
+          const { data:alq, error } = await sb.from("alquileres_ops").select("id,estado").eq("empresa_id",empresa_id).eq("id",flujoActual.data.alquiler_id).maybeSingle();
           if(error){ logErr("validar alq", error); agregarMensaje("system","Error validando alquiler."); flujoActual=null; return; }
           if(!alq){ agregarMensaje("bot","No encontré ese alquiler."); flujoActual=null; return; }
         }catch(e){ logErr("validar alq net", e); agregarMensaje("system","Error de red."); flujoActual=null; return; }
-
-        flujoActual.esperando = "maquina_id";
+        flujoActual.esperando="maquina_id";
         try{
-          const { data } = await sb.from("maquinas")
-            .select("id,marca,modelo").eq("empresa_id",empresa_id)
-            .eq("estado","disponible").limit(20);
-          renderMini("Máquinas disponibles", data||[], ["id","marca","modelo"]);
+          const { data } = await sb.from("maquinas").select("id,marca,modelo").eq("empresa_id",empresa_id).eq("estado","disponible").limit(20);
+          renderMini("Equipos disponibles", data||[], ["id","marca","modelo"]);
         }catch(e){ logErr("listar maq disp2", e); }
-        agregarMensaje("bot","Indica ID de la máquina a asignar.");
+        agregarMensaje("bot","¿Cuál es el ID del equipo a asignar?");
         return;
       }
 
       const d = flujoActual.data;
       try{
-        if(!d.alquiler_id || !d.maquina_id){
-          agregarMensaje("system","Datos incompletos.");
-          flujoActual=null; return;
-        }
-
-        // Validar que la máquina esté disponible
-        const { data: mq, error: eMq } = await sb.from("maquinas")
-          .select("id,estado").eq("empresa_id",empresa_id).eq("id",d.maquina_id).maybeSingle();
-        if(eMq){ logErr("validar maq asig", eMq); agregarMensaje("system","Error validando máquina."); flujoActual=null; return; }
-        if(!mq){ agregarMensaje("bot","No encontré esa máquina."); flujoActual=null; return; }
-        if(mq.estado !== "disponible"){
-          agregarMensaje("bot",`Máquina no disponible (estado: ${mq.estado}). No se puede asignar.`);
-          flujoActual=null; return;
-        }
-
-        const { error:e1 } = await sb.from("alquileres_ops")
-          .update({equipoId:d.maquina_id,estado:"activo"})
-          .eq("empresa_id",empresa_id).eq("id",d.alquiler_id);
-        if(e1){
-          logErr("asignar update alq", e1);
-          agregarMensaje("system","No pude asignar máquina al alquiler.");
-          flujoActual=null; return;
-        }
-
-        const { error:e2 } = await sb.from("maquinas")
-          .update({estado:"trabajando",alquiler_nro:d.alquiler_id})
-          .eq("empresa_id",empresa_id).eq("id",d.maquina_id);
-        if(e2){
-          logErr("asignar update maq", e2);
-          agregarMensaje("system",`Alquiler actualizado pero la máquina no. Revísala manualmente.`);
-          flujoActual=null; return;
-        }
-
-        agregarMensaje("bot",`Máquina ${d.maquina_id} asignada al alquiler ${d.alquiler_id}.`);
-      }catch(e){
-        logErr("asignarMaquinaAlquiler", e);
-        agregarMensaje("system","Error de red asignando máquina.");
-      }
-      flujoActual = null;
+        if(!d.alquiler_id||!d.maquina_id){ agregarMensaje("system","Datos incompletos."); flujoActual=null; return; }
+        const { data:mq, error:eMq } = await sb.from("maquinas").select("id,estado").eq("empresa_id",empresa_id).eq("id",d.maquina_id).maybeSingle();
+        if(eMq){ logErr("validar maq asig", eMq); agregarMensaje("system","Error validando equipo."); flujoActual=null; return; }
+        if(!mq){ agregarMensaje("bot","No encontré ese equipo."); flujoActual=null; return; }
+        if(mq.estado!=="disponible"){ agregarMensaje("bot",`El equipo no está disponible (estado: ${mq.estado}).`); flujoActual=null; return; }
+        const { error:e1 } = await sb.from("alquileres_ops").update({equipoId:d.maquina_id,estado:"activo"}).eq("empresa_id",empresa_id).eq("id",d.alquiler_id);
+        if(e1){ logErr("asignar alq", e1); agregarMensaje("system","No pude asignar."); flujoActual=null; return; }
+        const { error:e2 } = await sb.from("maquinas").update({estado:"trabajando",alquiler_nro:d.alquiler_id}).eq("empresa_id",empresa_id).eq("id",d.maquina_id);
+        if(e2){ logErr("asignar maq", e2); agregarMensaje("system","Alquiler actualizado pero el equipo no. Revísalo."); flujoActual=null; return; }
+        agregarMensaje("bot",`✅ Equipo ${d.maquina_id} asignado al alquiler ${d.alquiler_id}.`);
+      }catch(e){ logErr("asignarMaquina", e); agregarMensaje("system","Error de red."); }
+      flujoActual=null;
     }
 
     // ============================================================
     // RENDER DE TABLA
     // ============================================================
     function esc(s){
-      return String(s==null?"":s)
-        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+      return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
     }
-    function renderMini(titulo,rows,cols){
-      if(!rows || !rows.length){ agregarMensaje("bot",`${esc(titulo)}\nSin resultados.`,true); return; }
+
+    function renderMini(titulo, rows, cols){
+      if(!rows||!rows.length){ agregarMensaje("bot",`${esc(titulo)}\nSin resultados.`,true); return; }
       const head = cols.map(c=>`<th>${esc(c)}</th>`).join("");
-      const body = rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r && r[c]!==undefined && r[c]!==null ? r[c] : "")}</td>`).join("")}</tr>`).join("");
-      agregarMensaje("bot",`${esc(titulo)}<table class="mini-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`,true);
+      const body = rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r&&r[c]!==undefined&&r[c]!==null?r[c]:"")}</td>`).join("")}</tr>`).join("");
+      agregarMensaje("bot",`<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:#7eb3ff">${esc(titulo)}</div><table class="mini-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`,true);
     }
 
     // ============================================================
-    // INTÉRPRETE CENTRAL
+    // EJECUTAR ACCIÓN DESDE RESPUESTA IA
+    // ============================================================
+    async function ejecutarAccion(action, params={}){
+      const filtro = params.filtro || "activo";
+      switch(action){
+        case "crear_cliente":          await iniciarFlujoCliente(""); break;
+        case "crear_cotizacion":       iniciarFlujoCotizacion(); break;
+        case "crear_alquiler":         iniciarFlujoAlquiler(); break;
+        case "consultar_alquileres":   await consultarAlquileres(filtro); break;
+        case "consultar_cotizaciones": await consultarCotizaciones(params.filtro||"aprobada"); break;
+        case "consultar_maquinas":     await consultarMaquinas(params.filtro||"disponible"); break;
+        case "consultar_clientes":     await consultarClientes(params.busqueda||""); break;
+        case "consultar_finanzas":     await consultarFinanzas(); break;
+        case "consultar_resumen":      await consultarResumenGeneral(); break;
+        case "asignar_maquina":        await asignarMaquinaAlquiler(); break;
+        case "cambiar_estado_maquina": await cambiarEstadoMaquina(); break;
+        default: break;
+      }
+    }
+
+    // ============================================================
+    // INTÉRPRETE CENTRAL — CON IA
     // ============================================================
     async function interpretarMensaje(texto){
       const txt = (texto||"").trim();
-      if(!txt){ agregarMensaje("bot","Escribe un comando."); return; }
+      if(!txt){ return; }
       if(!empresa_id){ agregarMensaje("system","Sesión sin empresa. Vuelve a iniciar sesión."); return; }
 
       // Cancelar flujo activo
-      if(flujoActual && /^(cancelar|salir|abortar|cancel)$/i.test(txt)){
+      if(flujoActual && /^(cancelar|salir|abortar|cancel|no|parar)$/i.test(txt)){
         flujoActual = null;
-        agregarMensaje("bot","Flujo cancelado.");
+        agregarMensaje("bot","Entendido, cancelado. ¿En qué más te ayudo?");
         return;
       }
 
-      // Flujo activo: procesar input sin typing (evita mensaje fantasma)
+      // Flujo activo: continuar step-by-step sin IA
       if(flujoActual){
         try{
-          if(flujoActual.tipo==="crear_cliente"){ await continuarFlujoCliente(txt); return; }
-          if(flujoActual.tipo==="crear_cotizacion"){ await continuarFlujoCotizacion(txt); return; }
-          if(flujoActual.tipo==="crear_alquiler"){ await continuarFlujoAlquiler(txt); return; }
-          if(flujoActual.tipo==="cambiar_estado_maquina"){
+          if(flujoActual.tipo==="crear_cliente")          { await continuarFlujoCliente(txt); return; }
+          if(flujoActual.tipo==="crear_cotizacion")       { await continuarFlujoCotizacion(txt); return; }
+          if(flujoActual.tipo==="crear_alquiler")         { await continuarFlujoAlquiler(txt); return; }
+          if(flujoActual.tipo==="cambiar_estado_maquina") {
             if(flujoActual.esperando==="ref") flujoActual.data.ref=txt;
             else flujoActual.data.estado=txt;
             await cambiarEstadoMaquina(); return;
           }
-          if(flujoActual.tipo==="asignar_maquina"){
+          if(flujoActual.tipo==="asignar_maquina") {
             if(flujoActual.esperando==="alquiler_id") flujoActual.data.alquiler_id=txt;
             else flujoActual.data.maquina_id=txt;
             await asignarMaquinaAlquiler(); return;
           }
         }catch(e){
           logErr("flujo activo", e);
-          flujoActual = null;
-          agregarMensaje("system","Error procesando el flujo. Flujo cancelado.");
+          flujoActual=null;
+          agregarMensaje("system","Error en el flujo. Cancelado.");
           return;
         }
       }
 
-      // Detección de intención con typing indicator
-      const t = mostrarTyping();
-      const it = detectarIntencion(txt);
-
-      if(["crear_cliente","crear_cotizacion","crear_alquiler","asignar_maquina","cambiar_estado_maquina"].includes(it.type)){
-        if(!puedeEjecutarAccion(it.type)){
-          t.stop("No tienes permisos para esa acción.");
-          return;
-        }
-      }
-      if(it.type.startsWith("consultar_") && !puedeEjecutarAccion(it.type)){
-        t.stop("No tienes permisos para esa consulta.");
+      // Sin API key configurada: modo degradado
+      if(!ANTHROPIC_KEY || ANTHROPIC_KEY.startsWith("sk-ant-XXXXX")){
+        agregarMensaje("system","⚠️ API key de Anthropic no configurada. Edita la constante ANTHROPIC_KEY en el código.\n\nMientras tanto puedes usar los accesos rápidos del panel izquierdo.");
         return;
       }
 
+      // IA activa
+      const typing = mostrarTyping();
+      setBtnState(true);
       try{
-        t.remove();
-        if(it.type==="crear_cliente"){ await iniciarFlujoCliente(txt); return; }
-        if(it.type==="crear_cotizacion"){ iniciarFlujoCotizacion(); return; }
-        if(it.type==="crear_alquiler"){ iniciarFlujoAlquiler(); return; }
-        if(it.type==="consultar_alquileres"){ await consultarAlquileres(it.filtro); return; }
-        if(it.type==="consultar_cotizaciones"){ await consultarCotizaciones(it.filtro); return; }
-        if(it.type==="consultar_maquinas"){ await consultarMaquinas(it.filtro); return; }
-        if(it.type==="consultar_clientes"){ await consultarClientes(it.busqueda||""); return; }
-        if(it.type==="consultar_finanzas"){ await consultarFinanzas(); return; }
-        if(it.type==="consultar_resumen"){ await consultarResumenGeneral(); return; }
-        if(it.type==="cambiar_estado_maquina"){ await cambiarEstadoMaquina(); return; }
-        if(it.type==="asignar_maquina"){ await asignarMaquinaAlquiler(); return; }
-        agregarMensaje("bot","No entendí. Usa: crear cliente, crear cotización, crear alquiler, alquileres activos, cotizaciones aprobadas, máquinas disponibles, finanzas, resumen.");
+        const result = await callClaude(txt);
+        typing.remove();
+
+        const reply  = result.reply  || "No pude procesar tu mensaje.";
+        const action = result.action || null;
+        const params = result.params || {};
+
+        agregarMensaje("bot", reply);
+
+        // Actualizar historial (máx 20 turnos)
+        conversationHistory.push({ role:"user",      content: txt });
+        conversationHistory.push({ role:"assistant",  content: JSON.stringify(result) });
+        if(conversationHistory.length > 40) conversationHistory.splice(0,2);
+
+        // Ejecutar acción si la IA lo pidió
+        if(action){
+          if(!puedeEjecutarAccion(action)){
+            agregarMensaje("system","No tienes permisos para esa acción con tu rol actual.");
+            return;
+          }
+          await ejecutarAccion(action, params);
+        }
       }catch(e){
-        logErr("interpretarMensaje", e);
-        agregarMensaje("system","Error ejecutando la solicitud.");
+        typing.remove();
+        logErr("interpretarMensaje IA", e);
+        agregarMensaje("system",`Error conectando con la IA: ${e.message||"Error desconocido"}.\nVerifica la API key o la conexión.`);
+      }finally{
+        setBtnState(false);
       }
+    }
+
+    function setBtnState(disabled){
+      enviando = disabled;
+      const btn = document.getElementById("btnSend");
+      if(btn) btn.disabled = disabled;
     }
 
     // ============================================================
     // BIND UI
     // ============================================================
     async function handleSend(){
+      if(enviando) return;
       const i = document.getElementById("chatInput");
       const t = i.value.trim();
       if(!t) return;
-      agregarMensaje("user",t);
-      i.value="";
+      agregarMensaje("user", t);
+      i.value = "";
       await interpretarMensaje(t);
     }
 
@@ -1129,13 +1109,19 @@
       document.getElementById("loginEmail").addEventListener("keydown",(e)=>{ if(e.key==="Enter") document.getElementById("loginPassword").focus(); });
       document.getElementById("btnLogout").addEventListener("click", logout);
       document.getElementById("btnSend").addEventListener("click", handleSend);
+      document.getElementById("btnClear").addEventListener("click", ()=>{
+        document.getElementById("messages").innerHTML = "";
+        conversationHistory = [];
+        agregarMensaje("bot","Chat limpiado. ¿En qué te ayudo?");
+      });
       document.getElementById("chatInput").addEventListener("keydown",(e)=>{
         if(e.key==="Enter"){ e.preventDefault(); handleSend(); }
       });
       document.querySelectorAll("#quickActions .qbtn").forEach(b=>{
         b.addEventListener("click", async ()=>{
+          if(enviando) return;
           const q = b.getAttribute("data-q")||"";
-          agregarMensaje("user",q);
+          agregarMensaje("user", q);
           await interpretarMensaje(q);
         });
       });
