@@ -1,0 +1,42 @@
+{
+  "name": "ALCON OPS",
+  "short_name": "ALCON OPS",
+  "description": "Asistente operativo inteligente de gestión de alquileres",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b1220",
+  "theme_color": "#2f7cff",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Resumen del día",
+      "short_name": "Resumen",
+      "description": "Ver resumen operativo",
+      "url": "/?q=resumen",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Máquinas disponibles",
+      "short_name": "Flota",
+      "description": "Ver flota disponible",
+      "url": "/?q=maquinas",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

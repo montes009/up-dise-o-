@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.onrender.up_dise_o_97j3.twa",
+    "sha256_cert_fingerprints": [
+      "95:52:7D:4E:B6:95:F6:C4:6C:3E:D8:E7:89:D2:3A:C9:B4:8D:D3:08:37:B7:85:8A:54:37:B9:31:4D:F9:4F:F8"
+    ]
+  }
+}]
