@@ -1,3 +1,4 @@
+const fetch   = (...args) => import('node-fetch').then(({default: f}) => f(...args));
 const express = require("express");
 const path    = require("path");
 
