@@ -11,6 +11,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Proxy seguro hacia Anthropic — la key nunca sale al navegador
 app.post("/api/chat", async (req, res) => {
+  console.log("[proxy] body:", JSON.stringify(req.body));
   if(!KEY){
     return res.status(500).json({ error: "ANTHROPIC_KEY no configurada en Render." });
   }
@@ -25,6 +26,7 @@ app.post("/api/chat", async (req, res) => {
       body: JSON.stringify(req.body)
     });
     const data = await response.json();
+    console.log("[proxy] status:", response.status, JSON.stringify(data));
     res.status(response.status).json(data);
   }catch(e){
     console.error("[proxy]", e.message);
