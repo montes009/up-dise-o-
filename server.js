@@ -8,10 +8,10 @@ const KEY  = process.env.ANTHROPIC_KEY || "";
 
 // ============================================================
 // LIAN — CONFIGURACIÓN CENTRAL
-// Cambia LIAN_MODEL aquí si necesitas otro modelo.
+// Cambia ANTHROPIC_MODEL aquí si necesitas otro modelo.
 // ============================================================
-const LIAN_PROMPT_VERSION = "v1.1.0";
-const LIAN_MODEL          = "claude-3-7-sonnet-20250219";
+const LIAN_PROMPT_VERSION = "v1.2.0";
+const ANTHROPIC_MODEL     = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5";
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -98,13 +98,13 @@ app.post("/api/chat", async (req, res) => {
   ];
 
   // ── Log de entrada ───────────────────────────────────────
-  console.log(`[LIAN ${LIAN_PROMPT_VERSION}] model=${LIAN_MODEL}`);
+  console.log(`[LIAN ${LIAN_PROMPT_VERSION}] model=${ANTHROPIC_MODEL}`);
   console.log(`[LIAN] historial=${history.length} mensajes | message="${message.slice(0, 80)}"`);
   console.log(`[LIAN] total messages enviados a Anthropic: ${messages.length}`);
 
   // ── Payload exacto para Anthropic ────────────────────────
   const anthropicPayload = {
-    model:      LIAN_MODEL,
+    model:      ANTHROPIC_MODEL,
     max_tokens: 1024,
     system:     buildSystemPrompt(),
     messages                           // ← siempre tiene al menos 1 elemento
@@ -127,9 +127,9 @@ app.post("/api/chat", async (req, res) => {
 
     // ── Errores específicos ──────────────────────────────
     if (response.status === 404) {
-      console.error(`[LIAN] ERROR 404 — modelo inválido: "${LIAN_MODEL}". Actualiza LIAN_MODEL en server.js.`);
+      console.error(`[LIAN] ERROR 404 — modelo inválido: "${ANTHROPIC_MODEL}". Actualiza ANTHROPIC_MODEL en server.js.`);
       return res.status(502).json({
-        error: `Modelo '${LIAN_MODEL}' no encontrado en Anthropic. Revisa LIAN_MODEL en server.js.`
+        error: `Modelo '${ANTHROPIC_MODEL}' no encontrado en Anthropic. Revisa ANTHROPIC_MODEL en server.js.`
       });
     }
 
@@ -166,5 +166,5 @@ app.post("/api/chat", async (req, res) => {
 // ARRANQUE
 // ============================================================
 app.listen(PORT, () => {
-  console.log(`[LIAN ${LIAN_PROMPT_VERSION}] ALCON OPS en puerto ${PORT} · modelo: ${LIAN_MODEL}`);
+  console.log(`[LIAN ${LIAN_PROMPT_VERSION}] ALCON OPS en puerto ${PORT} · modelo: ${ANTHROPIC_MODEL}`);
 });
