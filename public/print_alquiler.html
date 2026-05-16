@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Orden de Alquiler</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 11pt;
+      color: #1a1a1a;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .doc {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: #fff;
+      padding: 18mm 18mm 20mm;
+      box-shadow: 0 2px 20px rgba(0,0,0,.12);
+    }
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 3px solid #E5000F;
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+    }
+    .logo-area .company-name {
+      font-size: 22pt;
+      font-weight: 900;
+      color: #E5000F;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+    .logo-area .company-name span { color: #1a1a1a; }
+    .logo-area .company-sub {
+      font-size: 8.5pt;
+      color: #666;
+      margin-top: 3px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .doc-meta { text-align: right; }
+    .doc-meta .doc-type {
+      font-size: 14pt;
+      font-weight: 800;
+      color: #1a1a1a;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .doc-meta .doc-nro {
+      font-size: 18pt;
+      font-weight: 900;
+      color: #E5000F;
+      font-family: 'Courier New', monospace;
+    }
+    .doc-meta .doc-fecha { font-size: 9pt; color: #666; margin-top: 2px; }
+    .estado-badge {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 8.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .estado-borrador { background: #f1f5f9; color: #475569; }
+    .estado-reservado { background: #fef9c3; color: #a16207; }
+    .estado-activo { background: #dbeafe; color: #1d4ed8; }
+    .estado-pendiente_recogida { background: #ffedd5; color: #c2410c; }
+    .estado-finalizado { background: #dcfce7; color: #16a34a; }
+    .estado-cancelado { background: #f1f5f9; color: #94a3b8; }
+    .section { margin-bottom: 16px; }
+    .section-title {
+      font-size: 7.5pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #E5000F;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 4px;
+      margin-bottom: 10px;
+    }
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .data-grid.cols2 { grid-template-columns: repeat(2, 1fr); }
+    .data-grid.cols4 { grid-template-columns: repeat(4, 1fr); }
+    .data-field label {
+      display: block;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #9ca3af;
+      margin-bottom: 2px;
+    }
+    .data-field .val {
+      font-size: 10.5pt;
+      font-weight: 600;
+      color: #1a1a1a;
+      word-break: break-word;
+    }
+    .data-field .val.accent { color: #E5000F; }
+    .data-field .val.big {
+      font-size: 16pt;
+      font-weight: 900;
+      color: #16a34a;
+    }
+    .svc-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    .svc-table thead tr { background: #1a1a1a; color: #fff; }
+    .svc-table thead th {
+      padding: 7px 10px; font-size: 8pt; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.6px; text-align: left;
+    }
+    .svc-table thead th:last-child,
+    .svc-table tbody td:last-child,
+    .svc-table tfoot .total-val { text-align: right; }
+    .svc-table tbody tr { border-bottom: 1px solid #f1f5f9; }
+    .svc-table tbody tr:nth-child(even) { background: #f9fafb; }
+    .svc-table tbody td { padding: 7px 10px; font-size: 10pt; color: #1a1a1a; }
+    .svc-table tbody td:last-child { font-weight: 700; }
+    .svc-table tbody tr.row-equipo { background: #f0fdf4 !important; }
+    .svc-table tfoot tr { border-top: 2px solid #1a1a1a; }
+    .svc-table tfoot td { padding: 8px 10px; font-weight: 700; }
+    .svc-table tfoot .total-label { font-size: 10pt; text-transform: uppercase; letter-spacing: 0.5px; }
+    .svc-table tfoot .total-val { font-size: 14pt; color: #16a34a; }
+    .obs-box {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: 10pt;
+      color: #374151;
+      min-height: 40px;
+    }
+    .firma-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 40px;
+    }
+    .firma-box {
+      border-top: 1.5px solid #1a1a1a;
+      padding-top: 6px;
+      font-size: 8.5pt;
+      color: #6b7280;
+    }
+    .firma-box .firma-nombre { font-weight: 700; color: #1a1a1a; }
+    .doc-footer {
+      margin-top: 20px;
+      padding-top: 10px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 7.5pt;
+      color: #9ca3af;
+      text-align: center;
+    }
+    #loading, #error {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      z-index: 100;
+      gap: 12px;
+      font-size: 14pt;
+      color: #374151;
+    }
+    #error { color: #dc2626; }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f1f5f9;
+      border-top-color: #E5000F;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .print-actions {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+      z-index: 200;
+    }
+    .btn-print, .btn-close {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12pt;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-print { background: #E5000F; color: #fff; }
+    .btn-close { background: #f1f5f9; color: #374151; }
+    /* ── Corte banner ─────────────────────────────────── */
+    .corte-banner {
+      background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+      color: #fff; border-radius: 8px; padding: 12px 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 18px; gap: 16px;
+    }
+    .corte-banner .cb-left .cb-label { font-size:7.5pt; opacity:.85; text-transform:uppercase; letter-spacing:.8px; }
+    .corte-banner .cb-left .cb-nro   { font-size:26pt; font-weight:900; font-family:'Courier New',monospace; line-height:1.1; }
+    .corte-banner .cb-left .cb-sub   { font-size:9pt; opacity:.9; margin-top:3px; }
+    .corte-banner .cb-right           { text-align:right; }
+    .corte-banner .cb-right .cb-rlabel{ font-size:7.5pt; opacity:.85; text-transform:uppercase; letter-spacing:.8px; }
+    .corte-banner .cb-right .cb-total { font-size:22pt; font-weight:900; line-height:1.1; }
+    .corte-warn { background:#fef3c7; border:1px solid #f59e0b; color:#92400e; padding:8px 12px; margin-bottom:14px; border-radius:6px; font-size:10px; }
+    @media print {
+      .corte-banner { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .doc { box-shadow: none; padding: 12mm 15mm 15mm; margin: 0; width: 100%; }
+      .print-actions { display: none !important; }
+      #loading, #error { display: none !important; }
+      @page { size: A4; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+<div id="loading"><div class="spinner"></div><span>Cargando alquiler...</span></div>
+<div id="error" style="display:none"><span id="errMsg">No se pudo cargar el alquiler.</span></div>
+
+<div class="print-actions">
+  <button class="btn-print" onclick="window.print()">Imprimir / Guardar PDF</button>
+  <button class="btn-close" onclick="window.close()">Cerrar</button>
+</div>
+
+<div class="doc" id="docContent" style="display:none">
+  <div class="doc-header">
+    <div class="logo-area">
+      <div class="company-name" id="empNombre">GRÚAS &amp; EQUIPOS DEL NORTE <span>SAS</span></div>
+      <div class="company-sub" id="empSub"></div>
+      <div style="font-size:8pt;color:#999;margin-top:6px">NIT: <span id="empNit">—</span></div>
+    </div>
+    <div class="doc-meta">
+      <div class="doc-type">Orden de Alquiler</div>
+      <div class="doc-nro" id="docNro">—</div>
+      <div class="doc-fecha" id="docFecha">—</div>
+      <div id="docEstado"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Datos del Cliente</div>
+    <div class="data-grid">
+      <div class="data-field"><label>Empresa / Cliente</label><div class="val" id="cliNombre">—</div></div>
+      <div class="data-field"><label>NIT</label><div class="val" id="cliNit">—</div></div>
+      <div class="data-field"><label>Teléfono</label><div class="val" id="cliTelefono">—</div></div>
+      <div class="data-field" style="grid-column:1/-1"><label>Dirección de obra</label><div class="val" id="cliDireccion">—</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Equipo Asignado</div>
+    <div class="data-grid cols4" id="equipoGrid"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title" id="secServicioTitle">Detalles del Servicio</div>
+    <div class="data-grid cols4" id="servicioGrid"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Resumen Financiero</div>
+    <table class="svc-table" id="finTable"></table>
+  </div>
+
+  <div class="section" id="secCotRef" style="display:none">
+    <div class="section-title">Cotización de Referencia</div>
+    <div class="data-grid cols2">
+      <div class="data-field"><label>N° Cotización</label><div class="val accent" id="cotRefNro">—</div></div>
+      <div class="data-field"><label>Tipo de equipo solicitado</label><div class="val" id="cotRefTipo">—</div></div>
+    </div>
+  </div>
+
+  <div class="section" id="secObs" style="display:none">
+    <div class="section-title">Observaciones</div>
+    <div class="obs-box" id="obsContent"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Condiciones del Servicio</div>
+    <div style="font-size:9pt;color:#6b7280;line-height:1.6">
+      - El operario deberá respetar las normas de seguridad del sitio de trabajo.<br>
+      - Cualquier daño por mal uso será responsabilidad del cliente.<br>
+      - La devolución del equipo debe notificarse con <strong>24 horas de anticipación</strong>.<br>
+      - Los días de alquiler se contabilizan desde la fecha de despacho.
+    </div>
+  </div>
+
+  <div class="firma-grid">
+    <div class="firma-box">
+      <div style="height:40px"></div>
+      <div class="firma-nombre" id="firmaEmpresaNombre">—</div>
+      <div>Representante de la empresa</div>
+    </div>
+    <div class="firma-box">
+      <div style="height:40px"></div>
+      <div class="firma-nombre" id="firmaClienteNombre">—</div>
+      <div>Recibido a satisfacción</div>
+    </div>
+  </div>
+
+  <div class="doc-footer">
+    <span id="empFooter"></span><span id="footerFecha"></span>
+  </div>
+</div>
+
+<script>
+const SB_URL = 'https://oguxdohmutqgacahcwop.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ndXhkb2htdXRxZ2FjYWhjd29wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3Mjc0NzcsImV4cCI6MjA4ODMwMzQ3N30.RRruTo8B7k4R97Igq7_KV1PV58FqrpIzEu0R_MXIwR8';
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+const money = v => '$ ' + Number(v || 0).toLocaleString('es-CO');
+const fmt = d => {
+  if (!d) return '—';
+  try {
+    const [y, m, dd] = String(d).split('-');
+    return `${dd}/${m}/${y}`;
+  } catch (e) {
+    return d;
+  }
+};
+const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const q = id => document.getElementById(id);
+const set = (id, val) => {
+  const el = q(id);
+  if (el) el.textContent = val || '—';
+};
+
+function estadoBadgeHtml(estado) {
+  const safe = estado || 'borrador';
+  return `<span class="estado-badge estado-${safe}">${safe.replace('_', ' ')}</span>`;
+}
+
+const params = new URLSearchParams(window.location.search);
+const ALQ_ID = params.get('id');
+const CORTE_ID = params.get('corte_id');
+
+if (!ALQ_ID) {
+  q('loading').style.display = 'none';
+  q('error').style.display = 'flex';
+  q('errMsg').textContent = 'No se especificó ID de alquiler (?id=XXX)';
+} else {
+  loadAndRender();
+}
+
+async function loadAndRender() {
+  try {
+    const { data: alqRow, error: alqErr } = await sb.from('alquileres_ops').select('*').eq('id', ALQ_ID).single();
+    if (alqErr || !alqRow) throw new Error('Alquiler no encontrado');
+
+    let corteRow = null;
+    if (CORTE_ID) {
+      const { data: corte, error: corteErr } = await sb.from('alquileres_facturacion_historial').select('*').eq('id', CORTE_ID).single();
+      if (corteErr || !corte) throw new Error('Corte de facturación no encontrado');
+      corteRow = corte;
+    }
+
+    let equipo = null;
+    const equipoId = alqRow.equipo_id || alqRow.equipoId || null;
+    if (equipoId) {
+      const { data } = await sb.from('maquinas').select('*').eq('id', equipoId).single();
+      equipo = data;
+    }
+
+    let cot = null;
+    if (alqRow.cotizacion_id) {
+      const { data } = await sb.from('cotizaciones').select('*').eq('id', alqRow.cotizacion_id).single();
+      cot = data;
+    }
+
+    const clienteId = alqRow.cliente_id || cot?.cliente_id;
+    let cli = null;
+    if (clienteId) {
+      const { data } = await sb.from('clientes').select('*').eq('id', clienteId).single();
+      cli = data;
+    } else if (alqRow.cliente) {
+      const { data } = await sb.from('clientes').select('*').ilike('nombre_empresa', alqRow.cliente).limit(1);
+      cli = Array.isArray(data) ? (data[0] || null) : null;
+    }
+
+    let empresa = null;
+    if (alqRow.empresa_id) {
+      const { data } = await sb.from('empresas').select('id,nombre,nit,telefono,correo').eq('id', alqRow.empresa_id).single();
+      empresa = data;
+    }
+
+    renderDoc(alqRow, equipo, cot, cli, empresa, corteRow);
+  } catch (err) {
+    q('loading').style.display = 'none';
+    q('error').style.display = 'flex';
+    q('errMsg').textContent = err.message || 'Error al cargar datos';
+  }
+}
+
+function parseAlqServicios(alq, cot) {
+  // 1. Columna nativa jsonb 'servicios' en el alquiler
+  if (Array.isArray(alq.servicios) && alq.servicios.length) return alq.servicios;
+  // 2. Columna servicios_json del alquiler
+  let servicios = [];
+  try { if (alq.servicios_json) servicios = JSON.parse(alq.servicios_json); } catch (e) { servicios = []; }
+  if (Array.isArray(servicios) && servicios.length) return servicios;
+  // 3. Fallback: servicios de la cotización de referencia
+  if (cot) {
+    try { if (cot.servicios_json) servicios = JSON.parse(cot.servicios_json); } catch (e) { servicios = []; }
+  }
+  return Array.isArray(servicios) ? servicios : [];
+}
+
+function calcAlqServiciosTotal(alq, cot) {
+  return parseAlqServicios(alq, cot).reduce((acc, s) => {
+    const cantidad = parseFloat(s.cantidad) || 0;
+    const valor = parseFloat(s.valorUnitario) || 0;
+    return acc + (cantidad * valor);
+  }, 0);
+}
+
+function renderDoc(alq, equipo, cot, cli, empresa, corte = null) {
+  if (empresa) {
+    set('empNombre', empresa.nombre || '—');
+    set('empNit', empresa.nit || '—');
+    set('empSub', [empresa.telefono, empresa.correo].filter(Boolean).join(' · '));
+    set('firmaEmpresaNombre', empresa.nombre || '—');
+    set('empFooter', empresa.nombre || '');
+  }
+
+  const nroLabel = corte ? `ALQ-${alq.nro || alq.id.slice(-6).toUpperCase()} - Corte ${corte.numero_corte}` : `ALQ-${alq.nro || alq.id.slice(-6).toUpperCase()}`;
+  set('docNro', nroLabel);
+  set('docFecha', corte ? fmt(corte.fecha_inicio) : fmt(alq.fecha_inicio));
+  q('docEstado').innerHTML = estadoBadgeHtml(alq.estado);
+  document.title = corte ? `Corte ${corte.numero_corte} - Alquiler ${nroLabel}` : `Alquiler ${nroLabel} - ${alq.cliente || ''}`;
+
+  // Banner de corte o advertencia
+  const existingBanner = q('docContent').querySelector('.corte-banner, .corte-warn');
+  if (existingBanner) existingBanner.remove();
+  if (corte) {
+    const totalCorte = parseFloat(corte.total || corte.subtotal || 0);
+    const dias       = corte.dias_facturados || 0;
+    const badges     = [corte.es_primer_corte ? '⭐ PRIMER CORTE' : '', corte.es_ultimo_corte ? '🏁 ÚLTIMO CORTE' : ''].filter(Boolean).join(' · ');
+    const banner = document.createElement('div');
+    banner.className = 'corte-banner';
+    banner.innerHTML = `
+      <div class="cb-left">
+        <div class="cb-label">Facturación por corte${corte.dia_corte_cliente ? ' · Día ' + corte.dia_corte_cliente + ' de cada mes' : ''}</div>
+        <div class="cb-nro">CORTE ${corte.numero_corte}</div>
+        <div class="cb-sub">${fmt(corte.fecha_inicio)} → ${fmt(corte.fecha_fin)} &nbsp;·&nbsp; ${dias} día${dias !== 1 ? 's' : ''}${badges ? ' &nbsp;·&nbsp; ' + badges : ''}</div>
+      </div>
+      <div class="cb-right">
+        <div class="cb-rlabel">Total del corte</div>
+        <div class="cb-total">${money(totalCorte)}</div>
+      </div>`;
+    q('docContent').prepend(banner);
+  } else {
+    const warn = document.createElement('div');
+    warn.className = 'corte-warn';
+    warn.textContent = '⚠️ Este documento muestra el alquiler completo. Para facturación individual por corte, genere un corte específico desde el módulo Alquileres.';
+    q('docContent').prepend(warn);
+  }
+
+  set('cliNombre', cli?.nombre_empresa || alq.cliente || '—');
+  set('cliNit', cli?.nit || '—');
+  set('cliTelefono', alq.telefono || cli?.telefono || '—');
+  set('cliDireccion', alq.direccion || cli?.direccion || '—');
+  set('firmaClienteNombre', cli?.nombre_empresa || alq.cliente || '—');
+
+  const servicios = parseAlqServicios(alq, cot);
+  const totalServicios = calcAlqServiciosTotal(alq, cot);
+  const tieneServicios = servicios.length > 0;
+  const transporteFallback = parseFloat(alq.transporte) || 0;
+  const serviciosTotal = tieneServicios ? totalServicios : transporteFallback;
+
+  const equipoGrid = q('equipoGrid');
+  if (equipo) {
+    equipoGrid.innerHTML = `
+      <div class="data-field"><label>ID / Código</label><div class="val accent">${esc(equipo.id || '—')}</div></div>
+      <div class="data-field"><label>Marca</label><div class="val">${esc(equipo.marca || '—')}</div></div>
+      <div class="data-field"><label>Modelo</label><div class="val">${esc(equipo.modelo || '—')}</div></div>
+      <div class="data-field"><label>Tipo</label><div class="val">${esc(equipo.tipo || equipo.tipo_activo || '—')}</div></div>
+      ${equipo.serial_equipo ? `<div class="data-field"><label>Serial</label><div class="val">${esc(equipo.serial_equipo)}</div></div>` : ''}
+      ${equipo.placa ? `<div class="data-field"><label>Placa</label><div class="val">${esc(equipo.placa)}</div></div>` : ''}
+    `;
+  } else {
+    equipoGrid.innerHTML = `<div class="data-field"><label>Equipo</label><div class="val" style="color:#9ca3af">Sin equipo asignado aún</div></div>`;
+  }
+
+  const mod = alq.modalidad || 'alquiler_dia';
+  const esViaje = mod === 'transporte_viaje';
+  const tiposTransporte = ['Grúa Planchón', 'Grúa Planchón Doble Troque', 'Cama Baja', 'Camión Grúa'];
+  const tipoEquipo = equipo?.tipo || equipo?.tipo_activo || cot?.tipo || '';
+  const esEquipoTransporte = tiposTransporte.includes(tipoEquipo);
+  const servicioGrid = q('servicioGrid');
+
+  if (esViaje) {
+    const origen = alq.origen || cot?.origen || '—';
+    const destino = alq.destino || cot?.destino || '—';
+    const cantidadViajes = parseInt(alq.cantidad_viajes) || 0;
+    const valorViaje = parseFloat(alq.valor_viaje) || 0;
+    q('secServicioTitle').textContent = 'Detalles del Servicio - Transporte por Viaje';
+    servicioGrid.innerHTML = `
+      <div class="data-field"><label>Modalidad</label><div class="val accent">Transporte por viaje</div></div>
+      <div class="data-field"><label>Origen</label><div class="val">${esc(origen)}</div></div>
+      <div class="data-field"><label>Destino</label><div class="val">${esc(destino)}</div></div>
+      <div class="data-field"><label>Fecha servicio</label><div class="val">${fmt(alq.fecha_inicio)}</div></div>
+      <div class="data-field"><label>Cantidad de viajes</label><div class="val">${cantidadViajes}</div></div>
+      <div class="data-field"><label>Valor por viaje</label><div class="val">${money(valorViaje)}</div></div>
+    `;
+    const totalViajes = cantidadViajes * valorViaje;
+    const total = totalViajes + serviciosTotal;
+    const tipoLbl = t => ({por_dia:'Por día', por_unidad:'Por unidad', valor_fijo:'Valor fijo'}[t] || t || '—');
+    let bodyRows = `<tr class="row-equipo">
+        <td><strong>Transporte por viaje</strong></td>
+        <td>Por viaje</td>
+        <td style="text-align:center">${cantidadViajes}</td>
+        <td style="text-align:right">${money(valorViaje)}</td>
+        <td>${money(totalViajes)}</td>
+      </tr>`;
+    if (tieneServicios) {
+      bodyRows += servicios.map(sv => {
+        const descripcion = esc(sv.desc || sv.nombre || sv.descripcion || 'Servicio');
+        const cantidad = parseFloat(sv.cantidad) || 0;
+        const valor = parseFloat(sv.valorUnitario) || 0;
+        return `<tr>
+          <td>${descripcion}</td>
+          <td>${esc(tipoLbl(sv.tipo))}</td>
+          <td style="text-align:center">${cantidad}</td>
+          <td style="text-align:right">${money(valor)}</td>
+          <td>${money(cantidad * valor)}</td>
+        </tr>`;
+      }).join('');
+    } else if (transporteFallback) {
+      bodyRows += `<tr>
+        <td>Transporte</td><td>Por unidad</td>
+        <td style="text-align:center">1</td>
+        <td style="text-align:right">${money(transporteFallback)}</td>
+        <td>${money(transporteFallback)}</td>
+      </tr>`;
+    }
+    q('finTable').innerHTML = `<thead><tr>
+      <th style="width:40%">Descripción</th><th>Tipo de cobro</th>
+      <th style="text-align:center">Cant.</th><th style="text-align:right">Valor unit.</th>
+      <th style="text-align:right">Total</th>
+    </tr></thead><tbody>${bodyRows}</tbody>
+    <tfoot><tr>
+      <td colspan="4" class="total-label">Total</td>
+      <td class="total-val">${money(total)}</td>
+    </tr></tfoot>`;
+  } else {
+    // ── Alquiler por día ─────────────────────────────────────────────────────
+    q('secServicioTitle').textContent = corte
+      ? `Corte ${corte.numero_corte} / ${alq.nro ? 'ALQ-'+alq.nro : ''} — Alquiler por Día`
+      : 'Detalles del Servicio — Alquiler por Día';
+
+    const detalleExtra = [];
+    const origen = alq.origen || cot?.origen || '';
+    const destino = alq.destino || cot?.destino || '';
+    if (esEquipoTransporte && origen)  detalleExtra.push(`<div class="data-field"><label>Origen</label><div class="val">${esc(origen)}</div></div>`);
+    if (esEquipoTransporte && destino) detalleExtra.push(`<div class="data-field"><label>Destino</label><div class="val">${esc(destino)}</div></div>`);
+
+    const precioDia     = corte ? parseFloat(corte.precio_dia)   : (parseFloat(alq.precio_dia) || 0);
+    const diasMostrados = corte ? (corte.dias_facturados || 0)   : (parseInt(alq.dias_reales ?? alq.dias) || 0);
+
+    // ── Datos del corte vs datos del alquiler completo ────────────────────────
+    servicioGrid.innerHTML = `
+      <div class="data-field"><label>Modalidad</label><div class="val accent">Alquiler por día</div></div>
+      ${corte ? `<div class="data-field"><label>Número de corte</label><div class="val accent" style="font-family:'Courier New',monospace;font-size:14pt;font-weight:900;color:#0ea5e9">CORTE ${corte.numero_corte}</div></div>` : ''}
+      <div class="data-field"><label>Fecha inicio</label><div class="val">${fmt(corte ? corte.fecha_inicio : alq.fecha_inicio)}</div></div>
+      <div class="data-field"><label>Fecha fin</label><div class="val">${fmt(corte ? corte.fecha_fin : alq.fecha_devolucion) || '—'}</div></div>
+      <div class="data-field"><label>Días facturados</label><div class="val" style="font-weight:800;font-size:13pt">${diasMostrados}</div></div>
+      <div class="data-field"><label>Precio / día</label><div class="val">${money(precioDia)}</div></div>
+      ${corte && corte.dia_corte_cliente ? `<div class="data-field"><label>Día de corte cliente</label><div class="val">Día ${corte.dia_corte_cliente} de cada mes</div></div>` : ''}
+      ${corte && corte.es_primer_corte  ? `<div class="data-field"><label>Tipo</label><div class="val" style="color:#0ea5e9">⭐ Primer corte</div></div>` : ''}
+      ${corte && corte.es_ultimo_corte  ? `<div class="data-field"><label>Tipo</label><div class="val" style="color:#f59e0b">🏁 Último corte</div></div>` : ''}
+      ${alq.fecha_inicio_fact && !corte ? `<div class="data-field"><label>Inicio facturación</label><div class="val">${fmt(alq.fecha_inicio_fact)}</div></div>` : ''}
+      ${detalleExtra.join('')}
+    `;
+
+    // ── Tabla financiera con desglose completo ────────────────────────────────
+    const tipoLbl = t => ({por_dia:'Por día', por_unidad:'Por unidad', valor_fijo:'Valor fijo'}[t] || t || '—');
+
+    let bodyRows = `<tr class="row-equipo">
+        <td><strong>Alquiler por día${corte ? ` · Corte ${corte.numero_corte}` : ''}</strong></td>
+        <td>Por día</td>
+        <td style="text-align:center">${diasMostrados}</td>
+        <td style="text-align:right">${money(precioDia)}</td>
+        <td>${money(diasMostrados * precioDia)}</td>
+      </tr>`;
+
+    if (corte) {
+      // ── Desglose de transporte del corte ──────────────────────────────────
+      const transIda  = parseFloat(corte.transporte_ida  || 0);
+      const transReg  = parseFloat(corte.transporte_regreso || 0);
+      const valAlq    = parseFloat(corte.valor_alquiler)  || (diasMostrados * precioDia);
+      const totalCorte= parseFloat(corte.total || corte.subtotal || 0);
+
+      if (transIda > 0) {
+        bodyRows += `<tr>
+          <td>Transporte de <strong>ida</strong>${corte.es_primer_corte ? ' <em style="color:#6b7280">(incluido en primer corte)</em>' : ''}</td>
+          <td>Por unidad</td>
+          <td style="text-align:center">1</td>
+          <td style="text-align:right">${money(transIda)}</td>
+          <td>${money(transIda)}</td>
+        </tr>`;
+      }
+      if (transReg > 0) {
+        bodyRows += `<tr>
+          <td>Transporte de <strong>regreso</strong>${corte.es_ultimo_corte ? ' <em style="color:#6b7280">(incluido en último corte)</em>' : ''}</td>
+          <td>Por unidad</td>
+          <td style="text-align:center">1</td>
+          <td style="text-align:right">${money(transReg)}</td>
+          <td>${money(transReg)}</td>
+        </tr>`;
+      }
+
+      q('finTable').innerHTML = `
+        <thead><tr>
+          <th style="width:40%">Descripción</th><th>Tipo de cobro</th>
+          <th style="text-align:center">Cant.</th>
+          <th style="text-align:right">Valor unit.</th>
+          <th style="text-align:right">Total</th>
+        </tr></thead>
+        <tbody>${bodyRows}</tbody>
+        <tfoot>
+          <tr style="border-top:1px solid #e5e7eb">
+            <td colspan="4" style="padding:4px 8px;text-align:right;color:#6b7280;font-size:9pt">Valor alquiler</td>
+            <td style="padding:4px 8px;text-align:right;font-weight:600">${money(valAlq)}</td>
+          </tr>
+          ${transIda > 0 ? `<tr>
+            <td colspan="4" style="padding:4px 8px;text-align:right;color:#6b7280;font-size:9pt">Transporte ida</td>
+            <td style="padding:4px 8px;text-align:right;font-weight:600">${money(transIda)}</td>
+          </tr>` : ''}
+          ${transReg > 0 ? `<tr>
+            <td colspan="4" style="padding:4px 8px;text-align:right;color:#6b7280;font-size:9pt">Transporte regreso</td>
+            <td style="padding:4px 8px;text-align:right;font-weight:600">${money(transReg)}</td>
+          </tr>` : ''}
+          <tr style="border-top:2px solid #1a1a1a">
+            <td colspan="4" class="total-label">Total del corte</td>
+            <td class="total-val">${money(totalCorte)}</td>
+          </tr>
+        </tfoot>`;
+
+    } else {
+      // ── Sin corte: alquiler completo ──────────────────────────────────────
+      if (tieneServicios) {
+        bodyRows += servicios.map(sv => {
+          const desc = esc(sv.desc || sv.nombre || sv.descripcion || 'Servicio');
+          const cant = parseFloat(sv.cantidad) || 0;
+          const val  = parseFloat(sv.valorUnitario) || 0;
+          return `<tr>
+            <td>${desc}</td>
+            <td>${esc(tipoLbl(sv.tipo))}</td>
+            <td style="text-align:center">${cant}</td>
+            <td style="text-align:right">${money(val)}</td>
+            <td>${money(cant * val)}</td>
+          </tr>`;
+        }).join('');
+      } else if (transporteFallback) {
+        bodyRows += `<tr>
+          <td>Transporte</td><td>Por unidad</td>
+          <td style="text-align:center">1</td>
+          <td style="text-align:right">${money(transporteFallback)}</td>
+          <td>${money(transporteFallback)}</td>
+        </tr>`;
+      }
+      const total = diasMostrados * precioDia + serviciosTotal;
+      q('finTable').innerHTML = `
+        <thead><tr>
+          <th style="width:40%">Descripción</th><th>Tipo de cobro</th>
+          <th style="text-align:center">Cant.</th>
+          <th style="text-align:right">Valor unit.</th>
+          <th style="text-align:right">Total</th>
+        </tr></thead>
+        <tbody>${bodyRows}</tbody>
+        <tfoot><tr>
+          <td colspan="4" class="total-label">Total estimado</td>
+          <td class="total-val">${money(total)}</td>
+        </tr></tfoot>`;
+    }
+  }
+
+  // ── Cotización de referencia ──────────────────────────────────────────────
+  if (cot) {
+    q('secCotRef').style.display = '';
+    set('cotRefNro', cot.nro || cot.id.slice(-6).toUpperCase());
+    set('cotRefTipo', cot.tipo || '—');
+  }
+
+  // ── Observaciones ─────────────────────────────────────────────────────────
+  let obsText = alq.obs || 'Sin observaciones';
+  if (corte) {
+    const badges = [corte.es_primer_corte ? '⭐ PRIMER CORTE' : '', corte.es_ultimo_corte ? '🏁 ÚLTIMO CORTE' : ''].filter(Boolean);
+    const lineas = [
+      badges.length ? badges.join(' · ') : null,
+      `Corte ${corte.numero_corte} · ${fmt(corte.fecha_inicio)} → ${fmt(corte.fecha_fin)} (${corte.dias_facturados} días)`,
+      corte.dia_corte_cliente ? `Día de corte del cliente: ${corte.dia_corte_cliente}` : null,
+      `Estado: ${corte.estado}   Generado: ${fmt(corte.fecha_generado)}`,
+      corte.observacion || null,
+      obsText !== 'Sin observaciones' ? `\n--- Observaciones del alquiler ---\n${obsText}` : null,
+    ].filter(Boolean);
+    obsText = lineas.join('\n');
+  }
+  q('obsContent').textContent = obsText;
+  q('secObs').style.display = '';
+
+  set('footerFecha', new Date().toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' }));
+  q('loading').style.display  = 'none';
+  q('docContent').style.display = '';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Cotización</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 11pt;
+      color: #1a1a1a;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .doc {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: #fff;
+      padding: 18mm 18mm 20mm;
+      box-shadow: 0 2px 20px rgba(0,0,0,.12);
+      position: relative;
+    }
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 3px solid #E5000F;
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+    }
+    .logo-area .company-name {
+      font-size: 22pt;
+      font-weight: 900;
+      color: #E5000F;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+    .logo-area .company-name span { color: #1a1a1a; }
+    .logo-area .company-sub {
+      font-size: 8.5pt;
+      color: #666;
+      margin-top: 3px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .doc-meta { text-align: right; }
+    .doc-meta .doc-type {
+      font-size: 14pt;
+      font-weight: 800;
+      color: #1a1a1a;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .doc-meta .doc-nro {
+      font-size: 18pt;
+      font-weight: 900;
+      color: #E5000F;
+      font-family: 'Courier New', monospace;
+    }
+    .doc-meta .doc-fecha {
+      font-size: 9pt;
+      color: #666;
+      margin-top: 2px;
+    }
+    .doc-meta .estado-badge {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 8.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .estado-borrador { background: #f1f5f9; color: #475569; }
+    .estado-enviada { background: #dbeafe; color: #1d4ed8; }
+    .estado-aprobada { background: #dcfce7; color: #16a34a; }
+    .estado-rechazada { background: #fee2e2; color: #dc2626; }
+    .estado-en_revision { background: #f3e8ff; color: #7c3aed; }
+    .estado-cancelada { background: #f1f5f9; color: #94a3b8; }
+    .section { margin-bottom: 16px; }
+    .section-title {
+      font-size: 7.5pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #E5000F;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 4px;
+      margin-bottom: 10px;
+    }
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .data-grid.cols2 { grid-template-columns: repeat(2, 1fr); }
+    .data-grid.cols4 { grid-template-columns: repeat(4, 1fr); }
+    .data-field label {
+      display: block;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #9ca3af;
+      margin-bottom: 2px;
+    }
+    .data-field .val {
+      font-size: 10.5pt;
+      font-weight: 600;
+      color: #1a1a1a;
+      word-break: break-word;
+    }
+    .data-field .val.accent { color: #E5000F; }
+    .data-field .val.big {
+      font-size: 16pt;
+      font-weight: 900;
+      color: #16a34a;
+    }
+    .svc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 4px;
+    }
+    .svc-table thead tr {
+      background: #1a1a1a;
+      color: #fff;
+    }
+    .svc-table thead th {
+      padding: 7px 10px;
+      font-size: 8pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      text-align: left;
+    }
+    .svc-table thead th:last-child,
+    .svc-table tbody td:last-child,
+    .svc-table tfoot .total-val { text-align: right; }
+    .svc-table tbody tr { border-bottom: 1px solid #f1f5f9; }
+    .svc-table tbody tr:nth-child(even) { background: #f9fafb; }
+    .svc-table tbody td {
+      padding: 7px 10px;
+      font-size: 10pt;
+      color: #1a1a1a;
+    }
+    .svc-table tbody td:last-child { font-weight: 700; }
+    .svc-table tfoot tr { border-top: 2px solid #1a1a1a; }
+    .svc-table tfoot td { padding: 8px 10px; font-weight: 700; }
+    .svc-table tfoot .total-label {
+      font-size: 10pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .svc-table tfoot .total-val { font-size: 14pt; color: #16a34a; }
+    .obs-box {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: 10pt;
+      color: #374151;
+      min-height: 40px;
+    }
+    .firma-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 40px;
+    }
+    .firma-box {
+      border-top: 1.5px solid #1a1a1a;
+      padding-top: 6px;
+      font-size: 8.5pt;
+      color: #6b7280;
+    }
+    .firma-box .firma-nombre { font-weight: 700; color: #1a1a1a; }
+    .doc-footer {
+      margin-top: 20px;
+      padding-top: 10px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 7.5pt;
+      color: #9ca3af;
+      text-align: center;
+    }
+    #loading, #error {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      z-index: 100;
+      gap: 12px;
+      font-size: 14pt;
+      color: #374151;
+    }
+    #error { color: #dc2626; }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f1f5f9;
+      border-top-color: #E5000F;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .print-actions {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+      z-index: 200;
+    }
+    .btn-print, .btn-close {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12pt;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-print { background: #E5000F; color: #fff; }
+    .btn-close { background: #f1f5f9; color: #374151; }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .doc { box-shadow: none; padding: 12mm 15mm 15mm; margin: 0; width: 100%; }
+      .print-actions { display: none !important; }
+      #loading, #error { display: none !important; }
+      @page { size: A4; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+<div id="loading"><div class="spinner"></div><span>Cargando cotización...</span></div>
+<div id="error" style="display:none"><span id="errMsg">No se pudo cargar la cotización.</span></div>
+
+<div class="print-actions">
+  <button class="btn-print" onclick="window.print()">Imprimir / Guardar PDF</button>
+  <button class="btn-close" onclick="window.close()">Cerrar</button>
+</div>
+
+<div class="doc" id="docContent" style="display:none">
+  <div class="doc-header">
+    <div class="logo-area">
+      <div class="company-name" id="empNombre">GRÚAS &amp; EQUIPOS <span>DEL NORTE SAS</span></div>
+      <div class="company-sub" id="empSub"></div>
+      <div style="font-size:8pt;color:#999;margin-top:6px">NIT: <span id="empNit">—</span></div>
+    </div>
+    <div class="doc-meta">
+      <div class="doc-type">Cotización</div>
+      <div class="doc-nro" id="docNro">—</div>
+      <div class="doc-fecha" id="docFecha">—</div>
+      <div id="docEstado"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Datos del Cliente</div>
+    <div class="data-grid">
+      <div class="data-field"><label>Empresa / Cliente</label><div class="val" id="cliNombre">—</div></div>
+      <div class="data-field"><label>NIT</label><div class="val" id="cliNit">—</div></div>
+      <div class="data-field"><label>Contacto</label><div class="val" id="cliContacto">—</div></div>
+      <div class="data-field"><label>Teléfono</label><div class="val" id="cliTelefono">—</div></div>
+      <div class="data-field"><label>Correo</label><div class="val" id="cliCorreo">—</div></div>
+      <div class="data-field"><label>Ciudad</label><div class="val" id="cliCiudad">—</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Detalle del Servicio</div>
+    <div class="data-grid" id="servicioGrid"></div>
+  </div>
+
+  <div class="section" id="secServAdicionales" style="display:none">
+    <div class="section-title">Servicios Adicionales</div>
+    <table class="svc-table">
+      <thead>
+        <tr>
+          <th style="width:40%">Descripción</th>
+          <th>Tipo de cobro</th>
+          <th style="text-align:center">Cant.</th>
+          <th style="text-align:right">Valor unit.</th>
+          <th style="text-align:right">Total</th>
+        </tr>
+      </thead>
+      <tbody id="svcBody"></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" class="total-label">Total estimado</td>
+          <td class="total-val" id="totalFinal">—</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="section" id="secTotalSimple" style="display:none">
+    <div class="section-title">Total Estimado</div>
+    <div class="data-field"><div class="val big" id="totalSimple">—</div></div>
+  </div>
+
+  <div class="section" id="secObs" style="display:none">
+    <div class="section-title">Observaciones</div>
+    <div class="obs-box" id="obsContent"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Condiciones Comerciales</div>
+    <div class="obs-box">
+      - Esta cotización tiene una vigencia de <strong>15 días calendario</strong> a partir de la fecha de emisión.<br>
+      - Los precios no incluyen IVA, salvo indicación expresa.<br>
+      - Forma de pago según acuerdo comercial.<br>
+      - El equipo queda reservado únicamente al confirmar por escrito.
+    </div>
+  </div>
+
+  <div class="firma-grid">
+    <div class="firma-box">
+      <div class="firma-nombre" id="firmaEmpresaNombre">—</div>
+      <div>Emisor</div>
+    </div>
+    <div class="firma-box">
+      <div class="firma-nombre" id="firmaClienteNombre">—</div>
+      <div>Cliente</div>
+    </div>
+  </div>
+
+  <div class="doc-footer">
+    Documento generado el <span id="footerFecha"></span>
+  </div>
+</div>
+
+<script>
+const SB_URL = 'https://oguxdohmutqgacahcwop.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ndXhkb2htdXRxZ2FjYWhjd29wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3Mjc0NzcsImV4cCI6MjA4ODMwMzQ3N30.RRruTo8B7k4R97Igq7_KV1PV58FqrpIzEu0R_MXIwR8';
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+const money = v => '$ ' + Number(v || 0).toLocaleString('es-CO');
+const fmt = d => {
+  if (!d) return '—';
+  try {
+    const [y, m, dd] = String(d).split('-');
+    return `${dd}/${m}/${y}`;
+  } catch (e) {
+    return d;
+  }
+};
+const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const q = id => document.getElementById(id);
+const set = (id, val) => {
+  const el = q(id);
+  if (el) el.textContent = val || '—';
+};
+
+const ESTADOS = {
+  borrador: 'borrador',
+  enviada: 'enviada',
+  aprobada: 'aprobada',
+  rechazada: 'rechazada',
+  en_revision: 'en_revision',
+  cancelada: 'cancelada'
+};
+
+function estadoBadgeHtml(estado) {
+  const safe = ESTADOS[estado] || 'borrador';
+  return `<span class="estado-badge estado-${safe}">${safe.replace('_', ' ')}</span>`;
+}
+
+const params = new URLSearchParams(window.location.search);
+const COT_ID = params.get('id');
+
+if (!COT_ID) {
+  q('loading').style.display = 'none';
+  q('error').style.display = 'flex';
+  q('errMsg').textContent = 'No se especificó ID de cotización (?id=XXX)';
+} else {
+  loadAndRender();
+}
+
+async function loadAndRender() {
+  try {
+    const { data: cotRow, error: cotErr } = await sb.from('cotizaciones').select('*').eq('id', COT_ID).single();
+    if (cotErr || !cotRow) throw new Error('Cotización no encontrada');
+
+    let cli = null;
+    if (cotRow.cliente_id) {
+      const { data } = await sb.from('clientes').select('*').eq('id', cotRow.cliente_id).single();
+      cli = data;
+    } else if (cotRow.cliente) {
+      const { data } = await sb.from('clientes').select('*').ilike('nombre_empresa', cotRow.cliente).limit(1);
+      cli = Array.isArray(data) ? (data[0] || null) : null;
+    }
+
+    let empresa = null;
+    if (cotRow.empresa_id) {
+      const { data } = await sb.from('empresas').select('id,nombre,nit,telefono,correo').eq('id', cotRow.empresa_id).single();
+      empresa = data;
+    }
+
+    let servicios = [];
+    try {
+      if (cotRow.servicios_json) servicios = JSON.parse(cotRow.servicios_json);
+    } catch (e) {}
+
+    renderDoc(cotRow, cli, servicios, empresa);
+  } catch (err) {
+    q('loading').style.display = 'none';
+    q('error').style.display = 'flex';
+    q('errMsg').textContent = err.message || 'Error al cargar datos';
+  }
+}
+
+function renderDoc(cot, cli, servicios, empresa) {
+  if (empresa) {
+    set('empNombre', empresa.nombre || '—');
+    set('empNit', empresa.nit || '—');
+    set('empSub', [empresa.telefono, empresa.correo].filter(Boolean).join(' · '));
+    set('firmaEmpresaNombre', empresa.nombre || '—');
+  }
+
+  set('docNro', cot.nro || cot.id.slice(-6).toUpperCase());
+  set('docFecha', fmt(cot.fecha));
+  q('docEstado').innerHTML = estadoBadgeHtml(cot.estado);
+  document.title = `Cotización ${cot.nro || ''} - ${cot.cliente || ''}`;
+
+  set('cliNombre', cli?.nombre_empresa || cot.cliente || '—');
+  set('cliNit', cli?.nit || '—');
+  set('cliContacto', cli?.contacto || '—');
+  set('cliTelefono', cli?.telefono || '—');
+  set('cliCorreo', cli?.correo || '—');
+  set('cliCiudad', cli?.ciudad || '—');
+  set('firmaClienteNombre', cli?.nombre_empresa || cot.cliente || '—');
+
+  const mod = cot.modalidad || 'alquiler_dia';
+  const esViaje = mod === 'transporte_viaje';
+  const tiposTransporte = ['Grúa Planchón', 'Grúa Planchón Doble Troque', 'Cama Baja', 'Camión Grúa'];
+  const esEquipoTransporte = tiposTransporte.includes(cot.tipo || '');
+  const grid = q('servicioGrid');
+
+  if (esViaje) {
+    const total = (parseInt(cot.cantidad_viajes) || 0) * (parseFloat(cot.valor_viaje) || 0);
+    grid.innerHTML = `
+      <div class="data-field"><label>Tipo de equipo</label><div class="val">${esc(cot.tipo || '—')}</div></div>
+      <div class="data-field"><label>Modalidad</label><div class="val accent">Transporte por viaje</div></div>
+      <div class="data-field"><label>Origen</label><div class="val">${esc(cot.origen || '—')}</div></div>
+      <div class="data-field"><label>Destino</label><div class="val">${esc(cot.destino || '—')}</div></div>
+      <div class="data-field"><label>Cantidad de viajes</label><div class="val">${cot.cantidad_viajes || 0}</div></div>
+      <div class="data-field"><label>Valor por viaje</label><div class="val">${money(cot.valor_viaje)}</div></div>
+      <div class="data-field"><label>Total estimado</label><div class="val big">${money(total)}</div></div>
+    `;
+    q('secTotalSimple').style.display = 'none';
+  } else {
+    const subtotalEquipo = (parseInt(cot.dias) || 0) * (parseFloat(cot.precio) || 0);
+    const detalleExtra = [];
+    if (esEquipoTransporte && cot.origen) detalleExtra.push(`<div class="data-field"><label>Origen</label><div class="val">${esc(cot.origen)}</div></div>`);
+    if (esEquipoTransporte && cot.destino) detalleExtra.push(`<div class="data-field"><label>Destino</label><div class="val">${esc(cot.destino)}</div></div>`);
+
+    grid.innerHTML = `
+      <div class="data-field"><label>Tipo de equipo</label><div class="val">${esc(cot.tipo || '—')}</div></div>
+      <div class="data-field"><label>Modalidad</label><div class="val accent">Alquiler por día</div></div>
+      <div class="data-field"><label>Altura / Metraje</label><div class="val">${esc(cot.altura || '—')}</div></div>
+      <div class="data-field"><label>Días estimados</label><div class="val">${cot.dias || 0}</div></div>
+      <div class="data-field"><label>Precio / día</label><div class="val">${money(cot.precio)}</div></div>
+      ${detalleExtra.join('')}
+    `;
+
+    if (servicios.length > 0) {
+      const svcRows = servicios.map(sv => {
+        const cant = parseFloat(sv.cantidad) || 0;
+        const val = parseFloat(sv.valorUnitario) || 0;
+        const descripcion = sv.desc || sv.descripcion || sv.nombre || '—';
+        const tipoCobro = sv.tipo || sv.tipoCobro || '—';
+        return `
+          <tr>
+            <td>${esc(descripcion)}</td>
+            <td>${esc(tipoCobro)}</td>
+            <td style="text-align:center">${cant}</td>
+            <td style="text-align:right">${money(val)}</td>
+            <td>${money(cant * val)}</td>
+          </tr>`;
+      }).join('');
+
+      const equipoRow = `
+        <tr style="background:#f0fdf4">
+          <td><strong>Equipo: ${esc(cot.tipo || '—')} · ${esc(cot.altura || '')}</strong></td>
+          <td>Por día</td>
+          <td style="text-align:center">${cot.dias || 0}</td>
+          <td style="text-align:right">${money(cot.precio)}</td>
+          <td>${money(subtotalEquipo)}</td>
+        </tr>`;
+
+      const totalSvc = servicios.reduce((s, sv) => s + ((parseFloat(sv.cantidad) || 0) * (parseFloat(sv.valorUnitario) || 0)), 0);
+      const totalFinal = subtotalEquipo + totalSvc;
+      q('svcBody').innerHTML = equipoRow + svcRows;
+      set('totalFinal', money(totalFinal));
+      q('secServAdicionales').style.display = '';
+      q('secTotalSimple').style.display = 'none';
+    } else {
+      set('totalSimple', money(subtotalEquipo));
+      q('secTotalSimple').style.display = '';
+    }
+  }
+
+  if (cot.obs) {
+    q('obsContent').textContent = cot.obs;
+    q('secObs').style.display = '';
+  }
+
+  set('footerFecha', new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' }));
+  q('loading').style.display = 'none';
+  q('docContent').style.display = '';
+}
+</script>
+</body>
+</html>
