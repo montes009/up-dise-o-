@@ -454,77 +454,26 @@ Házme cualquier pregunta en lenguaje natural — no necesitas seguir un menú.`
     }
 
     // ============================================================
-    // LLAMADA A CLAUDE API
+    // LLAMADA A LIAN (backend gateway)
+    // El system prompt, modelo y lógica viven en server.js.
+    // El frontend solo envía el mensaje, el historial y el
+    // contexto de datos necesario para que el backend construya
+    // el prompt. La arquitectura del prompt nunca es visible
+    // en DevTools.
     // ============================================================
     async function callClaude(userMessage){
       const ctx = await fetchContextoDB();
-
-      const systemPrompt = `Eres el asistente operativo inteligente de ALCON OPS — sistema de gestión de alquileres de maquinaria pesada (plataformas elevadoras articuladas, tijeras, telescópicas, etc.).
-
-SESIÓN ACTIVA:
-- Empresa: ${empresa_nombre}
-- Usuario: ${usuario_email}
-- Rol: ${rol_usuario}
-- Fecha: ${new Date().toLocaleDateString("es-CO", {weekday:"long",year:"numeric",month:"long",day:"numeric"})}
-
-DATOS EN TIEMPO REAL DE LA BASE DE DATOS:
-${JSON.stringify(ctx, null, 2)}
-
-PERSONALIDAD Y COMPORTAMIENTO:
-- Eres profesional, directo y con criterio operativo real
-- Hablas en español colombiano natural — no robótico, no excesivamente formal
-- Entiendes lenguaje informal: "qué hay de nuevo", "cómo vamos hoy", "muéstrame lo de las máquinas"
-- Puedes razonar sobre los datos: si hay 5 máquinas varadas eso es una alerta real, dilo
-- Eres proactivo: si ves algo importante en los datos (vencimientos, máquinas sin usar, etc.), lo mencionas
-- Si no entiendes algo, preguntas de forma natural sin pedir que reformulen con palabras clave
-- Respondes con contexto: si te piden el resumen, das análisis, no solo números
-- NUNCA inventas datos que no estén en el contexto — si no tienes info, lo dices
-
-REGLAS DE NEGOCIO CRÍTICAS:
-- maquinas.estado válidos SOLO: disponible, trabajando, varada, alistamiento, devolucion (NUNCA 'reservado')
-- cotizaciones NO tiene columna transporte
-- empresa_id es obligatorio en todos los registros
-- Los flujos de creación (cliente, cotización, alquiler) los maneja la interfaz paso a paso — tú los disparas
-
-FORMATO DE RESPUESTA — OBLIGATORIO:
-Responde ÚNICAMENTE con JSON válido. Sin texto fuera del JSON. Sin markdown. Sin backticks.
-
-Si solo respondes texto:
-{"reply":"tu respuesta natural aquí","action":null,"params":{}}
-
-Si debes ejecutar una acción:
-{"reply":"texto natural explicando lo que harás o complementando la acción","action":"nombre_accion","params":{}}
-
-ACCIONES DISPONIBLES (verifica permisos del rol antes de usar):
-- "crear_cliente"         → params: {}
-- "crear_cotizacion"      → params: {}
-- "crear_alquiler"        → params: {}
-- "consultar_alquileres"  → params: {"filtro":"activo|finalizado|por_vencer|pendiente_recogida"}
-- "consultar_cotizaciones"→ params: {"filtro":"borrador|en_revision|enviada|aprobada|negociacion|rechazada|perdida|vencida|cancelada"}
-- "consultar_maquinas"    → params: {"filtro":"disponible|trabajando|varada|alistamiento|devolucion"}
-- "consultar_clientes"    → params: {"busqueda":"texto o vacío"}
-- "consultar_finanzas"    → params: {}
-- "consultar_resumen"     → params: {}
-- "asignar_maquina"       → params: {}
-- "cambiar_estado_maquina"→ params: {}
-
-Si el usuario saluda, pregunta algo general, o quiere análisis → responde con reply y action:null.
-Si el usuario pide datos que YA tienes en el contexto → respóndelos directamente con reply (sin action) para ser más rápido.
-Si el usuario pide datos detallados o listas → usa la acción para traer desde la BD.`;
-
-      const messages = [
-        ...conversationHistory,
-        { role:"user", content: userMessage }
-      ];
 
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-5",
-          max_tokens: 1024,
-          system: systemPrompt,
-          messages
+          message:             userMessage,
+          conversationHistory: conversationHistory,
+          empresa_nombre:      empresa_nombre,
+          usuario_email:       usuario_email,
+          rol_usuario:         rol_usuario,
+          contextoDB:          ctx
         })
       });
 
