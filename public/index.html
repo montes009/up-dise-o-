@@ -461,10 +461,10 @@ Házme cualquier pregunta en lenguaje natural — no necesitas seguir un menú.`
     async function callClaude(userMessage){
       const payload = {
         message:             userMessage,
-        conversationHistory: conversationHistory
+        conversationHistory: conversationHistory || []
       };
 
-      console.log("[LIAN] → /api/chat | historial:", conversationHistory.length, "msgs | message:", userMessage.slice(0,60));
+      console.log("[LIAN] payload /api/chat:", payload);
 
       const response = await fetch("/api/chat", {
         method:  "POST",
@@ -472,24 +472,24 @@ Házme cualquier pregunta en lenguaje natural — no necesitas seguir un menú.`
         body:    JSON.stringify(payload)
       });
 
-      console.log("[LIAN] ← status:", response.status);
+      console.log("[LIAN] status /api/chat:", response.status);
 
       if(!response.ok){
         const txt = await response.text().catch(()=>"");
-        logErr("callClaude HTTP " + response.status, txt);
+        console.error("[LIAN] /api/chat error:", txt);
         throw new Error("Error API " + response.status);
       }
 
       const data = await response.json();
-      const raw = data.content?.find(b=>b.type==="text")?.text
+      const raw = data.content?.find(b => b.type === "text")?.text
                || '{"reply":"No pude procesar tu mensaje.","action":null,"params":{}}';
 
       try{
         const clean = raw.trim().replace(/^```json?\s*/i,"").replace(/```$/,"").trim();
         return JSON.parse(clean);
       }catch(e){
-        logErr("parse AI response", e);
-        return { reply: raw.replace(/^\{[\s\S]*"reply"\s*:\s*"?/,"").replace(/"?\s*,[\s\S]*$/,"") || raw, action: null, params:{} };
+        console.error("[LIAN] parse AI response", e, raw);
+        return { reply: raw, action: null, params:{} };
       }
     }
 
