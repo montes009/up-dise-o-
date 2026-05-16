@@ -418,7 +418,7 @@ Házme cualquier pregunta en lenguaje natural — no necesitas seguir un menú.`
         const desde30 = new Date(Date.now()-30*86400000).toISOString().slice(0,10);
         const [maq, alqA, alqV, cot, caj, cli] = await Promise.all([
           sb.from("maquinas").select("id,marca,modelo,estado,alquiler_nro").eq("empresa_id", empresa_id).limit(100),
-          sb.from("alquileres_ops").select("id,estado,equipoId,fechaInicio,fecha_fin,precioDia,dias").eq("empresa_id", empresa_id).eq("estado","activo").order("id",{ascending:false}).limit(15),
+          sb.from("alquileres_ops").select("id,estado,equipo_id,fecha_inicio,fecha_fin,precio_dia,dias").eq("empresa_id", empresa_id).eq("estado","activo").order("id",{ascending:false}).limit(15),
           sb.from("alquileres_ops").select("id,fecha_fin").eq("empresa_id", empresa_id).eq("estado","activo").not("fecha_fin","is",null).lte("fecha_fin", new Date(Date.now()+7*86400000).toISOString().slice(0,10)).limit(10),
           sb.from("cotizaciones").select("id,estado,dias,precio,modalidad").eq("empresa_id", empresa_id).in("estado",["borrador","en_revision","enviada","aprobada","negociacion"]).order("id",{ascending:false}).limit(15),
           sb.from("caja_movimientos").select("tipo,monto,fecha").eq("empresa_id", empresa_id).gte("fecha", desde30).limit(500),
@@ -441,7 +441,7 @@ Házme cualquier pregunta en lenguaje natural — no necesitas seguir un menú.`
         return {
           fecha_consulta: new Date().toLocaleDateString("es-CO"),
           flota_por_estado: flota,
-          alquileres_activos: (alqA.data||[]).map(a=>({id:a.id,equipo:a.equipoId,inicio:a.fechaInicio,fin:a.fecha_fin,precio_dia:a.precioDia,dias:a.dias})),
+          alquileres_activos: (alqA.data||[]).map(a=>({id:a.id,equipo:a.equipo_id,inicio:a.fecha_inicio,fin:a.fecha_fin,precio_dia:a.precio_dia,dias:a.dias})),
           alquileres_por_vencer_7_dias: (alqV.data||[]).map(a=>({id:a.id,vence:a.fecha_fin})),
           cotizaciones_abiertas: (cot.data||[]).map(c=>({id:c.id,estado:c.estado,dias:c.dias,precio:c.precio,modalidad:c.modalidad})),
           finanzas_30d: { ingresos, gastos, balance: ingresos-gastos },
@@ -667,12 +667,12 @@ ID: ${data.id} · ${data.nombre_empresa} · NIT ${data.nit}
           dias:Number(d.dias)||0, precio:Number(d.precio)||0, modalidad:d.modalidad||"alquiler_dia",
           origen:d.modalidad==="transporte_viaje"?d.origen:null,
           destino:d.modalidad==="transporte_viaje"?d.destino:null,
-          cantidadViajes:d.modalidad==="transporte_viaje"?(Number(d.cantidad_viajes)||0):0,
-          valorViaje:d.modalidad==="transporte_viaje"?(Number(d.valor_viaje)||0):0,
+          cantidad_viajes:d.modalidad==="transporte_viaje"?(Number(d.cantidad_viajes)||0):0,
+          valor_viaje:d.modalidad==="transporte_viaje"?(Number(d.valor_viaje)||0):0,
           estado:"borrador", created_by:user_id
         };
         const { data, error } = await sb.from("cotizaciones").insert([payload]).select("id,estado").single();
-        if(error||!data){ logErr("insert cotizaciones", error); agregarMensaje("system","No pude crear la cotización."); flujoActual=null; return; }
+        if(error||!data){ console.error("[ALCON][Supabase] insert cotizaciones:", error); agregarMensaje("system","No pude crear la cotización. Intenta de nuevo."); flujoActual=null; return; }
         agregarMensaje("bot",`✅ Cotización creada.
 ID: ${data.id} · Estado: ${data.estado}
 
@@ -757,13 +757,13 @@ Indica el ID del equipo a asignar.`);
         if(!mq||mq.estado!=="disponible"){ agregarMensaje("bot","El equipo ya no está disponible. Intenta con otro."); flujoActual=null; return; }
 
         const payload = {
-          empresa_id, cliente_id:d.cliente_id, equipoId:d.equipo_id,
-          fechaInicio:d.fecha_inicio, fecha_fin:d.fecha_fin||null,
-          dias:Number(d.dias)||0, precioDia:Number(d.precio)||0,
+          empresa_id, cliente_id:d.cliente_id, equipo_id:d.equipo_id,
+          fecha_inicio:d.fecha_inicio, fecha_fin:d.fecha_fin||null,
+          dias:Number(d.dias)||0, precio_dia:Number(d.precio)||0,
           estado:"activo", created_by:user_id
         };
-        const { data, error } = await sb.from("alquileres_ops").insert([payload]).select("id,estado,equipoId").single();
-        if(error||!data){ logErr("insert alquileres_ops", error); agregarMensaje("system","No pude crear el alquiler."); flujoActual=null; return; }
+        const { data, error } = await sb.from("alquileres_ops").insert([payload]).select("id,estado,equipo_id").single();
+        if(error||!data){ console.error("[ALCON][Supabase] insert alquileres_ops:", error); agregarMensaje("system","No pude crear el alquiler. Intenta de nuevo."); flujoActual=null; return; }
 
         const { error:euMaq } = await sb.from("maquinas")
           .update({ estado:"trabajando", cliente_id:d.cliente_id, fecha_inicio:d.fecha_inicio, fecha_vence:d.fecha_fin||null, alquiler_nro:data.id })
@@ -789,20 +789,20 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
       try{
         if(filtro==="por_vencer"){
           const lim=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
-          const { data, error } = await sb.from("alquileres_ops").select("id,estado,fechaInicio,fecha_fin,cliente_id,equipoId").eq("empresa_id",empresa_id).not("fecha_fin","is",null).lte("fecha_fin",lim).order("fecha_fin",{ascending:true}).limit(20);
-          if(error){ logErr("alq vencer", error); return agregarMensaje("system","No pude consultar alquileres."); }
-          return renderMini(`Alquileres por vencer (próximos 7 días): ${(data||[]).length}`, data||[], ["id","estado","fechaInicio","fecha_fin","equipoId"]);
+          const { data, error } = await sb.from("alquileres_ops").select("id,estado,fecha_inicio,fecha_fin,cliente_id,equipo_id").eq("empresa_id",empresa_id).not("fecha_fin","is",null).lte("fecha_fin",lim).order("fecha_fin",{ascending:true}).limit(20);
+          if(error){ console.error("[ALCON][Supabase] alq por_vencer:", error); return agregarMensaje("system","No pude consultar alquileres por vencer."); }
+          return renderMini(`Alquileres por vencer (próximos 7 días): ${(data||[]).length}`, data||[], ["id","estado","fecha_inicio","fecha_fin","equipo_id"]);
         }
-        const { data, error } = await sb.from("alquileres_ops").select("id,estado,fechaInicio,fecha_fin,cliente_id,equipoId,precioDia,dias").eq("empresa_id",empresa_id).eq("estado",filtro).order("id",{ascending:false}).limit(30);
-        if(error){ logErr("alq list", error); return agregarMensaje("system","No pude consultar alquileres."); }
-        renderMini(`Alquileres ${filtro}: ${(data||[]).length}`, data||[], ["id","estado","fechaInicio","fecha_fin","equipoId","precioDia","dias"]);
+        const { data, error } = await sb.from("alquileres_ops").select("id,estado,fecha_inicio,fecha_fin,cliente_id,equipo_id,precio_dia,dias").eq("empresa_id",empresa_id).eq("estado",filtro).order("id",{ascending:false}).limit(30);
+        if(error){ console.error("[ALCON][Supabase] alq list:", error); return agregarMensaje("system","No pude consultar alquileres."); }
+        renderMini(`Alquileres ${filtro}: ${(data||[]).length}`, data||[], ["id","estado","fecha_inicio","fecha_fin","equipo_id","precio_dia","dias"]);
       }catch(e){ logErr("consultarAlquileres", e); agregarMensaje("system","Error de red en alquileres."); }
     }
 
     async function consultarCotizaciones(filtro="aprobada"){
       try{
         const { data, error } = await sb.from("cotizaciones").select("id,estado,cliente_id,dias,precio,modalidad,created_at").eq("empresa_id",empresa_id).eq("estado",filtro).order("created_at",{ascending:false}).limit(30);
-        if(error){ logErr("cot list", error); return agregarMensaje("system","No pude consultar cotizaciones."); }
+        if(error){ console.error("[ALCON][Supabase] cot list:", error); return agregarMensaje("system","No pude consultar cotizaciones."); }
         renderMini(`Cotizaciones ${filtro}: ${(data||[]).length}`, data||[], ["id","estado","cliente_id","dias","precio","modalidad"]);
       }catch(e){ logErr("consultarCotizaciones", e); agregarMensaje("system","Error de red en cotizaciones."); }
     }
@@ -810,7 +810,7 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
     async function consultarMaquinas(filtro="disponible"){
       try{
         const { data, error } = await sb.from("maquinas").select("id,marca,modelo,estado,cliente_id,alquiler_nro").eq("empresa_id",empresa_id).eq("estado",filtro).order("id",{ascending:false}).limit(30);
-        if(error){ logErr("maq list", error); return agregarMensaje("system","No pude consultar equipos."); }
+        if(error){ console.error("[ALCON][Supabase] maq list:", error); return agregarMensaje("system","No pude consultar equipos."); }
         renderMini(`Equipos ${filtro}: ${(data||[]).length}`, data||[], ["id","marca","modelo","estado","alquiler_nro"]);
       }catch(e){ logErr("consultarMaquinas", e); agregarMensaje("system","Error de red en equipos."); }
     }
@@ -821,7 +821,7 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
         const b = escPostgrest(busqueda);
         if(b) q = q.or(`nombre_empresa.ilike.%${b}%,nit.ilike.%${b}%`);
         const { data, error } = await q;
-        if(error){ logErr("cli list", error); return agregarMensaje("system","No pude consultar clientes."); }
+        if(error){ console.error("[ALCON][Supabase] cli list:", error); return agregarMensaje("system","No pude consultar clientes."); }
         renderMini(`Clientes: ${(data||[]).length}`, data||[], ["id","nombre_empresa","nit","telefono","ciudad"]);
       }catch(e){ logErr("consultarClientes", e); agregarMensaje("system","Error de red en clientes."); }
     }
@@ -830,7 +830,7 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
       try{
         const desde = new Date(Date.now()-90*86400000).toISOString().slice(0,10);
         const { data, error } = await sb.from("caja_movimientos").select("id,tipo,monto,concepto,fecha").eq("empresa_id",empresa_id).gte("fecha",desde).order("fecha",{ascending:false}).limit(500);
-        if(error){ logErr("finanzas", error); return agregarMensaje("system","No pude consultar finanzas."); }
+        if(error){ console.error("[ALCON][Supabase] finanzas:", error); return agregarMensaje("system","No pude consultar finanzas."); }
         let i=0,g=0;
         for(const m of (data||[])){ const v=Number(m.monto)||0; if((m.tipo||"").toLowerCase().includes("ingreso")) i+=v; else g+=v; }
         agregarMensaje("bot",`💰 Finanzas — últimos 90 días
@@ -942,8 +942,8 @@ Movimientos: ${(data||[]).length}`);
         if(eMq){ logErr("validar maq asig", eMq); agregarMensaje("system","Error validando equipo."); flujoActual=null; return; }
         if(!mq){ agregarMensaje("bot","No encontré ese equipo."); flujoActual=null; return; }
         if(mq.estado!=="disponible"){ agregarMensaje("bot",`El equipo no está disponible (estado: ${mq.estado}).`); flujoActual=null; return; }
-        const { error:e1 } = await sb.from("alquileres_ops").update({equipoId:d.maquina_id,estado:"activo"}).eq("empresa_id",empresa_id).eq("id",d.alquiler_id);
-        if(e1){ logErr("asignar alq", e1); agregarMensaje("system","No pude asignar."); flujoActual=null; return; }
+        const { error:e1 } = await sb.from("alquileres_ops").update({equipo_id:d.maquina_id,estado:"activo"}).eq("empresa_id",empresa_id).eq("id",d.alquiler_id);
+        if(e1){ console.error("[ALCON][Supabase] asignar alquiler:", e1); agregarMensaje("system","No pude asignar el equipo al alquiler."); flujoActual=null; return; }
         const { error:e2 } = await sb.from("maquinas").update({estado:"trabajando",alquiler_nro:d.alquiler_id}).eq("empresa_id",empresa_id).eq("id",d.maquina_id);
         if(e2){ logErr("asignar maq", e2); agregarMensaje("system","Alquiler actualizado pero el equipo no. Revísalo."); flujoActual=null; return; }
         agregarMensaje("bot",`✅ Equipo ${d.maquina_id} asignado al alquiler ${d.alquiler_id}.`);
