@@ -454,28 +454,25 @@ Házme cualquier pregunta en lenguaje natural — no necesitas seguir un menú.`
     }
 
     // ============================================================
-    // LLAMADA A LIAN (backend gateway)
-    // El system prompt, modelo y lógica viven en server.js.
-    // El frontend solo envía el mensaje, el historial y el
-    // contexto de datos necesario para que el backend construya
-    // el prompt. La arquitectura del prompt nunca es visible
-    // en DevTools.
+    // LLAMADA A LIAN — frontend solo envía message + historial.
+    // model, system prompt y construcción de messages[]
+    // viven en server.js (nunca visibles en DevTools).
     // ============================================================
     async function callClaude(userMessage){
-      const ctx = await fetchContextoDB();
+      const payload = {
+        message:             userMessage,
+        conversationHistory: conversationHistory
+      };
+
+      console.log("[LIAN] → /api/chat | historial:", conversationHistory.length, "msgs | message:", userMessage.slice(0,60));
 
       const response = await fetch("/api/chat", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message:             userMessage,
-          conversationHistory: conversationHistory,
-          empresa_nombre:      empresa_nombre,
-          usuario_email:       usuario_email,
-          rol_usuario:         rol_usuario,
-          contextoDB:          ctx
-        })
+        body:    JSON.stringify(payload)
       });
+
+      console.log("[LIAN] ← status:", response.status);
 
       if(!response.ok){
         const txt = await response.text().catch(()=>"");
@@ -484,7 +481,8 @@ Házme cualquier pregunta en lenguaje natural — no necesitas seguir un menú.`
       }
 
       const data = await response.json();
-      const raw = data.content?.find(b=>b.type==="text")?.text || '{"reply":"No pude procesar tu mensaje.","action":null,"params":{}}';
+      const raw = data.content?.find(b=>b.type==="text")?.text
+               || '{"reply":"No pude procesar tu mensaje.","action":null,"params":{}}';
 
       try{
         const clean = raw.trim().replace(/^```json?\s*/i,"").replace(/```$/,"").trim();
