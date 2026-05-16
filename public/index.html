@@ -1212,11 +1212,44 @@ Verifica la API key o la conexión.`);
   </script>
 
   <script>
-    if("serviceWorker" in navigator){
+    if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js")
-          .then(r => console.log("[SW] registrado", r.scope))
-          .catch(e => console.warn("[SW] error", e));
+
+        navigator.serviceWorker.register("/sw.js").then(reg => {
+          console.log("[SW] registrado", reg.scope);
+
+          // Si al cargar ya hay un SW esperando (actualización pendiente), actívalo ya
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: "SKIP_WAITING" });
+          }
+
+          // Detectar nueva versión descargándose
+          reg.addEventListener("updatefound", () => {
+            const incoming = reg.installing;
+            incoming.addEventListener("statechange", () => {
+              // Nuevo SW instalado y listo → forzar activación inmediata
+              if (incoming.state === "installed" && navigator.serviceWorker.controller) {
+                console.log("[SW] Nueva versión disponible → activando");
+                incoming.postMessage({ type: "SKIP_WAITING" });
+              }
+            });
+          });
+
+          // Forzar comprobación de actualización en cada carga de página
+          reg.update();
+
+        }).catch(e => console.warn("[SW] error", e));
+
+        // Cuando el controller cambia (nuevo SW activo) → recargar UNA sola vez
+        let reloading = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (!reloading) {
+            reloading = true;
+            console.log("[SW] Controller cambiado → recargando para aplicar nueva versión");
+            window.location.reload();
+          }
+        });
+
       });
     }
   </script>
