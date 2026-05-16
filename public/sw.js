@@ -1,4 +1,4 @@
-const CACHE = "alcon-ops-v9";
+const CACHE = "alcon-ops-v10";
 const ASSETS = [
   "/",
   "/index.html",
