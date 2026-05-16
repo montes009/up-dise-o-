@@ -419,8 +419,8 @@ Házme cualquier pregunta en lenguaje natural — no necesitas seguir un menú.`
         const desde30 = new Date(Date.now()-30*86400000).toISOString().slice(0,10);
         const [maq, alqA, alqV, cot, caj, cli] = await Promise.all([
           sb.from("maquinas").select("id,marca,modelo,estado,alquiler_id").eq("empresa_id", empresa_id).limit(100),
-          sb.from("alquileres_ops").select("id,estado,equipo_id,fecha_inicio,fecha_fin_calc,precio_dia,dias").eq("empresa_id", empresa_id).eq("estado","activo").order("id",{ascending:false}).limit(15),
-          sb.from("alquileres_ops").select("id,fecha_fin_calc").eq("empresa_id", empresa_id).eq("estado","activo").not("fecha_fin_calc","is",null).lte("fecha_fin_calc", new Date(Date.now()+7*86400000).toISOString().slice(0,10)).limit(10),
+          sb.from("alquileres_ops").select("id,nro,estado,equipo_id,fecha_inicio,fecha_fin_calc,precio_dia,dias").eq("empresa_id", empresa_id).eq("estado","activo").order("id",{ascending:false}).limit(15),
+          sb.from("alquileres_ops").select("id,nro,fecha_fin_calc").eq("empresa_id", empresa_id).eq("estado","activo").not("fecha_fin_calc","is",null).lte("fecha_fin_calc", new Date(Date.now()+7*86400000).toISOString().slice(0,10)).limit(10),
           sb.from("cotizaciones").select("id,estado,dias,precio,modalidad").eq("empresa_id", empresa_id).in("estado",["borrador","en_revision","enviada","aprobada","negociacion"]).order("id",{ascending:false}).limit(15),
           sb.from("caja_movimientos").select("tipo,monto,fecha").eq("empresa_id", empresa_id).gte("fecha", desde30).limit(500),
           sb.from("clientes").select("id,nombre_empresa,ciudad").eq("empresa_id", empresa_id).order("nombre_empresa").limit(20)
@@ -442,8 +442,8 @@ Házme cualquier pregunta en lenguaje natural — no necesitas seguir un menú.`
         return {
           fecha_consulta: new Date().toLocaleDateString("es-CO"),
           flota_por_estado: flota,
-          alquileres_activos: (alqA.data||[]).map(a=>({id:a.id,equipo:a.equipo_id,inicio:a.fecha_inicio,fin:a.fecha_fin_calc,precio_dia:a.precio_dia,dias:a.dias})),
-          alquileres_por_vencer_7_dias: (alqV.data||[]).map(a=>({id:a.id,vence:a.fecha_fin_calc})),
+          alquileres_activos: (alqA.data||[]).map(a=>({nro:a.nro?"ALQ-"+a.nro:a.id,equipo:a.equipo_id,inicio:a.fecha_inicio,fin:a.fecha_fin_calc,precio_dia:a.precio_dia,dias:a.dias})),
+          alquileres_por_vencer_7_dias: (alqV.data||[]).map(a=>({nro:a.nro?"ALQ-"+a.nro:a.id,vence:a.fecha_fin_calc})),
           cotizaciones_abiertas: (cot.data||[]).map(c=>({id:c.id,estado:c.estado,dias:c.dias,precio:c.precio,modalidad:c.modalidad})),
           finanzas_30d: { ingresos, gastos, balance: ingresos-gastos },
           clientes_recientes: (cli.data||[]).slice(0,8).map(c=>({id:c.id,nombre:c.nombre_empresa,ciudad:c.ciudad}))
@@ -786,17 +786,33 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
     // ============================================================
     // CONSULTAS
     // ============================================================
+    // Formatea el número operativo del alquiler: nro "0003" → "ALQ-0003"
+    function fmtAlq(r){ return r.nro ? "ALQ-"+r.nro : r.id; }
+
     async function consultarAlquileres(filtro="activo"){
       try{
         if(filtro==="por_vencer"){
           const lim=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
-          const { data, error } = await sb.from("alquileres_ops").select("id,estado,fecha_inicio,fecha_fin_calc,cliente_id,equipo_id").eq("empresa_id",empresa_id).not("fecha_fin_calc","is",null).lte("fecha_fin_calc",lim).order("fecha_fin_calc",{ascending:true}).limit(20);
+          const { data, error } = await sb.from("alquileres_ops")
+            .select("id,nro,estado,fecha_inicio,fecha_fin_calc,equipo_id")
+            .eq("empresa_id",empresa_id)
+            .not("fecha_fin_calc","is",null)
+            .lte("fecha_fin_calc",lim)
+            .order("fecha_fin_calc",{ascending:true})
+            .limit(20);
           if(error){ console.error("[ALCON][Supabase] alq por_vencer:", error); return agregarMensaje("system","No pude consultar alquileres por vencer."); }
-          return renderMini(`Alquileres por vencer (próximos 7 días): ${(data||[]).length}`, data||[], ["id","estado","fecha_inicio","fecha_fin_calc","equipo_id"]);
+          const rows = (data||[]).map(r=>({"N° ALQ":fmtAlq(r), estado:r.estado, equipo:r.equipo_id, inicio:r.fecha_inicio, vence:r.fecha_fin_calc}));
+          return renderMini(`Alquileres por vencer (próximos 7 días): ${rows.length}`, rows, ["N° ALQ","estado","equipo","inicio","vence"]);
         }
-        const { data, error } = await sb.from("alquileres_ops").select("id,estado,fecha_inicio,fecha_fin_calc,cliente_id,equipo_id,precio_dia,dias").eq("empresa_id",empresa_id).eq("estado",filtro).order("id",{ascending:false}).limit(30);
+        const { data, error } = await sb.from("alquileres_ops")
+          .select("id,nro,estado,fecha_inicio,fecha_fin_calc,equipo_id,precio_dia,dias")
+          .eq("empresa_id",empresa_id)
+          .eq("estado",filtro)
+          .order("id",{ascending:false})
+          .limit(30);
         if(error){ console.error("[ALCON][Supabase] alq list:", error); return agregarMensaje("system","No pude consultar alquileres."); }
-        renderMini(`Alquileres ${filtro}: ${(data||[]).length}`, data||[], ["id","estado","fecha_inicio","fecha_fin_calc","equipo_id","precio_dia","dias"]);
+        const rows = (data||[]).map(r=>({"N° ALQ":fmtAlq(r), estado:r.estado, equipo:r.equipo_id, inicio:r.fecha_inicio, fin:r.fecha_fin_calc, "precio/día":"$"+Number(r.precio_dia||0).toLocaleString("es-CO"), días:r.dias}));
+        renderMini(`Alquileres ${filtro}: ${rows.length}`, rows, ["N° ALQ","estado","equipo","inicio","fin","precio/día","días"]);
       }catch(e){ logErr("consultarAlquileres", e); agregarMensaje("system","Error de red en alquileres."); }
     }
 
