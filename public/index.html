@@ -206,16 +206,16 @@
         </div>
         <div class="quick-label">Accesos rápidos</div>
         <div class="quick" id="quickActions">
-          <button class="qbtn" data-q="crear cliente nuevo">➕ Crear cliente</button>
-          <button class="qbtn" data-q="crear cotización">📋 Crear cotización</button>
-          <button class="qbtn" data-q="crear alquiler">🔧 Crear alquiler</button>
-          <button class="qbtn" data-q="alquileres activos">📦 Alquileres activos</button>
-          <button class="qbtn" data-q="cotizaciones aprobadas">✅ Cotizaciones aprobadas</button>
-          <button class="qbtn" data-q="máquinas disponibles">🏗️ Máquinas disponibles</button>
-          <button class="qbtn" data-q="dame el resumen general de hoy">📊 Resumen del día</button>
-          <button class="qbtn" data-q="cómo están las finanzas">💰 Finanzas</button>
-          <button class="qbtn" data-q="máquinas varadas">⚠️ Máquinas varadas</button>
-          <button class="qbtn" data-q="alquileres por vencer esta semana">🕐 Por vencer</button>
+          <button class="qbtn" data-accion="crear_cliente">➕ Crear cliente</button>
+          <button class="qbtn" data-accion="crear_cotizacion">📋 Crear cotización</button>
+          <button class="qbtn" data-accion="crear_alquiler">🔧 Crear alquiler</button>
+          <button class="qbtn" data-accion="alquileres_activos">📦 Alquileres activos</button>
+          <button class="qbtn" data-accion="cotizaciones_aprobadas">✅ Cotizaciones aprobadas</button>
+          <button class="qbtn" data-accion="maquinas_disponibles">🏗️ Máquinas disponibles</button>
+          <button class="qbtn" data-accion="consultar_resumen">📊 Resumen del día</button>
+          <button class="qbtn" data-accion="consultar_finanzas">💰 Finanzas</button>
+          <button class="qbtn" data-accion="maquinas_varadas">⚠️ Máquinas varadas</button>
+          <button class="qbtn" data-accion="por_vencer">🕐 Por vencer</button>
         </div>
       </aside>
       <section class="right">
@@ -1258,6 +1258,71 @@ Verifica la API key o la conexión.`);
     }
 
     // ============================================================
+    // ACCESO RÁPIDO — bypass total de Claude y de cualquier flujo activo
+    // Los botones del sidebar NO son comandos de chat; disparan la acción
+    // directamente sin pasar por interpretarMensaje() ni la IA.
+    // ============================================================
+    async function accesoRapido(accion){
+      if(enviando) return;
+      flujoActual = null;            // cancelar cualquier flujo conversacional previo
+
+      switch(accion){
+
+        // ── Flujos de creación ────────────────────────────────────
+        case "crear_cliente":
+          await iniciarFlujoCliente("");
+          break;
+
+        case "crear_cotizacion":
+          iniciarFlujoCotizacion();
+          break;
+
+        case "crear_alquiler":
+          iniciarFlujoAlquiler();
+          break;
+
+        // ── Consultas directas a Supabase (sin IA) ───────────────
+        case "alquileres_activos":
+          setBtnState(true);
+          try{ await consultarAlquileres("activo"); }finally{ setBtnState(false); }
+          break;
+
+        case "cotizaciones_aprobadas":
+          setBtnState(true);
+          try{ await consultarCotizaciones("aprobada"); }finally{ setBtnState(false); }
+          break;
+
+        case "maquinas_disponibles":
+          setBtnState(true);
+          try{ await consultarMaquinas("disponible"); }finally{ setBtnState(false); }
+          break;
+
+        case "consultar_resumen":
+          setBtnState(true);
+          try{ await consultarResumenGeneral(); }finally{ setBtnState(false); }
+          break;
+
+        case "consultar_finanzas":
+          setBtnState(true);
+          try{ await consultarFinanzas(); }finally{ setBtnState(false); }
+          break;
+
+        case "maquinas_varadas":
+          setBtnState(true);
+          try{ await consultarMaquinas("varada"); }finally{ setBtnState(false); }
+          break;
+
+        case "por_vencer":
+          setBtnState(true);
+          try{ await consultarAlquileres("por_vencer"); }finally{ setBtnState(false); }
+          break;
+
+        default:
+          console.warn("[LIAN] accesoRapido: acción desconocida →", accion);
+      }
+    }
+
+    // ============================================================
     // BIND UI
     // ============================================================
     async function handleSend(){
@@ -1286,10 +1351,8 @@ Verifica la API key o la conexión.`);
       });
       document.querySelectorAll("#quickActions .qbtn").forEach(b=>{
         b.addEventListener("click", async ()=>{
-          if(enviando) return;
-          const q = b.getAttribute("data-q")||"";
-          agregarMensaje("user", q);
-          await interpretarMensaje(q);
+          const accion = b.getAttribute("data-accion")||"";
+          await accesoRapido(accion);
         });
       });
     }
