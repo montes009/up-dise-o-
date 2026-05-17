@@ -79,7 +79,8 @@
     .login button:disabled{opacity:.6;cursor:wait}
     .err{margin-top:10px;color:#ffb4b4;font-size:12px;min-height:16px}
     .hidden{display:none!important}
-    .mini-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11.5px}
+    .mini-table-wrap{overflow-x:auto;max-width:100%;word-break:break-word}
+    .mini-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}
     .mini-table th,.mini-table td{border-bottom:1px solid #1e3055;padding:6px 5px;text-align:left}
     .mini-table th{color:#7eb3ff;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
     .mini-table tr:last-child td{border-bottom:none}
@@ -1017,13 +1018,12 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
           .limit(30);
         if(error){ console.error("[ALCON][Supabase] maq list:", error); return agregarMensaje("system","No pude consultar equipos."); }
         const rows = (data||[]).map(r=>({
-          "id":             r.id,
-          "marca":          r.marca,
-          "modelo":         r.modelo,
-          "estado":         r.estado,
-          "CÓDIGO INTERNO": r.alquiler_id || "-"
+          "id":    r.id,
+          "marca": r.marca,
+          "modelo":r.modelo,
+          "estado":r.estado
         }));
-        renderMini(`Equipos ${filtro}: ${rows.length}`, rows, ["id","marca","modelo","estado","CÓDIGO INTERNO"]);
+        renderMini(`Equipos ${filtro}: ${rows.length}`, rows, ["id","marca","modelo","estado"]);
       }catch(e){ logErr("consultarMaquinas", e); agregarMensaje("system","Error de red en equipos."); }
     }
 
@@ -1203,7 +1203,7 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
 Sin resultados.`,true); return; }
       const head = cols.map(c=>`<th>${esc(c)}</th>`).join("");
       const body = rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r&&r[c]!==undefined&&r[c]!==null?r[c]:"")}</td>`).join("")}</tr>`).join("");
-      agregarMensaje("bot",`<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:#7eb3ff">${esc(titulo)}</div><table class="mini-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`,true);
+      agregarMensaje("bot",`<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:#7eb3ff">${esc(titulo)}</div><div class="mini-table-wrap"><table class="mini-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`,true);
     }
 
     // ============================================================
