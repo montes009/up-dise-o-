@@ -988,17 +988,42 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
 
     async function consultarCotizaciones(filtro="aprobada"){
       try{
-        const { data, error } = await sb.from("cotizaciones").select("id,estado,cliente_id,dias,precio,modalidad,created_at").eq("empresa_id",empresa_id).eq("estado",filtro).order("created_at",{ascending:false}).limit(30);
+        const { data, error } = await sb.from("cotizaciones")
+          .select("id,nro,estado,cliente,dias,precio,modalidad")
+          .eq("empresa_id",empresa_id)
+          .eq("estado",filtro)
+          .order("created_at",{ascending:false})
+          .limit(30);
         if(error){ console.error("[ALCON][Supabase] cot list:", error); return agregarMensaje("system","No pude consultar cotizaciones."); }
-        renderMini(`Cotizaciones ${filtro}: ${(data||[]).length}`, data||[], ["id","estado","cliente_id","dias","precio","modalidad"]);
+        const rows = (data||[]).map(r=>({
+          "N° COT":    r.nro ? r.nro : ("COT-"+(r.id||"").slice(-6).toUpperCase()),
+          "estado":    r.estado,
+          "cliente":   r.cliente || "-",
+          "días":      r.dias,
+          "precio/día":"$"+fmt(r.precio),
+          "modalidad": r.modalidad
+        }));
+        renderMini(`Cotizaciones ${filtro}: ${rows.length}`, rows, ["N° COT","estado","cliente","días","precio/día","modalidad"]);
       }catch(e){ logErr("consultarCotizaciones", e); agregarMensaje("system","Error de red en cotizaciones."); }
     }
 
     async function consultarMaquinas(filtro="disponible"){
       try{
-        const { data, error } = await sb.from("maquinas").select("id,marca,modelo,estado,cliente_id,alquiler_id").eq("empresa_id",empresa_id).eq("estado",filtro).order("id",{ascending:false}).limit(30);
+        const { data, error } = await sb.from("maquinas")
+          .select("id,marca,modelo,estado,alquiler_id")
+          .eq("empresa_id",empresa_id)
+          .eq("estado",filtro)
+          .order("id",{ascending:false})
+          .limit(30);
         if(error){ console.error("[ALCON][Supabase] maq list:", error); return agregarMensaje("system","No pude consultar equipos."); }
-        renderMini(`Equipos ${filtro}: ${(data||[]).length}`, data||[], ["id","marca","modelo","estado","alquiler_id"]);
+        const rows = (data||[]).map(r=>({
+          "id":             r.id,
+          "marca":          r.marca,
+          "modelo":         r.modelo,
+          "estado":         r.estado,
+          "CÓDIGO INTERNO": r.alquiler_id || "-"
+        }));
+        renderMini(`Equipos ${filtro}: ${rows.length}`, rows, ["id","marca","modelo","estado","CÓDIGO INTERNO"]);
       }catch(e){ logErr("consultarMaquinas", e); agregarMensaje("system","Error de red en equipos."); }
     }
 
@@ -1016,16 +1041,44 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
     async function consultarFinanzas(){
       try{
         const desde = new Date(Date.now()-90*86400000).toISOString().slice(0,10);
-        const { data, error } = await sb.from("caja_movimientos").select("id,tipo,monto,concepto,fecha").eq("empresa_id",empresa_id).gte("fecha",desde).order("fecha",{ascending:false}).limit(500);
+        // Fuente: alquileres_ops (precio_dia * dias + transporte)
+        // fecha_inicio es text en formato YYYY-MM-DD — comparación string funciona
+        const { data, error } = await sb.from("alquileres_ops")
+          .select("id,precio_dia,dias,transporte,estado,cliente,fecha_inicio")
+          .eq("empresa_id",empresa_id)
+          .in("estado",["activo","finalizado","devolucion"])
+          .gte("fecha_inicio", desde)
+          .order("fecha_inicio",{ascending:false})
+          .limit(500);
         if(error){ console.error("[ALCON][Supabase] finanzas:", error); return agregarMensaje("system","No pude consultar finanzas."); }
-        let i=0,g=0;
-        for(const m of (data||[])){ const v=Number(m.monto)||0; if((m.tipo||"").toLowerCase().includes("ingreso")) i+=v; else g+=v; }
-        agregarMensaje("bot",`💰 Finanzas — últimos 90 días
 
-Ingresos:  $${fmt(i)}
-Gastos:    $${fmt(g)}
-Balance:   $${fmt(i-g)}
-Movimientos: ${(data||[]).length}`);
+        const alquileres     = data||[];
+        const totalIngresos  = alquileres.reduce((sum,a)=>{
+          return sum + (parseFloat(a.precio_dia)||0)*(parseInt(a.dias)||0) + (parseFloat(a.transporte)||0);
+        },0);
+        const activos        = alquileres.filter(a=>a.estado==="activo").length;
+        const finalizados    = alquileres.filter(a=>a.estado==="finalizado").length;
+        const ticketPromedio = alquileres.length ? totalIngresos/alquileres.length : 0;
+
+        const html = `
+<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:#7eb3ff">💰 Finanzas — últimos 90 días</div>
+<table class="mini-table">
+  <thead><tr><th>INGRESOS ALQUILERES</th><th>TICKET PROMEDIO</th></tr></thead>
+  <tbody>
+    <tr>
+      <td style="font-size:14px;font-weight:700;color:#34c77b">$ ${fmt(totalIngresos)}</td>
+      <td style="font-size:14px;font-weight:700;color:#7eb3ff">$ ${fmt(Math.round(ticketPromedio))}</td>
+    </tr>
+    <tr><th>ALQUILERES ACTIVOS</th><th>FINALIZADOS</th></tr>
+    <tr>
+      <td style="font-size:14px;font-weight:700">${activos}</td>
+      <td style="font-size:14px;font-weight:700">${finalizados}</td>
+    </tr>
+  </tbody>
+</table>
+<div style="font-size:11px;color:var(--muted);margin-top:6px">Total: ${alquileres.length} alquiler${alquileres.length!==1?"es":""} en el período · Fuente: alquileres_ops</div>`;
+
+        agregarMensaje("bot", html, true);
       }catch(e){ logErr("consultarFinanzas", e); agregarMensaje("system","Error de red en finanzas."); }
     }
 
