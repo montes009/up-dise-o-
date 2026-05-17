@@ -79,9 +79,9 @@
     .login button:disabled{opacity:.6;cursor:wait}
     .err{margin-top:10px;color:#ffb4b4;font-size:12px;min-height:16px}
     .hidden{display:none!important}
-    .mini-table-wrap{overflow-x:auto;max-width:100%;word-break:break-word}
-    .mini-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}
-    .mini-table th,.mini-table td{border-bottom:1px solid #1e3055;padding:6px 5px;text-align:left}
+    .mini-table-wrap{overflow-x:auto;width:100%}
+    .mini-table{width:auto;min-width:340px;border-collapse:collapse;margin-top:8px;font-size:11px}
+    .mini-table th,.mini-table td{border-bottom:1px solid #1e3055;padding:5px 8px;text-align:left;white-space:nowrap}
     .mini-table th{color:#7eb3ff;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
     .mini-table tr:last-child td{border-bottom:none}
     .mini-table tr:hover td{background:#1a2744}
@@ -1062,7 +1062,7 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
 
         const html = `
 <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:#7eb3ff">💰 Finanzas — últimos 90 días</div>
-<table class="mini-table">
+<div class="mini-table-wrap"><table class="mini-table">
   <thead><tr><th>INGRESOS ALQUILERES</th><th>TICKET PROMEDIO</th></tr></thead>
   <tbody>
     <tr>
@@ -1075,7 +1075,7 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
       <td style="font-size:14px;font-weight:700">${finalizados}</td>
     </tr>
   </tbody>
-</table>
+</table></div>
 <div style="font-size:11px;color:var(--muted);margin-top:6px">Total: ${alquileres.length} alquiler${alquileres.length!==1?"es":""} en el período · Fuente: alquileres_ops</div>`;
 
         agregarMensaje("bot", html, true);
