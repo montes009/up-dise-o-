@@ -273,6 +273,8 @@
     // ============================================================
     function fmt(n){ return (Number(n)||0).toLocaleString("es-CO"); }
 
+    function generarId(prefix){ return (prefix||"") + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
     function normalizarTexto(t){
       return (t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();
     }
@@ -669,7 +671,7 @@ Házme cualquier pregunta en lenguaje natural — no necesitas seguir un menú.`
           flujoActual=null; return;
         }
         const { data, error } = await sb.from("clientes")
-          .insert([{ empresa_id, nombre_empresa:d.nombre_empresa, nit:d.nit, telefono:d.telefono, correo:d.correo, contacto:d.contacto, direccion:d.direccion, ciudad:d.ciudad, notas:d.obs }])
+          .insert([{ id:generarId("cli_"), empresa_id, nombre_empresa:d.nombre_empresa, nit:d.nit, telefono:d.telefono, correo:d.correo, contacto:d.contacto, direccion:d.direccion, ciudad:d.ciudad, notas:d.obs }])
           .select("id,nombre_empresa,nit").single();
         if(error || !data){ console.error("[ALCON][Supabase] insert clientes:", error); agregarMensaje("system","No pude crear el cliente. Revisa los datos."); flujoActual=null; return; }
         agregarMensaje("bot",`✅ Cliente creado correctamente.
@@ -692,9 +694,12 @@ ID: ${data.id} · ${data.nombre_empresa} · NIT ${data.nit}
         agregarMensaje("bot","Para crear el cliente necesito al menos el nombre de la empresa. ¿Cuál es?");
         return;
       }
+      const nuevoId = generarId("cli_");
+      console.log("[LIAN] Intentando crear cliente:", { id: nuevoId, nombre_empresa: nombre, empresa_id });
       agregarMensaje("bot",`Creando cliente ${nombre}...`);
       try{
         const { data, error } = await sb.from("clientes").insert([{
+          id:         nuevoId,
           empresa_id,
           nombre_empresa: nombre,
           nit:        (params.nit||"").replace(/[.\-\s]/g,"") || null,
@@ -706,9 +711,10 @@ ID: ${data.id} · ${data.nombre_empresa} · NIT ${data.nit}
           created_at: new Date().toISOString()
         }]).select().single();
         if(error){
-          console.error("[ALCON][Supabase]", { context:"crear_cliente_directo", error });
-          agregarMensaje("bot",`No pude crear el cliente: ${error.message}`);
+          console.error("[ALCON][Supabase]", { context:"crear_cliente_directo", error: error.message, details: error.details, hint: error.hint, code: error.code });
+          agregarMensaje("bot",`⛔ No pude crear el cliente: ${error.message}${error.hint ? " — Pista: "+error.hint : ""}`);
         } else {
+          console.log("[LIAN] Cliente creado:", data);
           agregarMensaje("bot",`✅ Cliente ${nombre} creado correctamente.`);
         }
       }catch(e){ logErr("guardarClienteDirecto", e); agregarMensaje("system","Error de red al crear cliente."); }
@@ -737,9 +743,12 @@ ID: ${data.id} · ${data.nombre_empresa} · NIT ${data.nit}
           agregarMensaje("bot",`No encontré el cliente "${nombreCliente}". Créalo primero o verifica el nombre.`);
           return;
         }
+        const nuevoId   = generarId();
         const dias      = Number(params.dias)||1;
         const modalidad = (params.modalidad||"alquiler_dia").trim();
+        console.log("[LIAN] Intentando crear cotización:", { id: nuevoId, cliente: nombreCliente, cliente_id, tipo, precio, dias });
         const { data, error } = await sb.from("cotizaciones").insert([{
+          id:         nuevoId,
           empresa_id,
           cliente:    nombreCliente,
           cliente_id,
@@ -754,9 +763,10 @@ ID: ${data.id} · ${data.nombre_empresa} · NIT ${data.nit}
           created_at: new Date().toISOString()
         }]).select().single();
         if(error){
-          console.error("[ALCON][Supabase]", { context:"crear_cotizacion_directa", error });
-          agregarMensaje("bot",`No pude crear la cotización: ${error.message}`);
+          console.error("[ALCON][Supabase]", { context:"crear_cotizacion_directa", error: error.message, details: error.details, hint: error.hint, code: error.code });
+          agregarMensaje("bot",`⛔ No pude crear la cotización: ${error.message}${error.hint ? " — Pista: "+error.hint : ""}`);
         } else {
+          console.log("[LIAN] Cotización creada:", data);
           agregarMensaje("bot",`✅ Cotización creada en borrador para ${nombreCliente} — ${tipo}, ${dias} días a $${Number(precio).toLocaleString("es-CO")}/día.`);
         }
       }catch(e){ logErr("guardarCotizacionDirecta", e); agregarMensaje("system","Error de red al crear cotización."); }
@@ -824,7 +834,7 @@ ID: ${data.id} · ${data.nombre_empresa} · NIT ${data.nit}
       try{
         if(!d.cliente_id || !d.tipo || !d.dias || !d.precio){ agregarMensaje("system","Datos incompletos."); flujoActual=null; return; }
         const payload = {
-          empresa_id, cliente_id:d.cliente_id, tipo:d.tipo, altura:d.altura||null,
+          id:generarId(), empresa_id, cliente_id:d.cliente_id, tipo:d.tipo, altura:d.altura||null,
           dias:Number(d.dias)||0, precio:Number(d.precio)||0, modalidad:d.modalidad||"alquiler_dia",
           origen:d.modalidad==="transporte_viaje"?d.origen:null,
           destino:d.modalidad==="transporte_viaje"?d.destino:null,
