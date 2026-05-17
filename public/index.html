@@ -874,8 +874,8 @@ Total estimado: $${fmt(Number(d.precio)*Number(d.dias))}`);
           d.cliente_id = data[0].id;
           flujoActual.esperando = "equipo_id";
           try{
-            const mq = await sb.from("maquinas").select("id,marca,modelo,estado").eq("empresa_id",empresa_id).eq("estado","disponible").limit(20);
-            renderMini("Equipos disponibles", mq.data||[], ["id","marca","modelo","estado"]);
+            const mq = await sb.from("maquinas").select("id,estado").eq("empresa_id",empresa_id).eq("estado","disponible").limit(20);
+            renderMini("Equipos disponibles", (mq.data||[]).map(r=>({"EQUIPO":r.id,"ESTADO":r.estado})), ["EQUIPO","ESTADO"], EQ_META);
           }catch(e){ logErr("listar maq", e); }
           agregarMensaje("bot",`Cliente: ${data[0].nombre_empresa} ✓
 
@@ -972,8 +972,8 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
             .order("fecha_fin_calc",{ascending:true})
             .limit(20);
           if(error){ console.error("[ALCON][Supabase] alq por_vencer:", error); return agregarMensaje("system","No pude consultar alquileres por vencer."); }
-          const rows = (data||[]).map(r=>({"N° ALQ":fmtAlq(r), estado:r.estado, equipo:r.equipo_id, inicio:r.fecha_inicio, vence:r.fecha_fin_calc}));
-          return renderMini(`Alquileres por vencer (próximos 7 días): ${rows.length}`, rows, ["N° ALQ","estado","equipo","inicio","vence"]);
+          const rows = (data||[]).map(r=>({"N° ALQ":fmtAlq(r), "VENCE":r.fecha_fin_calc}));
+          return renderMini(`Alquileres por vencer (próximos 7 días): ${rows.length}`, rows, ["N° ALQ","VENCE"], {"N° ALQ":{width:"55%",fontWeight:"700",color:"#60a5fa"},"VENCE":{width:"45%"}});
         }
         const { data, error } = await sb.from("alquileres_ops")
           .select("id,nro,estado,fecha_inicio,fecha_fin_calc,equipo_id,precio_dia,dias")
@@ -982,8 +982,8 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
           .order("id",{ascending:false})
           .limit(30);
         if(error){ console.error("[ALCON][Supabase] alq list:", error); return agregarMensaje("system","No pude consultar alquileres."); }
-        const rows = (data||[]).map(r=>({"N° ALQ":fmtAlq(r), estado:r.estado, equipo:r.equipo_id, inicio:r.fecha_inicio, fin:r.fecha_fin_calc, "precio/día":"$"+Number(r.precio_dia||0).toLocaleString("es-CO"), días:r.dias}));
-        renderMini(`Alquileres ${filtro}: ${rows.length}`, rows, ["N° ALQ","estado","equipo","inicio","fin","precio/día","días"]);
+        const rows = (data||[]).map(r=>({"N° ALQ":fmtAlq(r), "ESTADO":r.estado}));
+        renderMini(`Alquileres ${filtro}: ${rows.length}`, rows, ["N° ALQ","ESTADO"], {"N° ALQ":{width:"55%",fontWeight:"700",color:"#60a5fa"},"ESTADO":{width:"45%",colorMap:ESTADO_COLOR}});
       }catch(e){ logErr("consultarAlquileres", e); agregarMensaje("system","Error de red en alquileres."); }
     }
 
@@ -997,14 +997,10 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
           .limit(30);
         if(error){ console.error("[ALCON][Supabase] cot list:", error); return agregarMensaje("system","No pude consultar cotizaciones."); }
         const rows = (data||[]).map(r=>({
-          "N° COT":    r.nro ? r.nro : ("COT-"+(r.id||"").slice(-6).toUpperCase()),
-          "estado":    r.estado,
-          "cliente":   r.cliente || "-",
-          "días":      r.dias,
-          "precio/día":"$"+fmt(r.precio),
-          "modalidad": r.modalidad
+          "N° COT":  r.nro ? r.nro : ("COT-"+(r.id||"").slice(-6).toUpperCase()),
+          "CLIENTE": r.cliente || "-"
         }));
-        renderMini(`Cotizaciones ${filtro}: ${rows.length}`, rows, ["N° COT","estado","cliente","días","precio/día","modalidad"]);
+        renderMini(`Cotizaciones ${filtro}: ${rows.length}`, rows, ["N° COT","CLIENTE"], {"N° COT":{width:"45%",fontWeight:"700",color:"#60a5fa"},"CLIENTE":{width:"55%"}});
       }catch(e){ logErr("consultarCotizaciones", e); agregarMensaje("system","Error de red en cotizaciones."); }
     }
 
@@ -1017,13 +1013,8 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
           .order("id",{ascending:false})
           .limit(30);
         if(error){ console.error("[ALCON][Supabase] maq list:", error); return agregarMensaje("system","No pude consultar equipos."); }
-        const rows = (data||[]).map(r=>({
-          "id":    r.id,
-          "marca": r.marca,
-          "modelo":r.modelo,
-          "estado":r.estado
-        }));
-        renderMini(`Equipos ${filtro}: ${rows.length}`, rows, ["id","marca","modelo","estado"]);
+        const rows = (data||[]).map(r=>({"EQUIPO":r.id,"ESTADO":r.estado}));
+        renderMini(`Equipos ${filtro}: ${rows.length}`, rows, ["EQUIPO","ESTADO"], EQ_META);
       }catch(e){ logErr("consultarMaquinas", e); agregarMensaje("system","Error de red en equipos."); }
     }
 
@@ -1168,8 +1159,8 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
         }catch(e){ logErr("validar alq net", e); agregarMensaje("system","Error de red."); flujoActual=null; return; }
         flujoActual.esperando="maquina_id";
         try{
-          const { data } = await sb.from("maquinas").select("id,marca,modelo").eq("empresa_id",empresa_id).eq("estado","disponible").limit(20);
-          renderMini("Equipos disponibles", data||[], ["id","marca","modelo"]);
+          const { data } = await sb.from("maquinas").select("id,estado").eq("empresa_id",empresa_id).eq("estado","disponible").limit(20);
+          renderMini("Equipos disponibles", (data||[]).map(r=>({"EQUIPO":r.id,"ESTADO":r.estado})), ["EQUIPO","ESTADO"], EQ_META);
         }catch(e){ logErr("listar maq disp2", e); }
         agregarMensaje("bot","¿Cuál es el ID del equipo a asignar?");
         return;
@@ -1198,11 +1189,21 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
       return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
     }
 
-    function renderMini(titulo, rows, cols){
-      if(!rows||!rows.length){ agregarMensaje("bot",`${esc(titulo)}
-Sin resultados.`,true); return; }
-      const head = cols.map(c=>`<th>${esc(c)}</th>`).join("");
-      const body = rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r&&r[c]!==undefined&&r[c]!==null?r[c]:"")}</td>`).join("")}</tr>`).join("");
+    const ESTADO_COLOR = {disponible:"#22c55e",trabajando:"#60a5fa",varada:"#ef4444",alistamiento:"#f59e0b",devolucion:"#fb923c"};
+    const EQ_META = {"EQUIPO":{width:"55%",fontWeight:"700",color:"#60a5fa"},"ESTADO":{width:"45%",colorMap:ESTADO_COLOR}};
+
+    function renderMini(titulo, rows, cols, colMeta){
+      if(!rows||!rows.length){ agregarMensaje("bot",`${esc(titulo)}\nSin resultados.`,true); return; }
+      const meta = colMeta||{};
+      const head = cols.map(c=>{ const m=meta[c]||{}; return `<th${m.width?` style="width:${m.width}"`:""}>${esc(c)}</th>`; }).join("");
+      const body = rows.map(r=>`<tr>${cols.map(c=>{
+        const m=meta[c]||{};
+        const val=r&&r[c]!=null?r[c]:"";
+        const color=m.colorMap?(m.colorMap[val]||""):(m.color||"");
+        const fw=m.fontWeight?`font-weight:${m.fontWeight};`:"";
+        const st=(color||fw)?` style="${fw}${color?`color:${color}`:""}"` :"";
+        return `<td${st}>${esc(val)}</td>`;
+      }).join("")}</tr>`).join("");
       agregarMensaje("bot",`<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:#7eb3ff">${esc(titulo)}</div><div class="mini-table-wrap"><table class="mini-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`,true);
     }
 
