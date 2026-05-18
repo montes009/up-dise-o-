@@ -1031,43 +1031,85 @@ Total: $${fmt(Number(d.precio)*Number(d.dias))}`);
 
     async function consultarFinanzas(){
       try{
-        const desde = new Date(Date.now()-90*86400000).toISOString().slice(0,10);
-        // Fuente: alquileres_ops (precio_dia * dias + transporte)
-        // fecha_inicio es text en formato YYYY-MM-DD — comparación string funciona
-        const { data, error } = await sb.from("alquileres_ops")
-          .select("id,precio_dia,dias,transporte,estado,cliente,fecha_inicio")
-          .eq("empresa_id",empresa_id)
-          .in("estado",["activo","finalizado","devolucion"])
-          .gte("fecha_inicio", desde)
-          .order("fecha_inicio",{ascending:false})
-          .limit(500);
-        if(error){ console.error("[ALCON][Supabase] finanzas:", error); return agregarMensaje("system","No pude consultar finanzas."); }
+        const hoy = new Date();
+        const inicioMesActual   = new Date(hoy.getFullYear(), hoy.getMonth(),   1).toISOString().slice(0,10);
+        const inicioMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth()-1, 1).toISOString().slice(0,10);
+        const finMesAnterior    = new Date(hoy.getFullYear(), hoy.getMonth(),   0).toISOString().slice(0,10);
 
-        const alquileres     = data||[];
-        const totalIngresos  = alquileres.reduce((sum,a)=>{
-          return sum + (parseFloat(a.precio_dia)||0)*(parseInt(a.dias)||0) + (parseFloat(a.transporte)||0);
-        },0);
-        const activos        = alquileres.filter(a=>a.estado==="activo").length;
-        const finalizados    = alquileres.filter(a=>a.estado==="finalizado").length;
-        const ticketPromedio = alquileres.length ? totalIngresos/alquileres.length : 0;
+        const [r1, r2, r3] = await Promise.all([
+          sb.from("alquileres_ops")
+            .select("precio_dia,dias,valor_transporte,fecha_fin_calc,estado")
+            .eq("empresa_id", empresa_id)
+            .in("estado", ["activo","finalizado","devolucion"])
+            .gte("fecha_inicio", inicioMesActual),
+          sb.from("alquileres_ops")
+            .select("precio_dia,dias,valor_transporte")
+            .eq("empresa_id", empresa_id)
+            .in("estado", ["activo","finalizado","devolucion"])
+            .gte("fecha_inicio", inicioMesAnterior)
+            .lte("fecha_inicio", finMesAnterior),
+          sb.from("alquileres_ops")
+            .select("precio_dia,dias,fecha_inicio,fecha_fin_calc")
+            .eq("empresa_id", empresa_id)
+            .eq("estado", "activo")
+        ]);
 
-        const html = `
-<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:#7eb3ff">💰 Finanzas — últimos 90 días</div>
-<div class="mini-table-wrap"><table class="mini-table">
-  <thead><tr><th>INGRESOS ALQUILERES</th><th>TICKET PROMEDIO</th></tr></thead>
-  <tbody>
-    <tr>
-      <td style="font-size:14px;font-weight:700;color:#34c77b">$ ${fmt(totalIngresos)}</td>
-      <td style="font-size:14px;font-weight:700;color:#7eb3ff">$ ${fmt(Math.round(ticketPromedio))}</td>
-    </tr>
-    <tr><th>ALQUILERES ACTIVOS</th><th>FINALIZADOS</th></tr>
-    <tr>
-      <td style="font-size:14px;font-weight:700">${activos}</td>
-      <td style="font-size:14px;font-weight:700">${finalizados}</td>
-    </tr>
-  </tbody>
-</table></div>
-<div style="font-size:11px;color:var(--muted);margin-top:6px">Total: ${alquileres.length} alquiler${alquileres.length!==1?"es":""} en el período · Fuente: alquileres_ops</div>`;
+        if(r1.error) console.error("[finanzas] mesActual:", r1.error);
+        if(r2.error) console.error("[finanzas] mesAnterior:", r2.error);
+        if(r3.error) console.error("[finanzas] activos:", r3.error);
+
+        const mesActual   = r1.data || [];
+        const mesAnterior = r2.data || [];
+        const activos     = r3.data || [];
+
+        const ingresoActual   = mesActual.reduce((s,a)=>s+(parseFloat(a.precio_dia)||0)*(parseInt(a.dias)||0)+(parseFloat(a.valor_transporte)||0), 0);
+        const ingresoAnterior = mesAnterior.reduce((s,a)=>s+(parseFloat(a.precio_dia)||0)*(parseInt(a.dias)||0)+(parseFloat(a.valor_transporte)||0), 0);
+
+        const variacionNum  = ingresoAnterior > 0 ? ((ingresoActual - ingresoAnterior) / ingresoAnterior * 100) : null;
+        const variacion     = variacionNum !== null ? variacionNum.toFixed(1) : null;
+        const tendencia     = variacion > 0 ? "▲" : variacion < 0 ? "▼" : "—";
+        const colorTendencia= variacion > 0 ? "#22c55e" : variacion < 0 ? "#ef4444" : "#94a3b8";
+
+        const valorEnCalle = activos.reduce((s,a)=>s+(parseFloat(a.precio_dia)||0)*(parseInt(a.dias)||0), 0);
+        const proyeccion   = ingresoActual + valorEnCalle;
+
+        const diasMes          = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0).getDate();
+        const diasTranscurridos= hoy.getDate();
+        const diasRestantes    = diasMes - diasTranscurridos;
+
+        const mesLabel = hoy.toLocaleDateString("es-CO", {month:"long", year:"numeric"});
+
+        const html = `<div style="background:#1e293b;border-radius:10px;padding:16px;font-size:12px;color:#e2e8f0;width:100%;box-sizing:border-box">
+  <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:#f59e0b">💰 Finanzas — ${mesLabel}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+    <div style="background:#0f172a;border-radius:8px;padding:10px">
+      <div style="color:#94a3b8;font-size:9px;text-transform:uppercase;letter-spacing:1px">MES ACTUAL</div>
+      <div style="color:#22c55e;font-weight:800;font-size:16px;margin-top:2px">${fmt(Math.round(ingresoActual))}</div>
+      ${variacion !== null ? `<div style="color:${colorTendencia};font-size:10px;margin-top:2px">${tendencia} ${Math.abs(variacion)}% vs mes anterior</div>` : ""}
+    </div>
+    <div style="background:#0f172a;border-radius:8px;padding:10px">
+      <div style="color:#94a3b8;font-size:9px;text-transform:uppercase;letter-spacing:1px">MES ANTERIOR</div>
+      <div style="color:#60a5fa;font-weight:800;font-size:16px;margin-top:2px">${fmt(Math.round(ingresoAnterior))}</div>
+      <div style="color:#475569;font-size:10px;margin-top:2px">${mesAnterior.length} alquileres</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+    <div style="background:#0f172a;border-radius:8px;padding:10px">
+      <div style="color:#94a3b8;font-size:9px;text-transform:uppercase;letter-spacing:1px">PROYECCIÓN MES</div>
+      <div style="color:#a78bfa;font-weight:800;font-size:16px;margin-top:2px">${fmt(Math.round(proyeccion))}</div>
+      <div style="color:#475569;font-size:10px;margin-top:2px">${diasRestantes} días restantes</div>
+    </div>
+    <div style="background:#0f172a;border-radius:8px;padding:10px">
+      <div style="color:#94a3b8;font-size:9px;text-transform:uppercase;letter-spacing:1px">VALOR EN CALLE</div>
+      <div style="color:#f59e0b;font-weight:800;font-size:16px;margin-top:2px">${fmt(Math.round(valorEnCalle))}</div>
+      <div style="color:#475569;font-size:10px;margin-top:2px">${activos.length} equipos activos</div>
+    </div>
+  </div>
+  <div style="background:#0f172a;border-radius:8px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center">
+    <span style="color:#475569;font-size:10px">Alquileres este mes: <strong style="color:#e2e8f0">${mesActual.length}</strong></span>
+    <span style="color:#475569;font-size:10px">Día ${diasTranscurridos} de ${diasMes}</span>
+  </div>
+</div>`;
 
         agregarMensaje("bot", html, true);
       }catch(e){ logErr("consultarFinanzas", e); agregarMensaje("system","Error de red en finanzas."); }
